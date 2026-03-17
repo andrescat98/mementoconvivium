@@ -1,0 +1,206 @@
+---
+---
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <span class="logo-ornament">✦</span>
+      <span class="logo-text">
+        Memento<br /><em>Convivium</em>
+      </span>
+      <span class="logo-ornament">✦</span>
+    </a>
+
+    <nav class="nav" id="mainNav">
+      <a href="/#eventi">Eventi</a>
+      <a href="/#come-funziona">Come funziona</a>
+      <a href="/#prenota" class="nav-cta">Prenota</a>
+    </nav>
+
+    <button class="nav-toggle" aria-label="Apri menu" aria-expanded="false" id="navToggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+  <div class="greek-border"></div>
+</header>
+
+<script>
+  const toggle = document.getElementById('navToggle');
+  const nav = document.getElementById('mainNav');
+
+  toggle?.addEventListener('click', () => {
+    const isOpen = nav?.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', String(isOpen));
+    toggle.classList.toggle('active');
+  });
+
+  // chiudi nav al click su un link (mobile)
+  nav?.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      nav.classList.remove('open');
+      toggle?.classList.remove('active');
+      toggle?.setAttribute('aria-expanded', 'false');
+    });
+  });
+</script>
+
+<style>
+  .site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(14, 13, 11, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.2rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Logo */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--cream);
+  }
+
+  .logo-ornament {
+    color: var(--gold);
+    font-size: 0.7rem;
+    opacity: 0.8;
+  }
+
+  .logo-text {
+    font-family: var(--font-title);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .logo-text em {
+    font-style: italic;
+    font-family: var(--font-body);
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--gold-light);
+    font-size: 1.05em;
+  }
+
+  /* Nav */
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+  }
+
+  .nav a {
+    font-family: var(--font-title);
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    text-decoration: none;
+    transition: color 0.3s;
+    position: relative;
+  }
+
+  .nav a::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transition: transform 0.3s var(--ease-out);
+    transform-origin: left;
+  }
+
+  .nav a:hover {
+    color: var(--gold-light);
+  }
+
+  .nav a:hover::after {
+    transform: scaleX(1);
+  }
+
+  .nav-cta {
+    border: 1px solid var(--border-s) !important;
+    padding: 0.5rem 1.2rem;
+    color: var(--gold) !important;
+    transition: background 0.3s, color 0.3s !important;
+  }
+
+  .nav-cta:hover {
+    background: var(--gold) !important;
+    color: var(--bg) !important;
+  }
+
+  .nav-cta::after {
+    display: none !important;
+  }
+
+  /* Hamburger */
+  .nav-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .nav-toggle span {
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--gold);
+    transition: transform 0.3s, opacity 0.3s;
+  }
+
+  .nav-toggle.active span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .nav-toggle.active span:nth-child(2) { opacity: 0; }
+  .nav-toggle.active span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .nav {
+      position: fixed;
+      top: 70px;
+      left: 0;
+      right: 0;
+      background: rgba(14, 13, 11, 0.98);
+      flex-direction: column;
+      padding: 2rem;
+      gap: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      transform: translateY(-110%);
+      transition: transform 0.4s var(--ease-out);
+    }
+
+    .nav.open {
+      transform: translateY(0);
+    }
+
+    .nav-toggle {
+      display: flex;
+    }
+  }
+</style>
