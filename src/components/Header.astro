@@ -12,8 +12,8 @@
     </a>
 
     <nav class="nav" id="mainNav">
-      <a href="/#eventi">Eventi</a>
       <a href="/#come-funziona">Come funziona</a>
+      <a href="/#eventi">Eventi</a>
       <a href="/#prenota" class="nav-cta">Prenota</a>
     </nav>
 
@@ -182,21 +182,23 @@
   /* Mobile */
   @media (max-width: 768px) {
     .nav {
-      position: fixed;
+      position: absolute;
       top: 70px;
-      left: 0;
       right: 0;
+      width: min(280px, calc(100% - 2rem));
+      z-index: 99;
       background: rgba(14, 13, 11, 0.98);
       flex-direction: column;
-      padding: 2rem;
+      align-items: flex-start;
+      padding: 2rem 1.5rem 2rem 2rem;
       gap: 1.5rem;
       border-bottom: 1px solid var(--border);
-      transform: translateY(-110%);
+      transform: translateX(180%);
       transition: transform 0.4s var(--ease-out);
     }
 
     .nav.open {
-      transform: translateY(0);
+      transform: translateX(0);
     }
 
     .nav-toggle {
