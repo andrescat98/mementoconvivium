@@ -1,5 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400&display=swap');
 
+@font-face {
+  font-family: 'Jack Pirate';
+  src: url('/fonts/JackPirate_PERSONAL_USE_ONLY.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Felix Titling';
+  src: url('/fonts/FelixTitling-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ─── VARIABLES ─────────────────────────────────────────── */
 :root {
   --bg:         #0e0d0b;
@@ -17,6 +33,8 @@
   --font-display: 'Cinzel Decorative', serif;
   --font-title:   'Cinzel', serif;
   --font-body:    'Cormorant Garamond', serif;
+  --font-jack:    'Jack Pirate', cursive;
+  --font-logo:    'Cinzel Decorative', 'Felix Titling', serif;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
