@@ -32,17 +32,14 @@ const {
     featured,
 } = evento.data;
 
-const statusLabel: Record<string, string> = {
-    aperto: "Prenota ora",
-    "lista-attesa": "Lista d'attesa",
-    "coming-soon": "Coming soon",
-};
+const statusLabel =
+    status === "aperto"
+        ? "Prenota ora"
+        : status === "lista-attesa"
+          ? "Lista d'attesa"
+          : "Coming soon";
 
-const statusClass: Record<string, string> = {
-    aperto: "btn-primary",
-    "lista-attesa": "btn-ghost",
-    "coming-soon": "btn-ghost",
-};
+const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
 ---
 
 <Layout
