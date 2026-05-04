@@ -1,0 +1,24 @@
+---
+import { getCollection } from "astro:content";
+
+// Trova l'evento featured, altrimenti il primo in ordine di data
+const eventi = await getCollection("eventi");
+const featured =
+    eventi.find((e: (typeof eventi)[0]) => e.data.featured) ?? eventi[0];
+
+// Redirect lato server (build statica → meta refresh + JS)
+const slug = featured.id;
+---
+
+<!doctype html>
+<html lang="it">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content={`0; url=/eventi/${slug}`} />
+        <title>Redirecting…</title>
+        <script define:vars={{ slug }}>
+            window.location.replace("/eventi/" + slug);
+        </script>
+    </head>
+    <body></body>
+</html>
