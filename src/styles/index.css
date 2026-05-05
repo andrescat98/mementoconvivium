@@ -140,16 +140,16 @@
     width: 1.4rem;
     height: 1.4rem;
     flex-shrink: 0;
-    transform: rotate(-35deg);
+    transform: rotate(-35deg) translateX(-4px);
     transition:
-        transform 0.3s,
+        transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
         color 0.3s;
     color: #ffffff;
 }
 
 .hero-cta:hover svg {
     color: #000000;
-    transform: rotate(-35deg) translateY(-2px);
+    transform: rotate(35deg) translateX(4px);
 }
 
 /* desktop: sale di -12em come richiesto */
