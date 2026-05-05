@@ -428,6 +428,29 @@
     color: var(--gold-dim);
 }
 
+.event-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+.event-detail-link {
+    font-family: var(--font-title);
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.event-detail-link:hover {
+    color: var(--gold);
+}
+
 /* ── Prenota ────────────────────── */
 .prenota {
     border-top: 1px solid var(--border);

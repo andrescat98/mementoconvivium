@@ -2,6 +2,7 @@
 title: "Le Idi di Marzo"
 theme: "Roma · I sec. a.C."
 date: "TBA 2026"
+dateISO: null
 guests: "15 - 24 persone"
 duration: "5 ore"
 excerpt: "La notte prima delle Idi. Cesare è ancora vivo — per ora. Pugnali nascosti, giuramenti infranti e un destino già scritto."

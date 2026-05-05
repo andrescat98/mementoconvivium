@@ -2,6 +2,7 @@
 title: "Il Simposio di Atene"
 theme: "Grecia · V sec. a.C."
 date: "7 Giugno 2026"
+dateISO: "2026-06-07"
 guests: "10 - 18 persone"
 duration: "4 ore"
 excerpt: "Un filosofo trovato senza vita dopo una notte di discorsi e vino. Socrate aveva ragione: la conoscenza può essere pericolosa."

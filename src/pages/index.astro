@@ -1,215 +1,229 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import '../styles/index.css';
+import { getCollection } from "astro:content";
+import Layout from "../layouts/Layout.astro";
+import "../styles/index.css";
+
+// Carica tutti gli eventi e li ordina: prima quelli con data (crescente), poi TBA
+const tuttiEventi = await getCollection("eventi");
+const eventi = tuttiEventi.sort((a, b) => {
+    const aISO = a.data.dateISO;
+    const bISO = b.data.dateISO;
+    if (aISO && bISO) return aISO.localeCompare(bISO);
+    if (aISO) return -1; // con data viene prima
+    if (bISO) return 1;
+    return 0;
+});
+
+// "Prossimo" = primo evento con dateISO >= oggi, oppure il primo featured
+const oggi = new Date().toISOString().slice(0, 10);
+const prossimo =
+    eventi.find((e) => e.data.dateISO && e.data.dateISO >= oggi) ??
+    eventi.find((e) => e.data.featured) ??
+    eventi[0];
+
+const statusLabel: Record<string, string> = {
+    aperto: "Prenota ora",
+    "lista-attesa": "Lista d'attesa",
+    "coming-soon": "Coming soon",
+};
 ---
 
-<Layout
-  title="Memento Convivium"
-  description="Cene con Delitto a Tema Storico"
->
-  <!-- HERO -->
-<section class="hero">
-  <div class="hero-vignette" aria-hidden="true"></div>
-  <div class="hero-content">
-    <!-- Logo animato: prima M, poi Memento Convivium -->
-    <div class="hero-logo animate" style="--d:0.2s">
-      <span class="logo-m">M</span>
-      <span class="logo-full">Memento Convivium</span>
-    </div>
-
-    <!-- CTA: appare in coda all'animazione -->
-    <a href="/eventi/ultimo" class="hero-cta">
-      <svg width="20px" height="20x" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#000" d="M43.53 15.75c-15.73 0-28.31 12.583-28.31 28.313 0 14.086 10.092 25.644 23.5 27.906L42.687 68 68.81 41.906l2.626-2.625C69.188 25.86 57.63 15.75 43.53 15.75zm33.72 44.125l-17 17c15.885 39.37 43.45 66.684 78.75 87.406 8.167-8.585 16.65-16.898 25.438-24.936-22.488-35.103-51.535-62.294-87.188-79.47zM322.594 79.03l-51.25 4.314c-79.356 48.134-143.878 108.1-186.72 186.53l-4.31 51.47 44.155-18.656-2.94-34.094-.25-3.063 1.626-2.624c35.94-58.47 79.93-109.41 141.5-141.25l2.406-1.25 2.688.25 34.125 2.906 18.97-44.53zm-62.438 66.376c-10.008 5.886-19.5 12.338-28.562 19.313 46.688 47.93 87.208 108.588 114.72 166.5l11.248 23.717-23.718-11.28c-57.995-27.554-117.918-67.57-165.688-113.907-7.155 9.404-14.028 19.174-20.625 29.28 101.918 94.91 227.05 177.304 347.845 234.69-57.063-120.125-140.038-246.18-235.22-348.314zm-43.03 31.22c-13.37 11.703-25.72 24.58-37.282 38.436 39.36 38.452 88.085 72.83 136.687 98.844-26.054-48.633-60.754-97.847-99.405-137.28z"/></svg>
-      Partecipa al prossimo evento
-    </a>
-  </div>
-</section>
-
-  <!-- INTRO QUOTE -->
-  <section class="quote-section">
-    <div class="container">
-      <blockquote class="quote">
-        <span class="quote-mark">"</span>
-        <p>
-          In convivio loquere et de absente ne loquare.<br />
-          <em>A banchetto parla, ma non parlare di chi è assente.</em>
-        </p>
-        <cite>— Publio Siro, Sententiae</cite>
-      </blockquote>
-    </div>
-  </section>
-
-  <!-- COME FUNZIONA -->
-  <section class="section come-funziona" id="come-funziona">
-    <div class="container">
-      <div class="section-header">
-        <span class="section-label">Il rituale</span>
-        <h2>Come funziona</h2>
-        <div class="divider"><span>⬥</span></div>
-      </div>
-
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">I</div>
-          <div class="step-body">
-            <h3>Scegli il tuo ruolo</h3>
-            <p>
-              Prenota il tuo posto e ricevi per e-mail la scheda del tuo
-              personaggio storico: nome, famiglia, segreti e movente.
-            </p>
-          </div>
+<Layout title="Memento Convivium" description="Cene con Delitto a Tema Storico">
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-vignette" aria-hidden="true"></div>
+        <div class="hero-content">
+            <div class="hero-logo animate" style="--d:0.2s">
+                <span class="logo-m">M</span>
+                <span class="logo-full">Memento Convivium</span>
+            </div>
+            <a href={`/eventi/${prossimo.id}`} class="hero-cta">
+                <svg
+                    width="20px"
+                    height="20px"
+                    viewBox="0 0 512 512"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+                    <path
+                        fill="#000"
+                        d="M43.53 15.75c-15.73 0-28.31 12.583-28.31 28.313 0 14.086 10.092 25.644 23.5 27.906L42.687 68 68.81 41.906l2.626-2.625C69.188 25.86 57.63 15.75 43.53 15.75zm33.72 44.125l-17 17c15.885 39.37 43.45 66.684 78.75 87.406 8.167-8.585 16.65-16.898 25.438-24.936-22.488-35.103-51.535-62.294-87.188-79.47zM322.594 79.03l-51.25 4.314c-79.356 48.134-143.878 108.1-186.72 186.53l-4.31 51.47 44.155-18.656-2.94-34.094-.25-3.063 1.626-2.624c35.94-58.47 79.93-109.41 141.5-141.25l2.406-1.25 2.688.25 34.125 2.906 18.97-44.53zm-62.438 66.376c-10.008 5.886-19.5 12.338-28.562 19.313 46.688 47.93 87.208 108.588 114.72 166.5l11.248 23.717-23.718-11.28c-57.995-27.554-117.918-67.57-165.688-113.907-7.155 9.404-14.028 19.174-20.625 29.28 101.918 94.91 227.05 177.304 347.845 234.69-57.063-120.125-140.038-246.18-235.22-348.314zm-43.03 31.22c-13.37 11.703-25.72 24.58-37.282 38.436 39.36 38.452 88.085 72.83 136.687 98.844-26.054-48.633-60.754-97.847-99.405-137.28z"
+                    ></path>
+                </svg>
+                Partecipa al prossimo evento
+            </a>
         </div>
+    </section>
 
-        <div class="step-connector">
-          <div class="connector-line"></div>
-          <span class="connector-gem">◆</span>
-          <div class="connector-line"></div>
+    <!-- INTRO QUOTE -->
+    <section class="quote-section">
+        <div class="container">
+            <blockquote class="quote">
+                <span class="quote-mark">"</span>
+                <p>
+                    In convivio loquere et de absente ne loquare.<br />
+                    <em>A banchetto parla, ma non parlare di chi è assente.</em>
+                </p>
+                <cite>— Publio Siro, Sententiae</cite>
+            </blockquote>
         </div>
+    </section>
 
-        <div class="step">
-          <div class="step-num">II</div>
-          <div class="step-body">
-            <h3>Il banchetto inizia</h3>
-            <p>
-              Vesti i panni del tuo personaggio. Parla, inganna, alleati.
-              La cena è servita in tre portate — una per atto.
-            </p>
-          </div>
+    <!-- COME FUNZIONA -->
+    <section class="section come-funziona" id="come-funziona">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Il rituale</span>
+                <h2>Come funziona</h2>
+                <div class="divider"><span>⬥</span></div>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">I</div>
+                    <div class="step-body">
+                        <h3>Scegli il tuo ruolo</h3>
+                        <p>
+                            Prenota il tuo posto e ricevi per e-mail la scheda
+                            del tuo personaggio storico: nome, famiglia, segreti
+                            e movente.
+                        </p>
+                    </div>
+                </div>
+                <div class="step-connector">
+                    <div class="connector-line"></div>
+                    <span class="connector-gem">◆</span>
+                    <div class="connector-line"></div>
+                </div>
+                <div class="step">
+                    <div class="step-num">II</div>
+                    <div class="step-body">
+                        <h3>Il banchetto inizia</h3>
+                        <p>
+                            Vesti i panni del tuo personaggio. Parla, inganna,
+                            alleati. La cena è servita in tre portate — una per
+                            atto.
+                        </p>
+                    </div>
+                </div>
+                <div class="step-connector">
+                    <div class="connector-line"></div>
+                    <span class="connector-gem">◆</span>
+                    <div class="connector-line"></div>
+                </div>
+                <div class="step">
+                    <div class="step-num">III</div>
+                    <div class="step-body">
+                        <h3>Il delitto è compiuto</h3>
+                        <p>
+                            Qualcuno cade. Indagini, accuse, rivelazioni. Alla
+                            fine della serata si scopre la verità — e chi l'ha
+                            nascosta.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
+    </section>
 
-        <div class="step-connector">
-          <div class="connector-line"></div>
-          <span class="connector-gem">◆</span>
-          <div class="connector-line"></div>
+    <!-- EVENTI -->
+    <section class="section eventi" id="eventi">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Prossimi appuntamenti</span>
+                <h2>Gli eventi</h2>
+                <div class="divider"><span>⬥</span></div>
+            </div>
+
+            <div class="events-grid">
+                {
+                    eventi.map((evento, i) => {
+                        const isProssimo = evento.id === prossimo.id;
+                        const label =
+                            statusLabel[evento.data.status] ?? "Scopri di più";
+                        const btnClass =
+                            evento.data.status === "aperto"
+                                ? "btn-primary"
+                                : "btn-ghost";
+                        return (
+                            <article
+                                class={`event-card${isProssimo ? " featured" : ""}`}
+                            >
+                                {isProssimo && (
+                                    <div class="event-tag">Prossimo</div>
+                                )}
+                                <div class="event-theme">
+                                    {evento.data.theme}
+                                </div>
+                                <h3 class="event-title">{evento.data.title}</h3>
+                                <p class="event-desc">{evento.data.excerpt}</p>
+                                <div class="event-meta">
+                                    <div class="event-info">
+                                        <span class="meta-label">Data</span>
+                                        <span>{evento.data.date}</span>
+                                    </div>
+                                    <div class="event-info">
+                                        <span class="meta-label">Ospiti</span>
+                                        <span>{evento.data.guests}</span>
+                                    </div>
+                                    <div class="event-info">
+                                        <span class="meta-label">Durata</span>
+                                        <span>{evento.data.duration}</span>
+                                    </div>
+                                </div>
+                                <div class="event-card-actions">
+                                    <a
+                                        href={`/eventi/${evento.id}`}
+                                        class={btnClass}
+                                    >
+                                        {label}
+                                    </a>
+                                    <a
+                                        href={`/eventi/${evento.id}`}
+                                        class="event-detail-link"
+                                    >
+                                        Scopri la storia →
+                                    </a>
+                                </div>
+                            </article>
+                        );
+                    })
+                }
+            </div>
         </div>
+    </section>
 
-        <div class="step">
-          <div class="step-num">III</div>
-          <div class="step-body">
-            <h3>Il delitto è compiuto</h3>
-            <p>
-              Qualcuno cade. Indagini, accuse, rivelazioni. Alla fine
-              della serata si scopre la verità — e chi l'ha nascosta.
-            </p>
-          </div>
+    <!-- CTA PRENOTA -->
+    <section class="section prenota" id="prenota">
+        <div class="container">
+            <div class="prenota-inner">
+                <div class="prenota-ornament">
+                    <span>✦</span>
+                    <div class="orn-line"></div>
+                    <span>✦</span>
+                </div>
+                <span class="section-label">Partecipa</span>
+                <h2>Sei pronto a sederti al banchetto?</h2>
+                <p>
+                    Scrivi per prenotare il tuo posto o richiedere informazioni.<br
+                    />
+                    Ogni evento è a numero chiuso.
+                </p>
+                <a
+                    href="mailto:info@mementoconvivium.it"
+                    class="btn-primary btn-large"
+                >
+                    Contattaci
+                </a>
+                <p class="prenota-note">
+                    Oppure scrivici su <a href="https://instagram.com"
+                        >Instagram</a
+                    >
+                </p>
+                <div class="prenota-ornament">
+                    <span>✦</span>
+                    <div class="orn-line"></div>
+                    <span>✦</span>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- EVENTI -->
-  <section class="section eventi" id="eventi">
-    <div class="container">
-      <div class="section-header">
-        <span class="section-label">Prossimi appuntamenti</span>
-        <h2>Gli eventi</h2>
-        <div class="divider"><span>⬥</span></div>
-      </div>
-
-      <div class="events-grid">
-        <article class="event-card featured">
-          <div class="event-tag">Prossimo</div>
-          <div class="event-theme">Roma · I sec. d.C.</div>
-          <h3 class="event-title">La Morte di Lucullus</h3>
-          <p class="event-desc">
-            Il ricco generale Lucullo è stato trovato morto nel suo triclinium.
-            Tra schiavi, senatori e cortigiane, chi ha versato il veleno?
-          </p>
-          <div class="event-meta">
-            <div class="event-info">
-              <span class="meta-label">Data</span>
-              <span>12 Aprile 2026</span>
-            </div>
-            <div class="event-info">
-              <span class="meta-label">Ospiti</span>
-              <span>12 - 20 persone</span>
-            </div>
-            <div class="event-info">
-              <span class="meta-label">Durata</span>
-              <span>4 ore</span>
-            </div>
-          </div>
-          <a href="#prenota" class="btn-primary">Prenota ora</a>
-        </article>
-
-        <article class="event-card">
-          <div class="event-theme">Grecia · V sec. a.C.</div>
-          <h3 class="event-title">Il Simposio di Atene</h3>
-          <p class="event-desc">
-            Un filosofo trovato senza vita dopo una notte di discorsi e vino.
-            Socrate aveva ragione: la conoscenza può essere pericolosa.
-          </p>
-          <div class="event-meta">
-            <div class="event-info">
-              <span class="meta-label">Data</span>
-              <span>7 Giugno 2026</span>
-            </div>
-            <div class="event-info">
-              <span class="meta-label">Ospiti</span>
-              <span>10 - 18 persone</span>
-            </div>
-            <div class="event-info">
-              <span class="meta-label">Durata</span>
-              <span>4 ore</span>
-            </div>
-          </div>
-          <a href="#prenota" class="btn-ghost">Scopri di più</a>
-        </article>
-
-        <article class="event-card">
-          <div class="event-theme">Roma · I sec. a.C.</div>
-          <h3 class="event-title">Le Idi di Marzo</h3>
-          <p class="event-desc">
-            La notte prima delle Idi. Cesare è ancora vivo — per ora.
-            Pugnali nascosti, giuramenti infranti e un destino già scritto.
-          </p>
-          <div class="event-meta">
-            <div class="event-info">
-              <span class="meta-label">Data</span>
-              <span>TBA 2026</span>
-            </div>
-            <div class="event-info">
-              <span class="meta-label">Ospiti</span>
-              <span>15 - 24 persone</span>
-            </div>
-            <div class="event-info">
-              <span class="meta-label">Durata</span>
-              <span>5 ore</span>
-            </div>
-          </div>
-          <a href="#prenota" class="btn-ghost">Lista d'attesa</a>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA PRENOTA -->
-  <section class="section prenota" id="prenota">
-    <div class="container">
-      <div class="prenota-inner">
-        <div class="prenota-ornament">
-          <span>✦</span>
-          <div class="orn-line"></div>
-          <span>✦</span>
-        </div>
-        <span class="section-label">Partecipa</span>
-        <h2>Sei pronto a sederti al banchetto?</h2>
-        <p>
-          Scrivi per prenotare il tuo posto o richiedere informazioni.<br />
-          Ogni evento è a numero chiuso.
-        </p>
-        <a href="mailto:info@mementoconvivium.it" class="btn-primary btn-large">
-          Contattaci
-        </a>
-        <p class="prenota-note">
-          Oppure scrivici su <a href="https://instagram.com">Instagram</a>
-        </p>
-        <div class="prenota-ornament">
-          <span>✦</span>
-          <div class="orn-line"></div>
-          <span>✦</span>
-        </div>
-      </div>
-    </div>
-  </section>
+    </section>
 </Layout>

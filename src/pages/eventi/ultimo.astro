@@ -1,13 +1,26 @@
 ---
 import { getCollection } from "astro:content";
 
-// Trova l'evento featured, altrimenti il primo in ordine di data
-const eventi = await getCollection("eventi");
-const featured =
-    eventi.find((e: (typeof eventi)[0]) => e.data.featured) ?? eventi[0];
+const tuttiEventi = await getCollection("eventi");
+const oggi = new Date().toISOString().slice(0, 10);
 
-// Redirect lato server (build statica → meta refresh + JS)
-const slug = featured.id;
+// Ordina per data crescente (TBA in fondo)
+const eventi = tuttiEventi.sort((a, b) => {
+    const aISO = a.data.dateISO;
+    const bISO = b.data.dateISO;
+    if (aISO && bISO) return aISO.localeCompare(bISO);
+    if (aISO) return -1;
+    if (bISO) return 1;
+    return 0;
+});
+
+// Prossimo = primo con data futura, poi featured, poi primo in lista
+const prossimo =
+    eventi.find((e) => e.data.dateISO && e.data.dateISO >= oggi) ??
+    eventi.find((e) => e.data.featured) ??
+    eventi[0];
+
+const slug = prossimo.id;
 ---
 
 <!doctype html>

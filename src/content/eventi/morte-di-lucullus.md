@@ -2,6 +2,7 @@
 title: "La Morte di Lucullus"
 theme: "Roma · I sec. d.C."
 date: "12 Aprile 2026"
+dateISO: "2026-04-12"
 guests: "12 - 20 persone"
 duration: "4 ore"
 excerpt: "Il ricco generale Lucullo è stato trovato morto nel suo triclinium. Tra schiavi, senatori e cortigiane, chi ha versato il veleno?"
