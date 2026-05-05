@@ -24,7 +24,6 @@ const {
         <title>{title}</title>
     </head>
     <body>
-        <div class="grain" aria-hidden="true"></div>
         <Header />
         <main>
             <slot />
@@ -35,30 +34,35 @@ const {
 
 <style is:global>
     :root {
-        /* ── Backgrounds ── */
-        --bg: #f5f0e8;
-        --bg-2: #ede7d9;
-        --bg-card: #faf6ef;
+        /* ── Backgrounds (marmo bianco) ── */
+        --bg: #f5f2ec;
+        --bg-2: rgba(240, 237, 230, 0.55);
+        --bg-card: rgba(248, 246, 241, 0.6);
 
-        /* ── Gold accents ── */
-        --gold: #8b6914;
-        --gold-light: #b8891c;
-        --gold-dim: #c4a76b;
+        /* ── Ivory (accento primario) ── */
+        --ivory: #f4f0e8;
+        --ivory-dim: #d6cfc4;
+        --ivory-faint: #b0a99f;
+
+        /* ── Gold → rimappato su grafite/nero per questo tema ── */
+        --gold: #1a1a1a;
+        --gold-light: #3d3d3d;
+        --gold-dim: #7a7a7a;
 
         /* ── Text ── */
-        --cream: #2e2416;
-        --cream-dim: #6b5840;
-        --white: #1a1208;
+        --cream: #111111;
+        --cream-dim: #555555;
+        --white: #000000;
 
-        /* ── Header ── */
-        --bg-header: rgba(46, 36, 22, 0.94);
-        --bg-header-mob: rgba(46, 36, 22, 0.99);
-        --header-text: #f5ede0;
-        --header-text-dim: #c9b99a;
+        /* ── Header (avorio su grafite scuro) ── */
+        --bg-header: rgba(28, 26, 24, 0.95);
+        --bg-header-mob: rgba(28, 26, 24, 0.99);
+        --header-text: #f4f0e8;
+        --header-text-dim: #b0a99f;
 
         /* ── Borders ── */
-        --border: rgba(139, 105, 20, 0.2);
-        --border-strong: rgba(139, 105, 20, 0.45);
+        --border: rgba(0, 0, 0, 0.12);
+        --border-strong: rgba(0, 0, 0, 0.35);
 
         /* ── Typography ── */
         --font-display: "Cinzel Decorative", serif;
@@ -68,6 +72,18 @@ const {
         --font-logo: "Cinzel Decorative", "Felix Titling", serif;
 
         --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+        /* ── Vignette (hero) ── */
+        --vignette-edge: rgba(247, 244, 239, 0.82);
+        --vignette-mid: rgba(247, 244, 239, 0.45);
+
+        /* ── Glow / shadow (grafite) ── */
+        --gold-glow: rgba(0, 0, 0, 0.2);
+        --gold-glow-strong: rgba(0, 0, 0, 0.3);
+        --gold-glow-faint: rgba(0, 0, 0, 0.06);
+
+        /* ── Button hover ── */
+        --gold-hover-bg: rgba(0, 0, 0, 0.06);
     }
 
     *,
@@ -84,6 +100,11 @@ const {
 
     body {
         background-color: var(--bg);
+        background-image: url("/marble.jpg");
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
         color: var(--cream);
         font-family: var(--font-body);
         font-size: 18px;
@@ -92,16 +113,22 @@ const {
         cursor: default;
     }
 
-    /* Grain texture — più leggera su sfondo avorio */
-    .grain {
+    /* Overlay avorio 50% — attenua il marmo */
+    body::before {
+        content: "";
         position: fixed;
         inset: 0;
-        z-index: 9999;
+        background: rgba(245, 242, 236, 0.5);
         pointer-events: none;
-        opacity: 0.022;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-        background-repeat: repeat;
-        background-size: 128px;
+        z-index: 0;
+    }
+
+    /* Tutto il contenuto sopra l'overlay */
+    main,
+    .site-header,
+    .site-footer {
+        position: relative;
+        z-index: 1;
     }
 
     /* Greek meander border */
@@ -277,7 +304,11 @@ const {
     /* Footer */
     .site-footer {
         background: var(--bg-2);
-        margin-top: 6rem;
+        margin-top: 0;
+        border-top: 1px solid var(--border);
+        /* evita buco tra ultimo section e footer */
+        position: relative;
+        z-index: 1;
     }
 
     .footer-inner {

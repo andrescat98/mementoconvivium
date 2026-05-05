@@ -18,13 +18,13 @@
         radial-gradient(
             ellipse at center,
             transparent 30%,
-            rgba(237, 231, 217, 0.7) 100%
+            var(--vignette-edge) 100%
         ),
         linear-gradient(
             to bottom,
             var(--bg) 0%,
             transparent 30%,
-            rgba(237, 231, 217, 0.4) 70%,
+            var(--vignette-mid) 70%,
             var(--bg) 100%
         );
     pointer-events: none;
@@ -54,7 +54,7 @@
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    filter: drop-shadow(0 0 20px rgba(139, 105, 20, 0.35));
+    filter: drop-shadow(0 0 20px var(--gold-glow));
     animation: logoM-fadeInThenRise 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
@@ -66,8 +66,8 @@
     letter-spacing: 0.02em;
     font-size: 0.32em;
     text-shadow:
-        0 0 20px rgba(139, 105, 20, 0.45),
-        0 0 50px rgba(139, 105, 20, 0.12);
+        0 0 20px var(--gold-glow-strong),
+        0 0 50px var(--gold-glow-faint);
     transform-origin: center bottom;
     animation: logoText-fadeInFromBelow 0.8s cubic-bezier(0.22, 1, 0.36, 1) 1.2s
         forwards;
@@ -136,15 +136,19 @@
     color: var(--gold);
 }
 
-.hero-cta-icon {
+.hero-cta svg {
     width: 1.4rem;
     height: 1.4rem;
     flex-shrink: 0;
     transform: rotate(-35deg);
-    transition: transform 0.3s;
+    transition:
+        transform 0.3s,
+        color 0.3s;
+    color: #ffffff;
 }
 
-.hero-cta:hover .hero-cta-icon {
+.hero-cta:hover svg {
+    color: #000000;
     transform: rotate(-35deg) translateY(-2px);
 }
 
@@ -281,6 +285,7 @@
 /* ── Come funziona ──────────────── */
 .come-funziona {
     border-top: 1px solid var(--border);
+    background: var(--bg-2);
 }
 
 .steps {
@@ -345,6 +350,7 @@
 /* ── Eventi ─────────────────────── */
 .eventi {
     border-top: 1px solid var(--border);
+    background: var(--bg-card);
 }
 
 .events-grid {
@@ -455,6 +461,7 @@
 .prenota {
     border-top: 1px solid var(--border);
     text-align: center;
+    background: var(--bg-2);
 }
 
 .prenota-inner {

@@ -267,7 +267,7 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         inset: 0;
         background: radial-gradient(
             ellipse at 60% 0%,
-            rgba(139, 105, 20, 0.06) 0%,
+            rgba(0, 0, 0, 0.04) 0%,
             transparent 70%
         );
         pointer-events: none;
@@ -346,6 +346,7 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
     .ev-quote-section {
         padding: 3.5rem 0;
         border-bottom: 1px solid var(--border);
+        background: var(--bg-2);
     }
 
     .ev-quote {
@@ -381,6 +382,12 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         text-transform: uppercase;
         color: var(--gold);
         font-style: normal;
+    }
+
+    /* ── Body narrativo ── */
+    .ev-body {
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
     }
 
     /* ── Body grid ── */
@@ -564,6 +571,7 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
     .ev-final-cta {
         border-top: 1px solid var(--border);
         text-align: center;
+        background: var(--bg-2);
     }
 
     /* ── Responsive ── */

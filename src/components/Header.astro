@@ -84,9 +84,9 @@
     }
 
     .logo-ornament {
-        color: var(--gold);
+        color: var(--header-text);
         font-size: 0.7rem;
-        opacity: 0.8;
+        opacity: 0.5;
     }
 
     .logo-text {
@@ -104,7 +104,7 @@
         font-family: var(--font-body);
         font-weight: 300;
         letter-spacing: 0.05em;
-        color: var(--gold-light);
+        color: var(--header-text);
         font-size: 1.05em;
     }
 
@@ -120,10 +120,11 @@
         font-size: 0.72rem;
         letter-spacing: 0.2em;
         text-transform: uppercase;
-        color: var(--header-text-dim);
+        color: var(--header-text);
         text-decoration: none;
         transition: color 0.3s;
         position: relative;
+        opacity: 0.75;
     }
 
     .nav a::after {
@@ -133,14 +134,15 @@
         left: 0;
         right: 0;
         height: 1px;
-        background: var(--gold);
+        background: var(--header-text);
         transform: scaleX(0);
         transition: transform 0.3s var(--ease-out);
         transform-origin: left;
     }
 
     .nav a:hover {
-        color: var(--gold-light);
+        color: var(--header-text);
+        opacity: 1;
     }
 
     .nav a:hover::after {
@@ -148,17 +150,19 @@
     }
 
     .nav-cta {
-        border: 1px solid var(--border-strong) !important;
+        border: 1px solid rgba(244, 240, 232, 0.45) !important;
         padding: 0.5rem 1.2rem;
         color: var(--header-text) !important;
+        opacity: 1 !important;
         transition:
             background 0.3s,
             color 0.3s !important;
     }
 
     .nav-cta:hover {
-        background: var(--gold) !important;
-        color: var(--bg) !important;
+        background: var(--header-text) !important;
+        color: var(--bg-header) !important;
+        opacity: 1 !important;
     }
 
     .nav-cta::after {
@@ -180,7 +184,7 @@
         display: block;
         width: 24px;
         height: 1px;
-        background: var(--gold);
+        background: var(--header-text);
         transition:
             transform 0.3s,
             opacity 0.3s;
