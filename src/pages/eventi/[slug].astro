@@ -78,21 +78,6 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         <div class="greek-border"></div>
     </section>
 
-    <!-- QUOTE -->
-    {
-        quote && (
-            <section class="ev-quote-section">
-                <div class="container">
-                    <blockquote class="ev-quote">
-                        <span class="quote-mark">"</span>
-                        <p>{quote.text}</p>
-                        <cite>— {quote.author}</cite>
-                    </blockquote>
-                </div>
-            </section>
-        )
-    }
-
     <!-- CORPO NARRATIVO -->
     <section class="section ev-body">
         <div class="container ev-grid">
@@ -342,48 +327,6 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         opacity: 0.5;
     }
 
-    /* ── Quote ── */
-    .ev-quote-section {
-        padding: 3.5rem 0;
-        border-bottom: 1px solid var(--border);
-        background: var(--bg-2);
-    }
-
-    .ev-quote {
-        max-width: 560px;
-        margin: 0 auto;
-        text-align: center;
-        position: relative;
-    }
-
-    .ev-quote .quote-mark {
-        font-family: var(--font-display);
-        font-size: 5rem;
-        color: var(--gold-dim);
-        line-height: 0;
-        position: absolute;
-        top: 1.5rem;
-        left: -2rem;
-        opacity: 0.35;
-    }
-
-    .ev-quote p {
-        font-size: 1.25rem;
-        font-style: italic;
-        color: var(--cream);
-        line-height: 1.8;
-        margin-bottom: 1rem;
-    }
-
-    .ev-quote cite {
-        font-family: var(--font-title);
-        font-size: 0.65rem;
-        letter-spacing: 0.25em;
-        text-transform: uppercase;
-        color: var(--gold);
-        font-style: normal;
-    }
-
     /* ── Body narrativo ── */
     .ev-body {
         background: var(--bg-card);
@@ -596,10 +539,6 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         }
 
         .ev-meta-divider {
-            display: none;
-        }
-
-        .ev-quote .quote-mark {
             display: none;
         }
     }
