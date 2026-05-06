@@ -1,0 +1,72 @@
+[
+  {
+    "id": "egitto",
+    "era": "Antico Egitto",
+    "year": "-1150",
+    "yearLabel": "1150 a.C.",
+    "place": "PER-RAMESSES, EGITTO",
+    "image": "/timeline/egitto.jpg",
+    "imageAlt": "Per-Rameses, Egitto",
+    "description": "Viaggia nell’antico Egitto e varca le porte della corte di Ramses III, faraone dal carattere indomabile, giunto al culmine del suo potere dopo una vita segnata da guerre, conquiste e tradimenti. Tra sacerdoti, dignitari e ombre del palazzo reale, scoprirai che anche sulle rive del Nilo il potere ha sempre un prezzo."
+  },
+  {
+    "id": "roma",
+    "era": "Roma Imperiale",
+    "year": "192",
+    "yearLabel": "192 d.C.",
+    "place": "ROMA, ITALIA",
+    "image": "/timeline/roma.jpg",
+    "imageAlt": "Roma Imperiale",
+    "description": "Entra nella Roma imperiale alla corte di Commodo, l’imperatore che si proclamò Ercole romano. Tra giochi di potere, lussi imperiali e sangue versato nell’arena, sarai chiamato ad affrontare l’ultimo avversario: la morte stessa."
+  },
+  {
+    "id": "gerusalemme",
+    "era": "Crociate",
+    "year": "1100",
+    "yearLabel": "1100",
+    "place": "GERUSALEMME, PALESTINA",
+    "image": "/timeline/gerusalemme.jpg",
+    "imageAlt": "Gerusalemme",
+    "description": "Dopo la conquista crociata di Gerusalemme, il nuovo sovrano Goffredo di Buglione deve muoversi con cautela tra fede, alleanze fragili e giochi di potere. Nella Città Santa, ogni promessa può celare un tradimento e ogni decisione può cambiare il destino del regno."
+  },
+  {
+    "id": "istanbul",
+    "era": "Impero Ottomano",
+    "year": "1566",
+    "yearLabel": "1566",
+    "place": "ISTANBUL, TURCHIA",
+    "image": "/timeline/istanbul.jpg",
+    "imageAlt": "Impero Ottomano",
+    "description": "Alla corte di Solimano il Magnifico, il più grande sultano dell’Impero Ottomano, splendore e pericolo convivono dietro le porte del palazzo. Tra visir, ambasciatori, intrighi di harem e segreti di corte, l’impero vive i suoi ultimi bagliori sotto l’ombra di un potere immenso."
+  },
+  {
+    "id": "pirati",
+    "era": "Era dei pirati",
+    "year": "1697",
+    "yearLabel": "1697",
+    "place": "ISOLE LACCADIVE, INDIA",
+    "image": "/timeline/pirati.jpg",
+    "imageAlt": "Era dei pirati",
+    "description": "Sali a bordo dell’Adventure Galley e incontra la temuta ciurma pirata del capitano Kidd. In mare aperto, tra cannonate, tesori contesi e rotte insidiose, il vero pericolo potrebbe non arrivare dalle navi nemiche, ma da un ammutinamento pronto a esplodere sottocoperta."
+  },
+  {
+    "id": "farwest",
+    "era": "Far West",
+    "year": "1874",
+    "yearLabel": "1874",
+    "place": "DODGE CITY, KANSAS",
+    "image": "/timeline/farwest.jpg",
+    "imageAlt": "Far West",
+    "description": "Vivi un’ultima notte al Dodge City Hotel, nel cuore del selvaggio West. Ad accoglierti ci saranno Annie e i suoi ospiti: pistoleri, giocatori d’azzardo, cercatori di fortuna e anime in fuga. Ma quando cala il sole su Dodge City, nessuno può davvero dirsi al sicuro."
+  },
+  {
+    "id": "chicago",
+    "era": "Proibizionismo",
+    "year": "1929",
+    "yearLabel": "1929",
+    "place": "CHICAGO, ILLINOIS",
+    "image": "/timeline/chicago.jpg",
+    "imageAlt": "Proibizionismo",
+    "description": "Partecipa alla festa di compleanno del sindaco di Chicago, in una città dominata da jazz, proibizionismo e criminalità organizzata. Tra politici ambigui, gangster, affari sporchi e sorrisi di facciata, questa non sarà soltanto una festa: sarà una notte da cui qualcuno potrebbe non uscire vivo."
+  }
+]

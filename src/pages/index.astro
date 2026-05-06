@@ -2,19 +2,18 @@
 import { getCollection } from "astro:content";
 import Layout from "../layouts/Layout.astro";
 import "../styles/index.css";
+import scenari from "../data/timeline.json";
 
-// Carica tutti gli eventi e li ordina: prima quelli con data (crescente), poi TBA
 const tuttiEventi = await getCollection("eventi");
 const eventi = tuttiEventi.sort((a, b) => {
     const aISO = a.data.dateISO;
     const bISO = b.data.dateISO;
     if (aISO && bISO) return aISO.localeCompare(bISO);
-    if (aISO) return -1; // con data viene prima
+    if (aISO) return -1;
     if (bISO) return 1;
     return 0;
 });
 
-// "Prossimo" = primo evento con dateISO >= oggi, oppure il primo featured
 const oggi = new Date().toISOString().slice(0, 10);
 const prossimo =
     eventi.find((e) => e.data.dateISO && e.data.dateISO >= oggi) ??
@@ -26,6 +25,18 @@ const statusLabel: Record<string, string> = {
     "lista-attesa": "Lista d'attesa",
     "coming-soon": "Coming soon",
 };
+
+const sorted = [...scenari].sort((a, b) => Number(a.year) - Number(b.year));
+
+type Side = "left" | "right";
+let sideIndex = 0;
+const withSide = sorted.map((s) => {
+    const side: Side = sideIndex % 2 === 0 ? "left" : "right";
+    sideIndex++;
+    return { ...s, side };
+});
+
+const zeroInsertAfter = withSide.filter((s) => Number(s.year) < 0).length;
 ---
 
 <Layout title="Memento Convivium" description="Cene con Delitto a Tema Storico">
@@ -124,7 +135,7 @@ const statusLabel: Record<string, string> = {
 
             <div class="events-grid">
                 {
-                    eventi.map((evento, i) => {
+                    eventi.map((evento) => {
                         const isProssimo = evento.id === prossimo.id;
                         const label =
                             statusLabel[evento.data.status] ?? "Scopri di più";
