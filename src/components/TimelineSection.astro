@@ -1,0 +1,85 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+    events: CollectionEntry<"eventi">[];
+}
+
+const { events } = Astro.props;
+
+// Sort by historicalYear
+const sorted = [...events]
+    .filter((e) => e.data.historicalYear !== undefined && e.data.historicalYear !== null)
+    .sort((a, b) => (a.data.historicalYear ?? 0) - (b.data.historicalYear ?? 0));
+
+const zeroInsertAfter = sorted.filter((e) => (e.data.historicalYear ?? 0) < 0).length;
+---
+
+<section class="section timeline-section" id="timeline">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-label">La nostra storia</span>
+            <h2>Il viaggio nel tempo</h2>
+            <div class="divider"><span>⬥</span></div>
+            <p class="timeline-intro">
+                Ogni spettacolo ci porta in un'epoca diversa. Dalla corte dei faraoni
+                all'era del jazz — ogni banchetto è una porta sul passato.
+            </p>
+        </div>
+
+        <div class="timeline">
+            <div class="timeline-axis"></div>
+
+            {sorted.map((evento, i) => {
+                const side = i % 2 === 0 ? "left" : "right";
+                const isBC = (evento.data.historicalYear ?? 0) < 0;
+                const insertZero = !isBC && i === zeroInsertAfter && zeroInsertAfter > 0;
+
+                return (
+                    <>
+                        {insertZero && (
+                            <div class="timeline-zero">
+                                <div class="zero-line"></div>
+                                <span class="zero-label">⬥ ANNO ZERO ⬥</span>
+                                <div class="zero-line"></div>
+                            </div>
+                        )}
+                        <div class={`timeline-item ${side}`}>
+                            <div class="timeline-dot">
+                                <span class="dot-inner"></span>
+                            </div>
+                            <article class="timeline-card">
+                                {evento.data.timelineImage && (
+                                    <div class="card-image-wrap">
+                                        <img
+                                            src={evento.data.timelineImage}
+                                            alt={evento.data.era ?? evento.data.title}
+                                            class="card-image"
+                                            loading="lazy"
+                                        />
+                                        <div class="card-image-overlay"></div>
+                                    </div>
+                                )}
+                                <div class="card-body">
+                                    <span class="card-era">{evento.data.era}</span>
+                                    <div class="card-year">{evento.data.yearLabel}</div>
+                                    {evento.data.place && (
+                                        <div class="card-place">
+                                            <span class="place-icon">⌖</span>
+                                            {evento.data.place}
+                                        </div>
+                                    )}
+                                    <h3 class="card-title">{evento.data.title}</h3>
+                                    <p class="card-excerpt">{evento.data.excerpt}</p>
+                                    <a href={`/eventi/${evento.id}`} class="card-link">
+                                        Scopri lo spettacolo →
+                                    </a>
+                                </div>
+                            </article>
+                        </div>
+                    </>
+                );
+            })}
+        </div>
+    </div>
+</section>

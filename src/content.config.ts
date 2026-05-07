@@ -32,6 +32,11 @@ const eventiCollection = defineCollection({
         }),
       )
       .optional(),
+    historicalYear: z.number().optional(),
+    era: z.string().optional(),
+    yearLabel: z.string().optional(),
+    place: z.string().optional(),
+    timelineImage: z.string().optional(),
   }),
 });
 

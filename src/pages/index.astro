@@ -2,7 +2,8 @@
 import { getCollection } from "astro:content";
 import Layout from "../layouts/Layout.astro";
 import "../styles/index.css";
-import scenari from "../data/timeline.json";
+import "../styles/timeline.css";
+import TimelineSection from "../components/TimelineSection.astro";
 
 const tuttiEventi = await getCollection("eventi");
 const eventi = tuttiEventi.sort((a, b) => {
@@ -25,18 +26,6 @@ const statusLabel: Record<string, string> = {
     "lista-attesa": "Lista d'attesa",
     "coming-soon": "Coming soon",
 };
-
-const sorted = [...scenari].sort((a, b) => Number(a.year) - Number(b.year));
-
-type Side = "left" | "right";
-let sideIndex = 0;
-const withSide = sorted.map((s) => {
-    const side: Side = sideIndex % 2 === 0 ? "left" : "right";
-    sideIndex++;
-    return { ...s, side };
-});
-
-const zeroInsertAfter = withSide.filter((s) => Number(s.year) < 0).length;
 ---
 
 <Layout title="Memento Convivium" description="Cene con Delitto a Tema Storico">
@@ -123,6 +112,9 @@ const zeroInsertAfter = withSide.filter((s) => Number(s.year) < 0).length;
             </div>
         </div>
     </section>
+
+    <!-- TIMELINE -->
+    <TimelineSection events={eventi} />
 
     <!-- EVENTI -->
     <section class="section eventi" id="eventi">
