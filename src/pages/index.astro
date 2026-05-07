@@ -20,12 +20,6 @@ const prossimo =
     eventi.find((e) => e.data.dateISO && e.data.dateISO >= oggi) ??
     eventi.find((e) => e.data.featured) ??
     eventi[0];
-
-const statusLabel: Record<string, string> = {
-    aperto: "Prenota ora",
-    "lista-attesa": "Lista d'attesa",
-    "coming-soon": "Coming soon",
-};
 ---
 
 <Layout title="Memento Convivium" description="Cene con Delitto a Tema Storico">
@@ -115,73 +109,6 @@ const statusLabel: Record<string, string> = {
 
     <!-- TIMELINE -->
     <TimelineSection events={eventi} />
-
-    <!-- EVENTI -->
-    <section class="section eventi" id="eventi">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-label">Prossimi appuntamenti</span>
-                <h2>Gli eventi</h2>
-                <div class="divider"><span>⬥</span></div>
-            </div>
-
-            <div class="events-grid">
-                {
-                    eventi.map((evento) => {
-                        const isProssimo = evento.id === prossimo.id;
-                        const label =
-                            statusLabel[evento.data.status] ?? "Scopri di più";
-                        const btnClass =
-                            evento.data.status === "aperto"
-                                ? "btn-primary"
-                                : "btn-ghost";
-                        return (
-                            <article
-                                class={`event-card${isProssimo ? " featured" : ""}`}
-                            >
-                                {isProssimo && (
-                                    <div class="event-tag">Prossimo</div>
-                                )}
-                                <div class="event-theme">
-                                    {evento.data.theme}
-                                </div>
-                                <h3 class="event-title">{evento.data.title}</h3>
-                                <p class="event-desc">{evento.data.excerpt}</p>
-                                <div class="event-meta">
-                                    <div class="event-info">
-                                        <span class="meta-label">Data</span>
-                                        <span>{evento.data.date}</span>
-                                    </div>
-                                    <div class="event-info">
-                                        <span class="meta-label">Ospiti</span>
-                                        <span>{evento.data.guests}</span>
-                                    </div>
-                                    <div class="event-info">
-                                        <span class="meta-label">Durata</span>
-                                        <span>{evento.data.duration}</span>
-                                    </div>
-                                </div>
-                                <div class="event-card-actions">
-                                    <a
-                                        href={`/eventi/${evento.id}`}
-                                        class={btnClass}
-                                    >
-                                        {label}
-                                    </a>
-                                    <a
-                                        href={`/eventi/${evento.id}`}
-                                        class="event-detail-link"
-                                    >
-                                        Scopri la storia →
-                                    </a>
-                                </div>
-                            </article>
-                        );
-                    })
-                }
-            </div>
-        </div>
-    </section>
 
     <!-- CTA PRENOTA -->
     <section class="section prenota" id="prenota">
