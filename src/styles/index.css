@@ -69,7 +69,11 @@
     width: auto;
     opacity: 0;
     letter-spacing: 0.02em;
-    font-size: 0.32em;
+    /* min() garantisce che il testo non superi mai la larghezza del viewport:
+       usa 0.32em (proporzionale alla M) finché sta in una riga,
+       poi scende seguendo 5vw quando la viewport si restringe */
+    font-size: min(0.32em, 5vw);
+    white-space: nowrap;
     text-shadow:
         0 0 20px var(--gold-glow-strong),
         0 0 50px var(--gold-glow-faint);
@@ -98,6 +102,18 @@
     100% {
         opacity: 1;
         transform: translate(-50%, var(--m-end-y)) scale(var(--m-scale));
+    }
+}
+
+/* keyframe semplice per mobile: fade + leggera scala, niente floating */
+@keyframes logoM-fadeIn-mobile {
+    0% {
+        opacity: 0;
+        transform: scale(1.06);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
@@ -489,22 +505,42 @@
         align-items: center;
     }
 
+    /* ── Logo mobile: M nel flusso normale ─────────────────────────────
+       La M era position:absolute → non contribuiva all'altezza del
+       contenitore → il centramento verticale era calcolato su ~20px
+       invece che sull'intero blocco visivo. Ora è static e determina
+       l'altezza reale, quindi justify-content:center funziona davvero.
+    ── */
     .hero-logo {
-        font-size: 4rem;
-        margin-bottom: 2.5rem;
+        font-size: 1rem; /* base: i figli usano le loro unità */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0;
+        overflow: visible;
+    }
+
+    .hero-logo .logo-m {
+        position: static; /* nel flusso normale */
+        top: auto;
+        left: auto;
+        font-size: clamp(
+            6.5rem,
+            42vw,
+            10.5rem
+        ); /* proporzionale alla larghezza */
+        line-height: 1;
+        transform: none; /* reset dal desktop */
+        animation: logoM-fadeIn-mobile 1s cubic-bezier(0.22, 1, 0.36, 1)
+            forwards;
     }
 
     .hero-logo .logo-full {
-        font-size: clamp(0.7rem, 7vw, 2rem);
+        font-size: clamp(1rem, 5.5vw, 1.6rem);
         letter-spacing: 0.08em;
         white-space: nowrap;
-    }
-
-    /* override delle custom properties per le animazioni mobile */
-    .hero-logo .logo-m {
-        --m-scale-start: 3.2;
-        --m-scale: 3;
-        --m-end-y: -155%;
+        animation-delay: 0.9s; /* parte appena la M ha quasi finito */
     }
 
     .hero-cta {
@@ -512,9 +548,9 @@
         font-size: 0.8rem;
         padding: 0.8rem 1.2rem;
         letter-spacing: 0.12em;
-        margin-top: 1.5rem;
-        white-space: nowrap;
-        width: auto;
+        margin-top: 1rem;
+        width: 80%; /* sempre 80% della larghezza, mai a bordo */
+        justify-content: center;
     }
 
     .hero-cta-icon {
@@ -547,27 +583,39 @@
 
 /* ── Viewport corto: landscape phone / schermi bassi ── */
 /* La M animata salirebbe dietro l'header fisso: ridimensioniamo tutto in base all'altezza disponibile */
+/* Landscape phone / schermi bassi: max-width:768px spesso NON si attiva
+   (orientazione landscape → width > 768px), quindi qui la M è ancora
+   position:absolute con l'animazione desktop. Riduciamo la salita. */
 @media (max-height: 500px) {
     .hero {
-        /* padding-top leggermente superiore all'altezza dell'header (~70px) */
         padding: 4.5rem 1.5rem 1.5rem;
     }
 
     .hero-logo {
-        /* font-size in vh invece di vw: scala con l'altezza, non la larghezza */
-        font-size: clamp(2.5rem, 10vh, 4rem);
+        /* font-size in vh: scala con l'altezza disponibile, non la larghezza */
+        font-size: clamp(2.5rem, 14vh, 6rem);
+        /* se max-width:768px era già attivo (piccolo landscape), reset al flex */
+        display: block;
         margin-bottom: 0.25rem;
     }
 
+    /* M ancora absolute: riduciamo la salita per non sforare l'header */
     .hero-logo .logo-m {
-        /* salita minima: la M non sfora l'header */
+        position: absolute; /* ripristina absolute (override del mobile) */
         --m-scale-start: 1.1;
         --m-scale: 1;
         --m-end-y: -25%;
+        font-size: inherit; /* eredita dal hero-logo ridimensionato in vh */
+        animation: logoM-fadeInThenRise 1.8s cubic-bezier(0.22, 1, 0.36, 1)
+            forwards;
+    }
+
+    .hero-logo .logo-full {
+        font-size: 0.32em;
+        animation-delay: 1.2s;
     }
 
     .hero-cta {
-        /* nessuna salita: il bottone appare sul posto */
         --cta-end-y: 0em;
         margin-top: 0.75rem;
         padding: 0.6rem 1.2rem;
