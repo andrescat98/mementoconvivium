@@ -544,3 +544,33 @@
         grid-row: auto;
     }
 }
+
+/* ── Viewport corto: landscape phone / schermi bassi ── */
+/* La M animata salirebbe dietro l'header fisso: ridimensioniamo tutto in base all'altezza disponibile */
+@media (max-height: 500px) {
+    .hero {
+        /* padding-top leggermente superiore all'altezza dell'header (~70px) */
+        padding: 4.5rem 1.5rem 1.5rem;
+    }
+
+    .hero-logo {
+        /* font-size in vh invece di vw: scala con l'altezza, non la larghezza */
+        font-size: clamp(2.5rem, 10vh, 4rem);
+        margin-bottom: 0.25rem;
+    }
+
+    .hero-logo .logo-m {
+        /* salita minima: la M non sfora l'header */
+        --m-scale-start: 1.1;
+        --m-scale: 1;
+        --m-end-y: -25%;
+    }
+
+    .hero-cta {
+        /* nessuna salita: il bottone appare sul posto */
+        --cta-end-y: 0em;
+        margin-top: 0.75rem;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.65rem;
+    }
+}
