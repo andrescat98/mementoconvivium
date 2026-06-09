@@ -1,8 +1,16 @@
 ---
 title: "L'Ultima Notte a Dodge City"
 theme: "Far West · 1874"
-date: "TBA"
-dateISO: null
+# Esempio lista date — copiare e decommentare:
+# dates:
+#   - label: "Sab 14 Giu 2025"
+#     dateISO: "2025-06-14"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
+#   - label: "Sab 21 Giu 2025"
+#     dateISO: "2025-06-21"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
 guests: "14 – 22 persone"
 duration: "4 – 5 ore"
 excerpt: "Un'ultima notte al Dodge City Hotel, nel cuore del selvaggio West. Pistoleri, giocatori d'azzardo e anime in fuga. Quando cala il sole su Dodge City, nessuno può dirsi al sicuro."

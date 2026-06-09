@@ -1,8 +1,16 @@
 ---
 title: "La Caduta di Commodo"
 theme: "Roma Imperiale · 192 d.C."
-date: "TBA"
-dateISO: null
+# Esempio lista date — copiare e decommentare:
+# dates:
+#   - label: "Sab 14 Giu 2025"
+#     dateISO: "2025-06-14"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
+#   - label: "Sab 21 Giu 2025"
+#     dateISO: "2025-06-21"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
 guests: "14 – 20 persone"
 duration: "4 – 5 ore"
 excerpt: "Alla corte di Commodo, l'imperatore che si proclamò Ercole romano, tra lussi imperiali, giochi di potere e sangue dell'arena, sarai chiamato a decidere il destino di Roma."

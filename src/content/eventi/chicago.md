@@ -1,8 +1,17 @@
 ---
 title: "Il Compleanno del Sindaco"
 theme: "Proibizionismo · 1929"
-date: "Prossimamente 2025"
-dateISO: "2025-12-31"
+# Esempio lista date — copiare e decommentare:
+# dates:
+#   - label: "Sab 14 Giu 2025"
+#     dateISO: "2025-06-14"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
+#   - label: "Sab 21 Giu 2025"
+#     dateISO: "2025-06-21"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
+
 guests: "16 – 24 persone"
 duration: "4 – 5 ore"
 excerpt: "La festa di compleanno del sindaco di Chicago in una città dominata da jazz, proibizionismo e criminalità organizzata. Questa non sarà soltanto una festa: sarà una notte da cui qualcuno potrebbe non uscire vivo."

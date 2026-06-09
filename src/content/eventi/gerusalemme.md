@@ -1,8 +1,16 @@
 ---
 title: "Le Chiavi della Città Santa"
 theme: "Crociate · 1100 d.C."
-date: "TBA"
-dateISO: null
+# Esempio lista date — copiare e decommentare:
+# dates:
+#   - label: "Sab 14 Giu 2025"
+#     dateISO: "2025-06-14"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
+#   - label: "Sab 21 Giu 2025"
+#     dateISO: "2025-06-21"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
 guests: "14 – 22 persone"
 duration: "4 – 5 ore"
 excerpt: "Dopo la conquista crociata di Gerusalemme, ogni promessa cela un tradimento e ogni decisione può cambiare il destino del regno appena nato."

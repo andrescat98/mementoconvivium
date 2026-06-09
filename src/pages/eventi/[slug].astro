@@ -20,7 +20,7 @@ const { Content } = await render(evento);
 const {
     title,
     theme,
-    date,
+    dates,
     guests,
     duration,
     quote,
@@ -32,14 +32,27 @@ const {
     featured,
 } = evento.data;
 
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const nextDate = dates?.find(
+    (d: { dateISO: string }) => new Date(d.dateISO) >= today,
+);
+
+const displayDate = nextDate?.label ?? dates?.[0]?.label ?? "Da annunciare";
+const displayDateISO = nextDate?.dateISO ?? null;
+
 const statusLabel =
     status === "aperto"
         ? "Prenota ora"
         : status === "lista-attesa"
           ? "Lista d'attesa"
-          : "Coming soon";
+          : status === "chiuso"
+            ? "Prenotazioni chiuse"
+            : "Coming soon";
 
 const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
+
 ---
 
 <Layout
@@ -60,7 +73,7 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
                 <div class="ev-meta-row">
                     <div class="ev-meta-item">
                         <span class="meta-label">Data</span>
-                        <span>{date}</span>
+                        <span>{displayDate}</span>
                     </div>
                     <div class="ev-meta-divider">⬥</div>
                     <div class="ev-meta-item">
@@ -96,18 +109,39 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
                     <h3 class="ev-infobox-title">Dettagli</h3>
                     <div class="divider"><span>⬥</span></div>
 
-                    {
-                        location && (
+                    {dates && dates.length > 0 ? (
+                        <div class="ev-date-boxes">
+                            {dates.map((d: { label: string; dateISO: string; location?: string; price?: string }) => {
+                                const isPast = new Date(d.dateISO) < today;
+                                return (
+                                    <div class={`ev-date-box${isPast ? " ev-date-box-past" : ""}`}>
+                                        <div class="ev-date-box-label">{d.label}</div>
+                                        {d.location && <div class="ev-date-box-info"><span class="meta-label">Luogo</span>{d.location}</div>}
+                                        {d.price && <div class="ev-date-box-info"><span class="meta-label">Quota</span>{d.price}</div>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <>
                             <div class="ev-info-row">
-                                <span class="meta-label">Luogo</span>
-                                <span>{location}</span>
+                                <span class="meta-label">Data</span>
+                                <span>Da annunciare</span>
                             </div>
-                        )
-                    }
-                    <div class="ev-info-row">
-                        <span class="meta-label">Data</span>
-                        <span>{date}</span>
-                    </div>
+                            {location && (
+                                <div class="ev-info-row">
+                                    <span class="meta-label">Luogo</span>
+                                    <span>{location}</span>
+                                </div>
+                            )}
+                            {price && (
+                                <div class="ev-info-row">
+                                    <span class="meta-label">Quota</span>
+                                    <span>{price}</span>
+                                </div>
+                            )}
+                        </>
+                    )}
                     <div class="ev-info-row">
                         <span class="meta-label">Ospiti</span>
                         <span>{guests}</span>
@@ -116,14 +150,6 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
                         <span class="meta-label">Durata</span>
                         <span>{duration}</span>
                     </div>
-                    {
-                        price && (
-                            <div class="ev-info-row">
-                                <span class="meta-label">Quota</span>
-                                <span>{price}</span>
-                            </div>
-                        )
-                    }
 
                     {
                         includes && includes.length > 0 && (
@@ -147,6 +173,7 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
                     }
 
                     <a
+                        id="ev-prenota-btn"
                         href="mailto:info@mementoconvivium.it"
                         class={`${statusClass} ev-cta-btn`}
                     >
@@ -236,6 +263,20 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         </div>
     </section>
 </Layout>
+
+<script define:vars={{ displayDateISO }}>
+    // Nascondi il bottone prenota se non ci sono date future disponibili
+    if (displayDateISO) {
+        const eventDate = new Date(displayDateISO);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (eventDate < today) {
+            const btn = document.getElementById("ev-prenota-btn");
+            if (btn) btn.style.display = "none";
+        }
+    }
+</script>
 
 <style>
     /* ── Hero evento ── */
@@ -422,6 +463,50 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         flex-shrink: 0;
         position: relative;
         top: -1px;
+    }
+
+    /* ── Box date ── */
+    .ev-date-boxes {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        padding: 0.2rem 0 0.6rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .ev-date-box {
+        border: 1px solid var(--border);
+        padding: 0.75rem 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .ev-date-box-past {
+        opacity: 0.4;
+    }
+
+    .ev-date-box-label {
+        font-size: 0.95rem;
+        color: var(--white);
+        font-weight: 500;
+    }
+
+    .ev-date-box-past .ev-date-box-label {
+        text-decoration: line-through;
+        text-decoration-color: rgba(255,255,255,0.2);
+    }
+
+    .ev-date-box-info {
+        display: flex;
+        gap: 0.5rem;
+        align-items: baseline;
+        font-size: 0.82rem;
+        color: var(--cream-dim);
+    }
+
+    .ev-date-box-info .meta-label {
+        flex-shrink: 0;
     }
 
     .ev-cta-btn {

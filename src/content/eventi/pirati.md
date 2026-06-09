@@ -1,20 +1,31 @@
 ---
 title: "L'Ammutinamento dell'Adventure Galley"
 theme: "Era dei Pirati · 1697"
-date: "TBA"
-dateISO: null
+# Esempio lista date — copiare e decommentare:
+# dates:
+#   - label: "Sab 14 Giu 2025"
+#     dateISO: "2025-06-14"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 70 a persona (cena inclusa)"
+#   - label: "Sab 21 Giu 2025"
+#     dateISO: "2025-06-21"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 70 a persona (cena inclusa)"
+dates:
+  - label: "Sab 19 Giu 2026"
+    dateISO: "2026-06-19"
+    location: "Sede rivelata ai prenotati"
+    price: "€ 70 a persona (cena inclusa)"
 guests: "14 – 20 persone"
 duration: "4 – 5 ore"
 excerpt: "Sali a bordo dell'Adventure Galley con la ciurma del Capitano Kidd. In mare aperto, il vero pericolo potrebbe non arrivare dalle navi nemiche, ma dall'ammutinamento che covava sottocoperta."
 featured: false
-status: "coming-soon"
+status: "chiuso"
 historicalYear: 1697
 era: "Era dei Pirati"
 yearLabel: "1697"
 place: "Isole Laccadive, Oceano Indiano"
 timelineImage: "/timeline/pirati.jpg"
-location: "Sede rivelata ai prenotati"
-price: "€ 70 a persona (cena inclusa)"
 quote:
   text: "In mare, le leggi degli uomini restano a terra."
   author: "Detto dei pirati dell'Era d'Oro"

@@ -1,8 +1,16 @@
 ---
 title: "Il Segreto del Faraone"
 theme: "Antico Egitto · 1150 a.C."
-date: "TBA"
-dateISO: null
+# Esempio lista date — copiare e decommentare:
+# dates:
+#   - label: "Sab 14 Giu 2025"
+#     dateISO: "2025-06-14"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
+#   - label: "Sab 21 Giu 2025"
+#     dateISO: "2025-06-21"
+#     location: "Milano, sede rivelata ai prenotati"
+#     price: "€ 80 a persona (cena inclusa)"
 guests: "16 – 24 persone"
 duration: "4 – 5 ore"
 excerpt: "Ramses III è al culmine del suo potere. Tra sacerdoti, dignitari e ombre del palazzo reale, scoprirai che anche sulle rive del Nilo il potere ha sempre un prezzo."

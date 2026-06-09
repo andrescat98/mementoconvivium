@@ -7,13 +7,21 @@ const eventiCollection = defineCollection({
   schema: z.object({
     title: z.string(),
     theme: z.string(),
-    date: z.string(),
-    dateISO: z.string().nullable().optional(),
+    dates: z
+      .array(
+        z.object({
+          label: z.string(),
+          dateISO: z.string(),
+          location: z.string().optional(),
+          price: z.string().optional(),
+        }),
+      )
+      .optional(),
     guests: z.string(),
     duration: z.string(),
     excerpt: z.string(),
     featured: z.boolean().default(false),
-    status: z.enum(["aperto", "lista-attesa", "coming-soon"]).default("aperto"),
+    status: z.enum(["aperto", "lista-attesa", "coming-soon", "chiuso"]).default("aperto"),
     quote: z
       .object({
         text: z.string(),
