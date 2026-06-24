@@ -11,27 +11,25 @@ theme: "Far West · 1874"
 #     dateISO: "2025-06-21"
 #     location: "Milano, sede rivelata ai prenotati"
 #     price: "€ 80 a persona (cena inclusa)"
-guests: "14 – 22 persone"
-duration: "4 – 5 ore"
+dates:
+  - label: "Gio 25 Giu 2026"
+    dateISO: 2026-06-25
+    location: Camping Bar - Via Sant'Anselmo, 34/b, 10125 Torino TO
+    price: "€ 25 a persona (cena inclusa)"
+
+duration: "2 – 3 ore"
 excerpt: "Un'ultima notte al Dodge City Hotel, nel cuore del selvaggio West. Pistoleri, giocatori d'azzardo e anime in fuga. Quando cala il sole su Dodge City, nessuno può dirsi al sicuro."
-featured: false
-status: "coming-soon"
+featured: true
+status: "aperto"
 historicalYear: 1874
 era: "Far West"
 yearLabel: "1874"
 place: "Dodge City, Kansas"
 timelineImage: "/timeline/farwest.jpg"
-location: "Sede rivelata ai prenotati"
-price: "€ 70 a persona (cena inclusa)"
 quote:
   text: "A Dodge City, la legge arriva sempre un giorno dopo la pistola."
   author: "Detto del vecchio West"
-includes:
-  - "Cena a tre portate ispirata alla cucina del West americano"
-  - "Scheda personaggio con storia, colpe e obiettivi"
-  - "Conduzione teatrale da parte degli attori"
-  - "Kit di gioco: lettere, mandati di cattura e indizi"
-  - "Whiskey, birra e bevande per tutta la serata"
+
 characters:
   - name: "Annie"
     role: "La Proprietaria del Saloon"
@@ -50,10 +48,14 @@ characters:
     hint: "Sembra innocente. Ma anche i fiori del deserto nascondono spine."
 ---
 
-Dodge City, Kansas, 1874. Il sole tramonta sulla città più pericolosa del West.
+Il vento ulula su Dodge City. La notte inghiotte la frontiera. E al Dodge House Hotel nessuno è davvero chi dice di essere.
 
-Annie ha organizzato una cena per i suoi ospiti più fedeli: pistoleri di ritorno dalla frontiera, giocatori d'azzardo di professione, cercatori d'oro con le tasche vuote e qualche anima in fuga da un passato che non vuole lasciarli andare.
+È il luglio del 1874, pochi giorni dopo la battaglia di Adobe Walls. Mentre fuori infuria una tempesta, nella locanda di Annie Bennett Cox si ritrovano uomini segnati dalla polvere, dal sangue e dalla guerra: un cacciatore di bisonti troppo orgoglioso delle proprie imprese, un colonnello dell'esercito deciso a far rispettare la legge, un lettore di giornali con un passato ingombrante, un allevatore in viaggio d'affari, un cocchiere dalla fortuna incerta e un misterioso capo comanche avvolto nel silenzio.
 
-**Ma questa notte qualcuno ha un conto in sospeso. E a Dodge City, i conti si saldano sempre.**
+Tra un bicchiere di whiskey, una partita a poker e vecchi rancori mai sepolti, l'atmosfera si fa sempre più tesa. Le pistole pesano sui fianchi, le parole diventano minacce e ogni ospite sembra custodire un segreto.
 
-*Una serata di polvere da sparo, segreti del West e colpi di scena dietro ogni porta.*
+Fuori c'è la tempesta. Dentro, qualcosa di molto più pericoloso. Quando la notte precipita nel caos, la Dodge House si trasforma in una trappola: nessuno può uscire, nessuno può fidarsi, nessuno può dirsi innocente.
+
+**Chi sta mentendo? Chi cerca vendetta? E nel selvaggio West, la legge è davvero diversa dall'omicidio?**
+
+*Una cena con delitto western tra duelli verbali, segreti sepolti e resa dei conti, dove ogni brindisi può essere l'ultimo e ogni sguardo può nascondere una pistola.*

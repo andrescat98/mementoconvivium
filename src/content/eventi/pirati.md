@@ -15,12 +15,11 @@ dates:
   - label: "Sab 19 Giu 2026"
     dateISO: "2026-06-19"
     location: "Sede rivelata ai prenotati"
-    price: "€ 70 a persona (cena inclusa)"
-guests: "14 – 20 persone"
-duration: "4 – 5 ore"
+    price: "€ 25 a persona (cena inclusa)"
+duration: "2 – 3 ore"
 excerpt: "Sali a bordo dell'Adventure Galley con la ciurma del Capitano Kidd. In mare aperto, il vero pericolo potrebbe non arrivare dalle navi nemiche, ma dall'ammutinamento che covava sottocoperta."
 featured: false
-status: "chiuso"
+status: "aperto"
 historicalYear: 1697
 era: "Era dei Pirati"
 yearLabel: "1697"
@@ -29,12 +28,6 @@ timelineImage: "/timeline/pirati.jpg"
 quote:
   text: "In mare, le leggi degli uomini restano a terra."
   author: "Detto dei pirati dell'Era d'Oro"
-includes:
-  - "Cena a tre portate ispirata alla cucina dei mari del Sud"
-  - "Scheda personaggio con ruolo, bottino e segreti"
-  - "Conduzione teatrale da parte degli attori"
-  - "Kit di gioco: mappe, monete doblone e messaggi in codice"
-  - "Rum, birra e bevande per tutta la serata"
 characters:
   - name: "Capitano William Kidd"
     role: "Il Capitano"
@@ -53,10 +46,14 @@ characters:
     hint: "Tutti vogliono liberarlo. Nessuno sa davvero chi sia."
 ---
 
-Isole Laccadive, 1697. La Adventure Galley naviga in acque pericolose — e non solo per i corsari nemici.
+Il mare si gonfia al largo delle Laccadive. La notte scende sull'Adventure Galley. E sulla nave del capitano William Kidd nessuno è davvero fedele a nessuno.
 
-Il Capitano Kidd ha accettato una missione per conto della Corona inglese: cacciare i pirati nelle acque dell'Oceano Indiano. Ma le settimane in mare hanno eroso la disciplina, le provviste scarseggiano e la ciurma mormora. Qualcuno ha trovato qualcosa nelle stive che non avrebbe dovuto trovare.
+È l'autunno del 1697. Dopo un assalto sulla costa di Malabar, la ciurma naviga tra fame, sete e promesse di ricchezze sempre più lontane. A bordo ci sono uomini e donne consumati dall'ambizione: un capitano che si ostina a chiamarsi corsaro, un cannoniere insofferente, un timoniere dal passato scomodo, un ufficiale orgoglioso, un medico ambiguo, una spadaccina dal sangue freddo e un quartiermastro che sente scricchiolare ogni certezza.
 
-**Stasera si cena. Stasera si vota. E prima dell'alba, qualcuno prenderà il controllo della nave.**
+Tra razzie fallite, frustate, bottiglie di rhum e voti sussurrati sottocoperta, il malcontento diventa tempesta. Le alleanze cambiano con il vento, i rancori riemergono dalle stive e ogni membro dell'equipaggio sembra custodire un segreto.
 
-*Una notte di rum, tradimenti e vento in poppa nell'era d'oro della pirateria.*
+Fuori c'è l'oceano. Dentro, qualcosa di molto più pericoloso. Quando la notte cala sulla nave, l'Adventure Galley si trasforma in una trappola galleggiante: nessuno può scendere, nessuno può fuggire, nessuno può fidarsi davvero.
+
+**Chi sta mentendo? Chi trama nell'ombra? E tra corsari e pirati, dov'è il confine tra giustizia, tradimento e omicidio?**
+
+*Una cena con delitto piratesca tra ammutinamenti, duelli verbali, segreti di bordo e sete di vendetta, dove ogni brindisi può essere l'ultimo e ogni lama può appartenere a un amico… o a un traditore.*

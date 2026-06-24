@@ -21,7 +21,6 @@ const {
     title,
     theme,
     dates,
-    guests,
     duration,
     location,
     price,
@@ -73,11 +72,6 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
                     <div class="ev-meta-item">
                         <span class="meta-label">Data</span>
                         <span>{displayDate}</span>
-                    </div>
-                    <div class="ev-meta-divider">⬥</div>
-                    <div class="ev-meta-item">
-                        <span class="meta-label">Ospiti</span>
-                        <span>{guests}</span>
                     </div>
                     <div class="ev-meta-divider">⬥</div>
                     <div class="ev-meta-item">
@@ -141,10 +135,6 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
                             )}
                         </>
                     )}
-                    <div class="ev-info-row">
-                        <span class="meta-label">Ospiti</span>
-                        <span>{guests}</span>
-                    </div>
                     <div class="ev-info-row">
                         <span class="meta-label">Durata</span>
                         <span>{duration}</span>
@@ -236,13 +226,14 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         <div class="container">
             <div class="prenota-inner">
                 <div class="prenota-ornament">
-                    <span>✦</span><div class="orn-line"></div><span>✦</span>
+                    <span>✦</span>
                 </div>
                 <span class="section-label">Partecipa</span>
                 <h2>Sei pronto a sederti al banchetto?</h2>
                 <p>
-                    Scrivi per prenotare il tuo posto. Ogni evento è a numero
-                    chiuso.
+                    Riserva il tuo posto al tavolo: scrivici e ti racconteremo
+                    come unirti alla prossima serata. Ogni evento è a numero
+                    chiuso e i posti vanno in fretta.
                 </p>
                 <a
                     href="mailto:info@mementoconvivium.it"
@@ -255,8 +246,20 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
                         >Instagram</a
                     >
                 </p>
+
+                <div class="prenota-locale">
+                    <p class="prenota-locale-text">
+                        Sei un locale, un ristorante o un'associazione?
+                    </p>
+                    <a
+                        href="mailto:info@mementoconvivium.it?subject=Portare%20questa%20cena%20con%20delitto%20nel%20mio%20locale"
+                        class="btn-ghost"
+                    >
+                        Porta questa cena con delitto da te →
+                    </a>
+                </div>
                 <div class="prenota-ornament">
-                    <span>✦</span><div class="orn-line"></div><span>✦</span>
+                    <span>✦</span>
                 </div>
             </div>
         </div>
@@ -598,7 +601,26 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
     .ev-final-cta {
         border-top: 1px solid var(--border);
         text-align: center;
-        background: var(--bg-2);
+        background:
+            radial-gradient(ellipse at 50% 0%, rgba(0, 0, 0, 0.05) 0%, transparent 65%),
+            var(--bg-card);
+    }
+
+    /* ── Box "Sei un locale?" ── */
+    .prenota-locale {
+        margin-top: 3rem;
+        padding: 1.75rem 2rem;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .prenota-locale-text {
+        font-size: 0.95rem;
+        color: var(--cream-dim);
     }
 
     /* ── Responsive ── */

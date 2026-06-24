@@ -11,13 +11,16 @@ const eventiCollection = defineCollection({
       .array(
         z.object({
           label: z.string(),
-          dateISO: z.string(),
+          // YAML interpreta una data non quotata come Date: la normalizziamo a "YYYY-MM-DD"
+          dateISO: z.preprocess(
+            (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : v),
+            z.string(),
+          ),
           location: z.string().optional(),
           price: z.string().optional(),
         }),
       )
       .optional(),
-    guests: z.string(),
     duration: z.string(),
     excerpt: z.string(),
     featured: z.boolean().default(false),

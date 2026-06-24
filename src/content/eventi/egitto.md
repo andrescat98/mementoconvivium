@@ -11,27 +11,19 @@ theme: "Antico Egitto · 1150 a.C."
 #     dateISO: "2025-06-21"
 #     location: "Milano, sede rivelata ai prenotati"
 #     price: "€ 80 a persona (cena inclusa)"
-guests: "16 – 24 persone"
-duration: "4 – 5 ore"
+duration: "2 – 3 ore"
 excerpt: "Ramses III è al culmine del suo potere. Tra sacerdoti, dignitari e ombre del palazzo reale, scoprirai che anche sulle rive del Nilo il potere ha sempre un prezzo."
 featured: false
-status: "coming-soon"
+status: "aperto"
 historicalYear: -1150
 era: "Antico Egitto"
 yearLabel: "1150 a.C."
 place: "Per-Ramesses, Egitto"
 timelineImage: "/timeline/egitto.jpg"
-location: "Sede rivelata ai prenotati"
-price: "€ 75 a persona (cena inclusa)"
 quote:
   text: "Chi parla contro il faraone, parla contro Ra stesso."
   author: "Proverbio della corte di Ramses III"
-includes:
-  - "Cena a tre portate ispirata alla cucina dell'antico Egitto"
-  - "Scheda personaggio con storia, segreti e obiettivi"
-  - "Conduzione teatrale da parte degli attori"
-  - "Kit di gioco: papiri con indizi, sigilli reali e prove"
-  - "Vino e bevande per tutta la serata"
+
 characters:
   - name: "Ramses III"
     role: "Il Faraone"

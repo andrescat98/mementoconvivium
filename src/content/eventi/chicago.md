@@ -12,28 +12,19 @@ theme: "Proibizionismo · 1929"
 #     location: "Milano, sede rivelata ai prenotati"
 #     price: "€ 80 a persona (cena inclusa)"
 
-guests: "16 – 24 persone"
-duration: "4 – 5 ore"
+duration: "2 – 3 ore"
 excerpt: "La festa di compleanno del sindaco di Chicago in una città dominata da jazz, proibizionismo e criminalità organizzata. Questa non sarà soltanto una festa: sarà una notte da cui qualcuno potrebbe non uscire vivo."
-featured: true
+featured: false
 status: "aperto"
 historicalYear: 1929
 era: "Proibizionismo"
 yearLabel: "1929"
 place: "Chicago, Illinois"
 timelineImage: "/timeline/chicago.jpg"
-location: "Sede rivelata ai prenotati · Milano"
-price: "€ 80 a persona (cena completa inclusa)"
 quote:
   text: "Non si fa nulla a Chicago senza il mio consenso."
   author: "Al Capone"
-includes:
-  - "Cena a tre portate ispirata alla cucina americana degli anni '20"
-  - "Scheda personaggio con identità, affari e segreti"
-  - "Conduzione teatrale da parte degli attori"
-  - "Kit di gioco: buste sigillate, messaggi in codice e prove"
-  - "Cocktail proibiti, vino e bevande per tutta la serata"
-  - "Elemento scenico speciale: il dossier del detective"
+
 characters:
   - name: "Il Sindaco di Chicago"
     role: "Il Festeggiato"

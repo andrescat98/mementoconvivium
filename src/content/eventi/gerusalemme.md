@@ -11,8 +11,7 @@ theme: "Crociate · 1100 d.C."
 #     dateISO: "2025-06-21"
 #     location: "Milano, sede rivelata ai prenotati"
 #     price: "€ 80 a persona (cena inclusa)"
-guests: "14 – 22 persone"
-duration: "4 – 5 ore"
+duration: "2 – 3 ore"
 excerpt: "Dopo la conquista crociata di Gerusalemme, ogni promessa cela un tradimento e ogni decisione può cambiare il destino del regno appena nato."
 featured: false
 status: "coming-soon"
@@ -21,17 +20,10 @@ era: "Crociate"
 yearLabel: "1100 d.C."
 place: "Gerusalemme, Palestina"
 timelineImage: "/timeline/gerusalemme.jpg"
-location: "Sede rivelata ai prenotati"
-price: "€ 75 a persona (cena inclusa)"
 quote:
   text: "Deus lo vult."
   author: "Grido di guerra della Prima Crociata"
-includes:
-  - "Cena a tre portate ispirata alla cucina medievale del Levante"
-  - "Scheda personaggio con missione, fede e segreti"
-  - "Conduzione teatrale da parte degli attori"
-  - "Kit di gioco: pergamene, sigilli e reliquie false"
-  - "Vino e bevande per tutta la serata"
+
 characters:
   - name: "Goffredo di Buglione"
     role: "Il Difensore del Santo Sepolcro"
