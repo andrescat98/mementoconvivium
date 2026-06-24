@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from "astro:content";
+import Particles from "./Particles.astro";
 
 interface Props {
     events: CollectionEntry<"eventi">[];
@@ -16,6 +17,7 @@ const zeroInsertAfter = sorted.filter((e) => (e.data.historicalYear ?? 0) < 0).l
 ---
 
 <section class="section timeline-section" id="timeline">
+    <Particles />
     <div class="container">
         <div class="section-header">
             <span class="section-label">La nostra storia</span>
@@ -49,17 +51,23 @@ const zeroInsertAfter = sorted.filter((e) => (e.data.historicalYear ?? 0) < 0).l
                                 <span class="dot-inner"></span>
                             </div>
                             <article class="timeline-card">
-                                {evento.data.timelineImage && (
-                                    <div class="card-image-wrap">
+                                <div class="card-image-wrap">
+                                    <svg class="card-fallback-orn" viewBox="0 0 64 64" aria-hidden="true">
+                                        <line x1="16" y1="9" x2="48" y2="9" />
+                                        <line x1="16" y1="55" x2="48" y2="55" />
+                                        <path d="M19 9 L45 9 L32 32 L45 55 L19 55 L32 32 Z" />
+                                    </svg>
+                                    {evento.data.timelineImage && (
                                         <img
                                             src={evento.data.timelineImage}
                                             alt={evento.data.era ?? evento.data.title}
                                             class="card-image"
                                             loading="lazy"
+                                            onerror="this.style.display='none'"
                                         />
-                                        <div class="card-image-overlay"></div>
-                                    </div>
-                                )}
+                                    )}
+                                    <div class="card-image-overlay"></div>
+                                </div>
                                 <div class="card-body">
                                     <span class="card-era">{evento.data.era}</span>
                                     <div class="card-year">{evento.data.yearLabel}</div>

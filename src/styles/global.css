@@ -8,14 +8,6 @@
     font-display: swap;
 }
 
-@font-face {
-    font-family: "Felix Titling";
-    src: url("/fonts/FelixTitling-Regular.ttf") format("truetype");
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
 /* ─── VARIABLES: definite in Layout.astro <style is:global> ── */
 /* Qui si usano solo le variabili --* già dichiarate nel Layout. */
 

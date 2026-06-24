@@ -1,0 +1,118 @@
+---
+import Layout from "../layouts/Layout.astro";
+import "../styles/index.css";
+---
+
+<Layout
+    title="Contatti — Memento Convivium"
+    description="Scrivici o chiamaci per prenotare il tuo posto al banchetto: email, telefono e WhatsApp di Memento Convivium."
+>
+    <section class="section contatti">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Parla con noi</span>
+                <h2>Contatti</h2>
+                <div class="divider"><span>⬥</span></div>
+                <p class="contatti-sub">
+                    Per prenotazioni, informazioni o eventi privati.<br />
+                    Rispondiamo volentieri.
+                </p>
+            </div>
+
+            <div class="contatti-grid">
+                <a class="contatti-card" href="tel:+393893137494">
+                    <span class="contatti-icon">☎</span>
+                    <span class="contatti-label">Chiama</span>
+                    <span class="contatti-value">+39 389 313 7494</span>
+                </a>
+                <a
+                    class="contatti-card"
+                    href="https://wa.me/393893137494"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <span class="contatti-icon">✆</span>
+                    <span class="contatti-label">WhatsApp</span>
+                    <span class="contatti-value">+39 389 313 7494</span>
+                </a>
+                <a class="contatti-card" href="mailto:alberto.mazzucco98@gmail.com">
+                    <span class="contatti-icon">✉</span>
+                    <span class="contatti-label">Email</span>
+                    <span class="contatti-value">alberto.mazzucco98@gmail.com</span>
+                </a>
+                <a
+                    class="contatti-card"
+                    href="https://www.instagram.com/memento_convivium"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <span class="contatti-icon">◎</span>
+                    <span class="contatti-label">Instagram</span>
+                    <span class="contatti-value">@memento_convivium</span>
+                </a>
+            </div>
+        </div>
+    </section>
+</Layout>
+
+<style>
+    .contatti {
+        padding-top: 9rem;
+    }
+
+    .contatti-sub {
+        color: var(--cream-dim);
+        font-size: 1rem;
+        line-height: 1.8;
+        margin-top: 0.5rem;
+    }
+
+    .contatti-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    .contatti-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+        text-decoration: none;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        transition:
+            transform 0.4s var(--ease-out),
+            box-shadow 0.4s var(--ease-out),
+            border-color 0.4s;
+    }
+
+    .contatti-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 18px 40px -20px var(--gold-glow-strong);
+        border-color: var(--gold-dim);
+    }
+
+    .contatti-icon {
+        font-size: 1.8rem;
+        color: var(--gold);
+        line-height: 1;
+    }
+
+    .contatti-label {
+        font-family: var(--font-title);
+        font-size: 0.62rem;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: var(--gold-dim);
+    }
+
+    .contatti-value {
+        font-size: 1.05rem;
+        color: var(--cream);
+    }
+</style>

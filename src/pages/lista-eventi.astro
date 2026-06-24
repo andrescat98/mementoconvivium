@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import Layout from "../layouts/Layout.astro";
+import Particles from "../components/Particles.astro";
 import "../styles/index.css";
 
 const eventi = await getCollection("eventi");
@@ -40,6 +41,7 @@ const statusLabel: Record<string, string> = {
 
     <!-- GRIGLIA EVENTI -->
     <section class="section eventi" id="eventi">
+        <Particles />
         <div class="container">
             <div class="events-grid">
                 {
@@ -124,7 +126,7 @@ const statusLabel: Record<string, string> = {
                     Contattaci
                 </a>
                 <p class="prenota-note">
-                    Oppure scrivici su <a href="https://instagram.com"
+                    Oppure scrivici su <a href="https://www.instagram.com/memento_convivium"
                         >Instagram</a
                     >
                 </p>
@@ -206,6 +208,13 @@ const statusLabel: Record<string, string> = {
         border-top: 1px solid var(--border);
         background: var(--bg-card);
         padding-top: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .eventi > .container {
+        position: relative;
+        z-index: 1;
     }
 
     @media (max-width: 768px) {

@@ -1,0 +1,88 @@
+---
+import Layout from "../layouts/Layout.astro";
+import "../styles/index.css";
+---
+
+<Layout
+    title="Privacy — Memento Convivium"
+    description="Come Memento Convivium tratta i dati personali di chi partecipa alle cene con delitto."
+>
+    <section class="section privacy-page">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Informativa</span>
+                <h2>Privacy</h2>
+                <div class="divider"><span>⬥</span></div>
+            </div>
+
+            <div class="privacy-prose">
+                <p>
+                    Memento Convivium è un'associazione che organizza cene con
+                    delitto a tema storico. Trattiamo i tuoi dati personali con
+                    semplicità e nel rispetto del Regolamento UE 2016/679 (GDPR).
+                </p>
+
+                <h3>Quali dati raccogliamo</h3>
+                <p>
+                    Questo sito è statico: non usa cookie, non profila e non
+                    raccoglie dati di navigazione. Riceviamo solo i dati che ci
+                    invii spontaneamente quando ci contatti — nome, email, numero
+                    di telefono — via email, telefono, WhatsApp o Instagram.
+                </p>
+
+                <h3>Perché li usiamo</h3>
+                <p>
+                    Esclusivamente per gestire la tua prenotazione e la serata:
+                    confermare il posto, inviarti la scheda personaggio e le
+                    informazioni pratiche, risponderti. Non li cediamo a terzi e
+                    non li usiamo per marketing senza il tuo consenso.
+                </p>
+
+                <h3>Per quanto tempo</h3>
+                <p>
+                    Conserviamo i tuoi dati per il tempo necessario a organizzare
+                    l'evento e ai successivi obblighi di legge. Su tua richiesta li
+                    cancelliamo.
+                </p>
+
+                <h3>I tuoi diritti</h3>
+                <p>
+                    Puoi chiedere in qualsiasi momento di accedere, correggere o
+                    cancellare i tuoi dati, o opporti al loro trattamento. Scrivici a
+                    <a href="mailto:info@mementoconvivium.it"
+                        >info@mementoconvivium.it</a
+                    > o chiamaci al
+                    <a href="tel:+393893137494">+39 389 313 7494</a>.
+                </p>
+            </div>
+        </div>
+    </section>
+</Layout>
+
+<style>
+    .privacy-page {
+        padding-top: 9rem;
+    }
+
+    .privacy-prose {
+        max-width: 640px;
+        margin: 0 auto;
+        color: var(--cream);
+        line-height: 1.8;
+    }
+
+    .privacy-prose h3 {
+        font-size: 1.1rem;
+        color: var(--white);
+        margin: 2rem 0 0.5rem;
+    }
+
+    .privacy-prose p {
+        color: var(--cream-dim);
+        margin-bottom: 0.5rem;
+    }
+
+    .privacy-prose a {
+        color: var(--gold);
+    }
+</style>

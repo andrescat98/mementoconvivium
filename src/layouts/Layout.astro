@@ -70,7 +70,7 @@ const {
         --font-title: "Cinzel", serif;
         --font-body: "Cormorant Garamond", serif;
         --font-jack: "Jack Pirate", cursive;
-        --font-logo: "Cinzel Decorative", "Felix Titling", serif;
+        --font-logo: "Cinzel Decorative", serif;
 
         --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -302,64 +302,7 @@ const {
         transform: translateY(-6px) rotate(-45deg);
     }
 
-    /* Footer */
-    .site-footer {
-        background: var(--bg-2);
-        margin-top: 0;
-        border-top: 1px solid var(--border);
-        position: relative;
-        z-index: 1;
-    }
-
-    .footer-inner {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 3rem 2rem;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .footer-logo .logo-text {
-        font-size: 1.1rem;
-        letter-spacing: 0.2em;
-    }
-
-    .footer-tagline {
-        font-style: italic;
-        color: var(--cream-dim);
-        font-size: 0.95rem;
-    }
-
-    .footer-links {
-        display: flex;
-        gap: 2rem;
-        margin-top: 0.5rem;
-    }
-
-    .footer-links a {
-        font-family: var(--font-title);
-        font-size: 0.65rem;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-        color: var(--cream-dim);
-        text-decoration: none;
-        transition: color 0.3s;
-    }
-
-    .footer-links a:hover {
-        color: var(--gold);
-    }
-
-    .footer-copy {
-        font-size: 0.75rem;
-        color: var(--gold-dim);
-        font-family: var(--font-title);
-        letter-spacing: 0.1em;
-        margin-top: 0.5rem;
-    }
+    /* Footer styles live scoped in Footer.astro */
 
     /* Typography globals */
     h1,

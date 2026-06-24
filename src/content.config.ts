@@ -22,12 +22,6 @@ const eventiCollection = defineCollection({
     excerpt: z.string(),
     featured: z.boolean().default(false),
     status: z.enum(["aperto", "lista-attesa", "coming-soon", "chiuso"]).default("aperto"),
-    quote: z
-      .object({
-        text: z.string(),
-        author: z.string(),
-      })
-      .optional(),
     location: z.string().optional(),
     price: z.string().optional(),
     includes: z.array(z.string()).optional(),
