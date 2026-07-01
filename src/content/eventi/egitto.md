@@ -14,7 +14,7 @@ theme: "Antico Egitto · 1150 a.C."
 duration: "2 – 3 ore"
 excerpt: "Alla corte di Ramses III, il ritorno del faraone scatena una rete di ambizioni, complotti e tradimenti.
 Tra eredi rivali, rivolte e oscuri veleni, il destino dell’Egitto sta per essere riscritto nell’ombra."
-status: "aperto"
+status: "coming-soon"
 historicalYear: -1150
 era: "Antico Egitto"
 yearLabel: "1150 a.C."

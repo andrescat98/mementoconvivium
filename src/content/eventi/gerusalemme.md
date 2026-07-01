@@ -19,6 +19,7 @@ era: "Crociate"
 yearLabel: "1100 d.C."
 place: "Gerusalemme, Palestina"
 timelineImage: "/timeline/gerusalemme.jpg"
+characterFont: "'Uncial Antiqua', cursive"
 quote:
   text: "Deus lo vult."
   author: "Grido di guerra della Prima Crociata"

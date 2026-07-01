@@ -664,19 +664,25 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         margin-top: 0.5rem;
     }
 
+    /* flex + centratura: l'ultima riga si centra, mai celle vuote */
     .ev-chars-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-        gap: 1px;
-        background: var(--border);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.25rem;
         margin-top: 1rem;
     }
 
     .ev-char-card {
+        flex: 0 1 260px;
+        min-width: 220px;
         background: var(--bg-card);
+        border: 1px solid var(--border);
         padding: 2rem 1.5rem;
         display: flex;
         flex-direction: column;
+        align-items: center;
+        text-align: center;
         gap: 0.5rem;
         transition: background 0.3s;
     }

@@ -445,6 +445,23 @@
     color: var(--gold);
 }
 
+/* stretched link: tutta la card è cliccabile */
+.event-detail-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+/* il bottone resta sopra lo stretched link */
+.event-card-actions a {
+    position: relative;
+    z-index: 1;
+}
+
+.event-card-actions .event-detail-link {
+    position: static;
+}
+
 /* ── Prenota ────────────────────── */
 .prenota {
     border-top: 1px solid var(--border);

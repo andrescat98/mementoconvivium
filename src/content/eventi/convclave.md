@@ -1,5 +1,5 @@
 ---
-title: "Il Conclave dei Tradimenti"
+title: "Il Conclave"
 theme: "Roma Medievale · 1294 d.C."
 # Esempio lista date — copiare e decommentare:
 # dates:

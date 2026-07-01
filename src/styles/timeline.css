@@ -101,6 +101,7 @@
 
 /* ── Card ───────────────────────────────────────────── */
 .timeline-card {
+    position: relative;
     width: 100%;
     max-width: 400px;
     border: 1px solid var(--border);
@@ -249,6 +250,13 @@
 .card-link:hover {
     color: var(--gold-light);
     letter-spacing: 0.25em;
+}
+
+/* stretched link: tutta la card è cliccabile (solo se il link è un <a>) */
+a.card-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
 }
 
 /* ── Anno Zero marker ───────────────────────────────── */

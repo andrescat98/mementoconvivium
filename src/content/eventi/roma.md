@@ -1,5 +1,5 @@
 ---
-title: "La Caduta di Commodo"
+title: "Commodo: Il Gladiatore"
 theme: "Roma Imperiale · 192 d.C."
 # Esempio lista date — copiare e decommentare:
 # dates:
