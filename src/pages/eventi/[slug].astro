@@ -825,6 +825,19 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         }
     }
 
+    /* su cellulare foto un po' più piccola: la targhetta col nome deve restare in vista */
+    @media (max-width: 600px) {
+        .ev-photo-card img {
+            max-width: 88vw;
+            max-height: 62dvh;
+        }
+
+        .ev-photo-name {
+            font-size: 1.25rem;
+            padding: 0.5rem 1.6rem;
+        }
+    }
+
     /* targhetta da museo sotto il ritratto */
     .ev-photo-name {
         --notch: 10px; /* raggio degli angoli concavi */

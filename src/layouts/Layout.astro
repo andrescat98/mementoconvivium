@@ -101,11 +101,6 @@ const {
 
     body {
         background-color: var(--bg);
-        background-image: url("/marble.jpg");
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
         color: var(--cream);
         font-family: var(--font-body);
         font-size: 20px;
@@ -114,12 +109,18 @@ const {
         cursor: default;
     }
 
-    /* Overlay avorio 50% — attenua il marmo */
+    /* Marmo + overlay avorio 50% in un layer fixed: niente background-attachment
+       (janky su mobile) e altezza 100lvh così non risponde alla barra URL */
     body::before {
         content: "";
         position: fixed;
-        inset: 0;
-        background: rgba(245, 242, 236, 0.5);
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100lvh;
+        background:
+            linear-gradient(rgba(245, 242, 236, 0.5), rgba(245, 242, 236, 0.5)),
+            url("/marble.jpg") center / cover no-repeat;
         pointer-events: none;
         z-index: 0;
     }
