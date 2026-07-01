@@ -13,7 +13,6 @@ theme: "Roma Medievale · 1294 d.C."
 #     price: "€ 80 a persona (cena inclusa)"
 duration: "2 – 3 ore"
 excerpt: "Tra intrighi di conclave, alleanze segrete e sospetti di tradimento, l'elezione e la rinuncia di Celestino V aprono la strada al potere. Ma quando un papa abdica, chi resta davvero innocente?"
-featured: false
 status: "aperto"
 historicalYear: 1294
 era: "Roma Medievale"

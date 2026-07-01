@@ -13,7 +13,6 @@ theme: "Impero Ottomano · 1566"
 #     price: "€ 80 a persona (cena inclusa)"
 duration: "2 – 3 ore"
 excerpt: "Alla corte di Solimano il Magnifico, splendore e pericolo convivono dietro le porte del palazzo. L'impero vive i suoi ultimi bagliori sotto l'ombra di un potere immenso."
-featured: false
 status: "coming-soon"
 historicalYear: 1566
 era: "Impero Ottomano"

@@ -27,7 +27,7 @@ const {
     includes,
     characters,
     status,
-    featured,
+    characterFont,
 } = evento.data;
 
 const today = new Date();
@@ -67,7 +67,6 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
             <div class="ev-hero-content">
                 <span class="section-label">{theme}</span>
                 <h1 class="ev-title">{title}</h1>
-                {featured && <span class="ev-badge">Prossimo evento</span>}
                 <div class="ev-meta-row">
                     <div class="ev-meta-item">
                         <span class="meta-label">Data</span>
@@ -201,11 +200,31 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
                                 name: string;
                                 role: string;
                                 hint: string;
+                                portrait?: string;
                             }) => (
                                 <div class="ev-char-card">
-                                    <div class="ev-char-initial">
-                                        {c.name.charAt(0)}
-                                    </div>
+                                    <button
+                                        type="button"
+                                        class={`ev-char-avatar${c.portrait ? " has-portrait" : ""}`}
+                                        data-portrait={
+                                            c.portrait
+                                                ? `/eventi/${evento.id}/${c.portrait}`
+                                                : undefined
+                                        }
+                                        data-name={c.name}
+                                    >
+                                        {c.portrait && (
+                                            <img
+                                                class="ev-char-portrait"
+                                                src={`/eventi/${evento.id}/${c.portrait}`}
+                                                alt={c.name}
+                                                loading="lazy"
+                                            />
+                                        )}
+                                        <span class="ev-char-initial">
+                                            {c.name.charAt(0)}
+                                        </span>
+                                    </button>
                                     <h4 class="ev-char-name">{c.name}</h4>
                                     <p class="ev-char-role">{c.role}</p>
                                     <div class="divider">
@@ -264,6 +283,19 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
             </div>
         </div>
     </section>
+
+    <!-- FULLSCREEN RITRATTO -->
+    <dialog
+        id="ev-photo-dialog"
+        class="ev-photo-dialog"
+        style={`--char-font: ${characterFont ?? "var(--font-title)"}`}
+    >
+        <button type="button" class="ev-photo-close" aria-label="Chiudi">✕</button>
+        <div class="ev-photo-card" id="ev-photo-card">
+            <img id="ev-photo-dialog-img" alt="" />
+        </div>
+        <p id="ev-photo-dialog-name" class="ev-photo-name"></p>
+    </dialog>
 </Layout>
 
 <script define:vars={{ displayDateISO }}>
@@ -277,6 +309,90 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
             const btn = document.getElementById("ev-prenota-btn");
             if (btn) btn.style.display = "none";
         }
+    }
+</script>
+
+<script>
+    /* ── TUNING RITRATTO FULLSCREEN (desktop) ─────────────────────
+       ZOOM_DEFAULT  zoom iniziale all'apertura (1 = dimensione piena)
+       ZOOM_MIN/MAX  limiti della rotella
+       ZOOM_STEP     incremento per scatto di rotella
+       TILT_DEG      inclinazione max della card in gradi (± metà per lato)
+       Dimensione "piena" della foto: vedi CSS .ev-photo-card img
+       (max-width / max-height) e la media query touch più sotto. */
+    const ZOOM_DEFAULT = 1.2;
+    const ZOOM_MIN = 0.8;
+    const ZOOM_MAX = 2;
+    const ZOOM_STEP = 0.1;
+    const TILT_DEG = 18;
+
+    // Ritratto a schermo intero: apre il <dialog> nativo col src cliccato
+    const photoDialogEl = document.getElementById("ev-photo-dialog");
+    const photoDialog =
+        photoDialogEl instanceof HTMLDialogElement ? photoDialogEl : null;
+    const photoDialogImg = document.getElementById("ev-photo-dialog-img");
+    const photoDialogName = document.getElementById("ev-photo-dialog-name");
+    const photoCard = document.getElementById("ev-photo-card");
+
+    const isDesktop = window.matchMedia(
+        "(hover: hover) and (pointer: fine)",
+    ).matches;
+
+    // Su desktop la card parte al 50% e si zooma con la rotella; su touch resta full
+    let zoom = 1;
+    const applyZoom = () => {
+        if (photoDialogImg instanceof HTMLImageElement) {
+            // dimensione "piena" (zoom=1): tenere uguale a .ev-photo-card img nel CSS
+            photoDialogImg.style.maxWidth = `calc(min(80vw, 480px) * ${zoom})`;
+            photoDialogImg.style.maxHeight = `calc(72vh * ${zoom})`;
+        }
+    };
+
+    document.addEventListener("click", (e) => {
+        const avatar =
+            e.target instanceof Element
+                ? e.target.closest<HTMLElement>(".ev-char-avatar[data-portrait]")
+                : null;
+        if (avatar && photoDialog && photoDialogImg instanceof HTMLImageElement) {
+            photoDialogImg.src = avatar.dataset.portrait ?? "";
+            photoDialogImg.alt = avatar.dataset.name ?? "";
+            if (photoDialogName) photoDialogName.textContent = avatar.dataset.name ?? "";
+            if (isDesktop) {
+                zoom = ZOOM_DEFAULT;
+                applyZoom();
+            }
+            photoDialog.showModal();
+        }
+    });
+
+    photoDialog?.addEventListener("click", (e) => {
+        if (e.target === photoDialog) photoDialog.close();
+    });
+    photoDialog
+        ?.querySelector(".ev-photo-close")
+        ?.addEventListener("click", () => photoDialog.close());
+
+    // Effetto card semi-3D: il mouse è tracciato su tutto lo schermo, non solo sulla card
+    if (photoCard && photoDialog && isDesktop) {
+        photoDialog.addEventListener("mousemove", (e) => {
+            const x = e.clientX / window.innerWidth - 0.5;
+            const y = e.clientY / window.innerHeight - 0.5;
+            photoCard.style.transform = `perspective(900px) rotateY(${x * TILT_DEG}deg) rotateX(${-y * TILT_DEG}deg)`;
+        });
+        photoDialog.addEventListener("mouseleave", () => {
+            photoCard.style.transform = "";
+        });
+
+        // Rotella: zoom della card con limiti
+        photoDialog.addEventListener(
+            "wheel",
+            (e) => {
+                e.preventDefault();
+                zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom - Math.sign(e.deltaY) * ZOOM_STEP));
+                applyZoom();
+            },
+            { passive: false },
+        );
     }
 </script>
 
@@ -566,13 +682,186 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         background: var(--bg-2);
     }
 
+    .ev-char-avatar {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 72px;
+        height: 72px;
+        margin: 0 0 0.5rem;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: default;
+        font: inherit;
+    }
+
+    .ev-char-avatar.has-portrait {
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .ev-char-avatar.has-portrait:hover,
+    .ev-char-avatar.has-portrait:focus-visible {
+        transform: scale(1.08);
+        outline: none;
+    }
+
+    .ev-char-avatar.has-portrait::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.5);
+        font-size: 1.1rem;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: none;
+    }
+
+    .ev-char-avatar.has-portrait:hover::after,
+    .ev-char-avatar.has-portrait:focus-visible::after {
+        opacity: 1;
+    }
+
     .ev-char-initial {
         font-family: var(--font-display);
         font-size: 2rem;
         color: var(--gold);
         opacity: 0.45;
         line-height: 1;
-        margin-bottom: 0.25rem;
+    }
+
+    .ev-char-avatar.has-portrait .ev-char-initial {
+        position: absolute;
+        right: -2px;
+        bottom: -2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        font-size: 0.8rem;
+        opacity: 1;
+        color: var(--bg);
+        background: var(--gold);
+        border: 1px solid var(--bg-card);
+        border-radius: 50%;
+    }
+
+    .ev-char-portrait {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+    }
+
+    /* il dialog copre tutto lo schermo: è l'area attiva per il tilt e il click-fuori chiude */
+    .ev-photo-dialog {
+        margin: 0;
+        width: 100vw;
+        height: 100vh;
+        max-width: 100vw;
+        max-height: 100vh;
+        border: none;
+        background: transparent;
+        padding: 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+    }
+
+    .ev-photo-dialog[open] {
+        display: flex;
+    }
+
+    .ev-photo-dialog::backdrop {
+        background: rgba(0, 0, 0, 0.85);
+    }
+
+    /* la rotazione 3D del ritratto sporge dal viewport: niente scrollbar orizzontale mentre è aperto */
+    :global(html:has(.ev-photo-dialog[open])) {
+        overflow-x: hidden;
+    }
+
+    .ev-photo-card {
+        perspective: 900px;
+        transition: transform 0.15s ease-out;
+        will-change: transform;
+    }
+
+    .ev-photo-card img {
+        display: block;
+        /* dimensione "piena" della foto (zoom=1): tenere uguale ad applyZoom() nello script */
+        max-width: min(80vw, 480px);
+        max-height: 72vh;
+        object-fit: contain;
+        transition:
+            max-width 0.15s ease-out,
+            max-height 0.15s ease-out;
+    }
+
+    /* su touch niente zoom: dimensioni piene per sfruttare lo schermo */
+    @media (hover: none), (pointer: coarse) {
+        .ev-photo-card img {
+            max-width: 94vw;
+            max-height: 80vh;
+        }
+    }
+
+    /* targhetta da museo sotto il ritratto */
+    .ev-photo-name {
+        --notch: 10px; /* raggio degli angoli concavi */
+        --rivet-r: 3.5px; /* raggio dei rivetti */
+        --rivet-pos: 14px; /* distanza dei rivetti dagli angoli */
+        font-family: var(--char-font, var(--font-title));
+        font-size: 1.6rem;
+        letter-spacing: 0.05em;
+        color: #fff;
+        margin: 1.25rem 0 0; /* distanza dalla foto */
+        text-align: center;
+        padding: 0.6rem 2.4rem;
+        border: 1px solid var(--gold-dim);
+        /* drop-shadow (non box-shadow): segue la sagoma ritagliata dalla mask */
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+        /* sfondo scuro + 4 rivetti dorati con luce in alto a sinistra */
+        background:
+            radial-gradient(circle var(--rivet-r) at var(--rivet-pos) var(--rivet-pos), #f0d48a 25%, #8a6a2f 90%, transparent 100%),
+            radial-gradient(circle var(--rivet-r) at calc(100% - var(--rivet-pos)) var(--rivet-pos), #f0d48a 25%, #8a6a2f 90%, transparent 100%),
+            radial-gradient(circle var(--rivet-r) at var(--rivet-pos) calc(100% - var(--rivet-pos)), #f0d48a 25%, #8a6a2f 90%, transparent 100%),
+            radial-gradient(circle var(--rivet-r) at calc(100% - var(--rivet-pos)) calc(100% - var(--rivet-pos)), #f0d48a 25%, #8a6a2f 90%, transparent 100%),
+            #17110b;
+        /* angoli concavi: quattro semicerchi ritagliati verso il centro */
+        -webkit-mask:
+            radial-gradient(circle var(--notch) at 0 0, transparent 98%, #000) top left / 51% 51% no-repeat,
+            radial-gradient(circle var(--notch) at 100% 0, transparent 98%, #000) top right / 51% 51% no-repeat,
+            radial-gradient(circle var(--notch) at 0 100%, transparent 98%, #000) bottom left / 51% 51% no-repeat,
+            radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, #000) bottom right / 51% 51% no-repeat;
+        mask:
+            radial-gradient(circle var(--notch) at 0 0, transparent 98%, #000) top left / 51% 51% no-repeat,
+            radial-gradient(circle var(--notch) at 100% 0, transparent 98%, #000) top right / 51% 51% no-repeat,
+            radial-gradient(circle var(--notch) at 0 100%, transparent 98%, #000) bottom left / 51% 51% no-repeat,
+            radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, #000) bottom right / 51% 51% no-repeat;
+    }
+
+    .ev-photo-close {
+        position: fixed;
+        top: 1.5rem;
+        right: 1.5rem;
+        width: 2.5rem;
+        height: 2.5rem;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--cream);
+        font-size: 1.1rem;
+        cursor: pointer;
     }
 
     .ev-char-name {

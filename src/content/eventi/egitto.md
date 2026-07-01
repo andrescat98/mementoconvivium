@@ -1,5 +1,5 @@
 ---
-title: "Il Segreto del Faraone"
+title: "La congiura dell'Harem"
 theme: "Antico Egitto · 1150 a.C."
 # Esempio lista date — copiare e decommentare:
 # dates:
@@ -12,8 +12,8 @@ theme: "Antico Egitto · 1150 a.C."
 #     location: "Milano, sede rivelata ai prenotati"
 #     price: "€ 80 a persona (cena inclusa)"
 duration: "2 – 3 ore"
-excerpt: "Ramses III è al culmine del suo potere. Tra sacerdoti, dignitari e ombre del palazzo reale, scoprirai che anche sulle rive del Nilo il potere ha sempre un prezzo."
-featured: false
+excerpt: "Alla corte di Ramses III, il ritorno del faraone scatena una rete di ambizioni, complotti e tradimenti.
+Tra eredi rivali, rivolte e oscuri veleni, il destino dell’Egitto sta per essere riscritto nell’ombra."
 status: "aperto"
 historicalYear: -1150
 era: "Antico Egitto"

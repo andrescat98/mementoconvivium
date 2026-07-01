@@ -14,7 +14,6 @@ theme: "Proibizionismo · 1929"
 
 duration: "2 – 3 ore"
 excerpt: "La festa di compleanno del sindaco di Chicago in una città dominata da jazz, proibizionismo e criminalità organizzata. Questa non sarà soltanto una festa: sarà una notte da cui qualcuno potrebbe non uscire vivo."
-featured: false
 status: "aperto"
 historicalYear: 1929
 era: "Proibizionismo"

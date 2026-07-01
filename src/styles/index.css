@@ -379,28 +379,6 @@
     transform: scaleX(1);
 }
 
-.event-card.featured {
-    grid-row: 1 / 3;
-    border-color: var(--gold-dim);
-}
-
-.event-card.featured::before {
-    transform: scaleX(1);
-}
-
-.event-tag {
-    position: absolute;
-    top: 1.5rem;
-    right: 1.5rem;
-    font-family: var(--font-title);
-    font-size: 0.6rem;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: var(--bg);
-    background: var(--gold);
-    padding: 0.2rem 0.6rem;
-}
-
 .event-theme {
     font-family: var(--font-title);
     font-size: 0.65rem;
@@ -602,10 +580,6 @@
 
     .events-grid {
         grid-template-columns: 1fr;
-    }
-
-    .event-card.featured {
-        grid-row: auto;
     }
 }
 

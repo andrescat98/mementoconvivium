@@ -4,13 +4,18 @@ import Layout from "../layouts/Layout.astro";
 import Particles from "../components/Particles.astro";
 import "../styles/index.css";
 
-const eventi = await getCollection("eventi");
-
 const oggi = new Date().toISOString().slice(0, 10);
-const prossimo =
-    eventi.find((e) => e.data.dates?.some((d) => d.dateISO >= oggi)) ??
-    eventi.find((e) => e.data.featured) ??
-    eventi[0];
+
+function nextDateISO(e: Awaited<ReturnType<typeof getCollection<"eventi">>>[number]) {
+    return (
+        e.data.dates?.map((d) => d.dateISO).filter((d) => d >= oggi).sort()[0] ??
+        "9999-99-99"
+    );
+}
+
+const eventi = (await getCollection("eventi")).sort(
+    (a, b) => nextDateISO(a).localeCompare(nextDateISO(b)),
+);
 
 const statusLabel: Record<string, string> = {
     aperto: "Prenota ora",
@@ -46,7 +51,6 @@ const statusLabel: Record<string, string> = {
             <div class="events-grid">
                 {
                     eventi.map((evento) => {
-                        const isProssimo = evento.id === prossimo.id;
                         const label =
                             statusLabel[evento.data.status] ?? "Scopri di più";
                         const btnClass =
@@ -54,12 +58,7 @@ const statusLabel: Record<string, string> = {
                                 ? "btn-primary"
                                 : "btn-ghost";
                         return (
-                            <article
-                                class={`event-card${isProssimo ? " featured" : ""}`}
-                            >
-                                {isProssimo && (
-                                    <div class="event-tag">Prossimo</div>
-                                )}
+                            <article class="event-card">
                                 <div class="event-theme">
                                     {evento.data.theme}
                                 </div>

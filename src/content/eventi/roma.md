@@ -13,7 +13,6 @@ theme: "Roma Imperiale · 192 d.C."
 #     price: "€ 80 a persona (cena inclusa)"
 duration: "2 – 3 ore"
 excerpt: "Alla corte di Commodo, l'imperatore che si proclamò Ercole romano, tra lussi imperiali, giochi di potere e sangue dell'arena, sarai chiamato a decidere il destino di Roma."
-featured: false
 status: "coming-soon"
 historicalYear: 192
 era: "Roma Imperiale"

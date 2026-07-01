@@ -18,7 +18,6 @@ dates:
     price: "€ 25 a persona (cena inclusa)"
 duration: "2 – 3 ore"
 excerpt: "Sali a bordo dell'Adventure Galley con la ciurma del Capitano Kidd. In mare aperto, il vero pericolo potrebbe non arrivare dalle navi nemiche, ma dall'ammutinamento che covava sottocoperta."
-featured: false
 status: "aperto"
 historicalYear: 1697
 era: "Era dei Pirati"

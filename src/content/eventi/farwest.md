@@ -1,5 +1,5 @@
 ---
-title: "L'Ultima Notte a Dodge City"
+title: "One night at Dodge House"
 theme: "Far West · 1874"
 # Esempio lista date — copiare e decommentare:
 # dates:
@@ -19,7 +19,7 @@ dates:
 
 duration: "2 – 3 ore"
 excerpt: "Un'ultima notte al Dodge City Hotel, nel cuore del selvaggio West. Pistoleri, giocatori d'azzardo e anime in fuga. Quando cala il sole su Dodge City, nessuno può dirsi al sicuro."
-featured: true
+characterFont: "Rye, cursive"
 status: "aperto"
 historicalYear: 1874
 era: "Far West"
@@ -31,21 +31,33 @@ quote:
   author: "Detto del vecchio West"
 
 characters:
-  - name: "Annie"
-    role: "La Proprietaria del Saloon"
-    hint: "Conosce ogni viso che è passato da Dodge City. Conosce ogni segreto."
-  - name: "Lo Sceriffo"
-    role: "La Legge"
-    hint: "Indossa la stella. Ma non tutte le stelle luccicano allo stesso modo."
-  - name: "Il Giocatore d'Azzardo"
-    role: "Il Baro"
-    hint: "Ha sempre una carta nascosta. Stasera potrebbe essere un asso o una condanna a morte."
-  - name: "Il Pistolero di Passaggio"
-    role: "Lo Straniero"
-    hint: "Non si ferma mai a lungo in nessun posto. A meno che non ci sia una buona ragione."
-  - name: "La Vedova del Cercatore d'Oro"
-    role: "L'Innocente"
-    hint: "Sembra innocente. Ma anche i fiori del deserto nascondono spine."
+  - name: "Annie Bennett Cox"
+    role: "La Proprietaria del Dodge House Hotel"
+    hint: "Tiene in piedi il saloon con pugno fermo e sorriso tagliente. Conosce ogni cliente, ogni debito e ogni segreto passato dal suo bancone."
+    portrait: "marty.webp"
+  - name: "William “Billy” Dixon"
+    role: "Il Cacciatore di Bisonti"
+    hint: "Eroe di Adobe Walls, tiratore leggendario e uomo dalla lingua sciolta. Ha visto la morte in faccia e sa riconoscere un buon affare quando gli passa davanti."
+    portrait: "carlo.webp"
+  - name: "Quanah Parker"
+    role: "Il Comanche"
+    hint: "Silenzioso, fiero e pericoloso. Porta sulle spalle il destino del suo popolo e negli occhi il fuoco di una vendetta non ancora consumata."
+  - name: "Ranald Slidell MacKenzie"
+    role: "Il Colonnello degli Stati Uniti"
+    hint: "Veterano inflessibile, sopravvissuto a sette ferite e a troppe battaglie. Crede nella legge, ma soprattutto nella disciplina, nel piombo e nella forza."
+    portrait: "goat.webp"
+  - name: "Samuel Burk Burnett"
+    role: "L’Allevatore di Bestiame"
+    hint: "Ricco, elegante e abituato a trattare con uomini potenti. Dietro i modi cortesi nasconde affari delicati e alleanze che non tutti devono conoscere."
+    portrait: "nic.webp"
+  - name: "Adolphus Caesar Kydd"
+    role: "Il Lettore di Giornali"
+    hint: "Porta notizie, racconti e cultura in una città assetata di storie. Ma il passato da capitano confederato gli pesa addosso più di quanto voglia ammettere."
+    portrait: "balz.webp"
+  - name: "William L. Brooks"
+    role: "Il Cocchiere"
+    hint: "Ex uomo di legge, guidatore di diligenze e debitore cronico. Ha il vizio del whiskey, delle carte e delle promesse fatte troppo in fretta."
+    portrait: "alby.webp"
 ---
 
 Il vento ulula su Dodge City. La notte inghiotte la frontiera. E al Dodge House Hotel nessuno è davvero chi dice di essere.

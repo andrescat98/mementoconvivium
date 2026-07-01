@@ -23,7 +23,8 @@ const eventiCollection = defineCollection({
       .optional(),
     duration: z.string(),
     excerpt: z.string(),
-    featured: z.boolean().default(false),
+    // font-family per il nome personaggio nel ritratto fullscreen, es. "Rye, cursive" — se assente usa il default
+    characterFont: z.string().optional(),
     status: z.enum(["aperto", "lista-attesa", "coming-soon", "chiuso"]).default("aperto"),
     location: z.string().optional(),
     price: z.string().optional(),
@@ -34,6 +35,8 @@ const eventiCollection = defineCollection({
           name: z.string(),
           role: z.string(),
           hint: z.string(),
+          // solo il nome del file dentro public/eventi/<slug-evento>/
+          portrait: z.string().optional(),
         }),
       )
       .optional(),

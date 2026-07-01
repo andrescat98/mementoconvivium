@@ -6,12 +6,6 @@ import "../styles/timeline.css";
 import TimelineSection from "../components/TimelineSection.astro";
 
 const eventi = await getCollection("eventi");
-
-const oggi = new Date().toISOString().slice(0, 10);
-const prossimo =
-    eventi.find((e) => e.data.dates?.some((d) => d.dateISO >= oggi)) ??
-    eventi.find((e) => e.data.featured) ??
-    eventi[0];
 ---
 
 <Layout title="Memento Convivium" description="Cene con Delitto a Tema Storico">
@@ -23,7 +17,7 @@ const prossimo =
                 <span class="logo-m">M</span>
                 <span class="logo-full">Memento Convivium</span>
             </div>
-            <a href={`/eventi/${prossimo.id}`} class="hero-cta">
+            <a href="/lista-eventi" class="hero-cta">
                 <svg
                     width="20px"
                     height="20px"

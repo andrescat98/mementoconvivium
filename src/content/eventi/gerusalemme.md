@@ -13,7 +13,6 @@ theme: "Crociate · 1100 d.C."
 #     price: "€ 80 a persona (cena inclusa)"
 duration: "2 – 3 ore"
 excerpt: "Dopo la conquista crociata di Gerusalemme, ogni promessa cela un tradimento e ogni decisione può cambiare il destino del regno appena nato."
-featured: false
 status: "coming-soon"
 historicalYear: 1100
 era: "Crociate"
