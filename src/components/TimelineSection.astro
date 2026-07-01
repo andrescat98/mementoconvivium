@@ -79,9 +79,13 @@ const zeroInsertAfter = sorted.filter((e) => (e.data.historicalYear ?? 0) < 0).l
                                     )}
                                     <h3 class="card-title">{evento.data.title}</h3>
                                     <p class="card-excerpt">{evento.data.excerpt}</p>
-                                    <a href={`/eventi/${evento.id}`} class="card-link">
-                                        Scopri lo spettacolo →
-                                    </a>
+                                    {evento.data.status === "coming-soon" ? (
+                                        <span class="card-link">Coming soon</span>
+                                    ) : (
+                                        <a href={`/eventi/${evento.id}`} class="card-link">
+                                            Scopri lo spettacolo →
+                                        </a>
+                                    )}
                                 </div>
                             </article>
                         </div>

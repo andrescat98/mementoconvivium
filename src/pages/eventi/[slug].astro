@@ -4,7 +4,10 @@ import type { CollectionEntry } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
 
 export async function getStaticPaths() {
-    const eventi = await getCollection("eventi");
+    // Le cene coming-soon non hanno una pagina dedicata
+    const eventi = (await getCollection("eventi")).filter(
+        (e: CollectionEntry<"eventi">) => e.data.status !== "coming-soon",
+    );
     return eventi.map((evento: CollectionEntry<"eventi">) => ({
         params: { slug: evento.id },
         props: { evento },

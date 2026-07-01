@@ -1,5 +1,5 @@
 ---
-title: "L'Ammutinamento dell'Adventure Galley"
+title: "Ombre sull'Adventure Galley"
 theme: "Era dei Pirati · 1697"
 # Esempio lista date — copiare e decommentare:
 # dates:
@@ -28,21 +28,45 @@ quote:
   text: "In mare, le leggi degli uomini restano a terra."
   author: "Detto dei pirati dell'Era d'Oro"
 characters:
-  - name: "Capitano William Kidd"
+  - name: "William Kidd"
     role: "Il Capitano"
-    hint: "Corsaro per conto della Corona o pirata di professione? La risposta dipende da chi vincerà stasera."
-  - name: "Il Primo Ufficiale"
-    role: "Il Luogotenente"
-    hint: "La ciurma lo ascolta più del capitano. Non è un caso."
-  - name: "La Cuoca di Bordo"
-    role: "La Custode dei Segreti"
-    hint: "Nutre tutti. Conosce tutti. Ha visto cose che nessuno dovrebbe aver visto."
-  - name: "Il Carpentiere"
-    role: "Il Custode della Nave"
-    hint: "Sa dove si trovano i punti deboli della nave. E quelli degli uomini."
-  - name: "Il Prigioniero Misterioso"
-    role: "L'Ostaggio"
-    hint: "Tutti vogliono liberarlo. Nessuno sa davvero chi sia."
+    hint: "Comanda l’Adventure Galley con pugno di ferro. Ma il mare non perdona i capitani che perdono la fiducia della ciurma."
+    portrait: "alby.webp"
+
+  - name: "Joseph Palmer"
+    role: "Il Primo Ufficiale"
+    hint: "Leale finché conviene esserlo. Conosce gli umori dell’equipaggio e sa quando il vento sta cambiando."
+    portrait: "carlo.webp"
+
+  - name: "William Moore"
+    role: "Il Cannoniere"
+    hint: "Ha il fuoco nelle mani e la rabbia nel sangue. Non tutti gli uomini sono fatti per obbedire."
+    portrait: "nic.webp"
+
+  - name: "Hendrick van der Heul"
+    role: "Il Quartiermastro"
+    hint: "Tiene i conti, osserva gli uomini e pesa ogni parola. Su una nave pirata, il denaro vale quasi quanto la vita."
+    portrait: "leo.webp"
+
+  - name: "James Parker"
+    role: "Il Timoniere"
+    hint: "È salito a bordo da prigioniero, ma ha imparato presto a muoversi tra squali e traditori."
+    portrait: "goat.webp"
+
+  - name: "Richard Barleycorn"
+    role: "Il Maestro d’Armi"
+    hint: "Ama il gioco, il rum e la violenza. Ma quando le carte sono truccate, anche il più duro può perdere tutto."
+    portrait: "cere.webp"
+
+  - name: "Serafina da Silva"
+    role: "La Spadaccina"
+    hint: "Rapida di lama e ancora più rapida nel capire da che parte soffia il vento. La sua fedeltà ha un prezzo."
+    portrait: "marty.webp"
+    
+  - name: "Darby Mullins"
+    role: "Il Medico di Bordo"
+    hint: "Cura ferite, taglia arti e ascolta confessioni sussurrate. Sa che spesso i morti parlano più dei vivi."
+    portrait: "balz.webp"
 ---
 
 Il mare si gonfia al largo delle Laccadive. La notte scende sull'Adventure Galley. E sulla nave del capitano William Kidd nessuno è davvero fedele a nessuno.

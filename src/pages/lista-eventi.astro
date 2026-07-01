@@ -77,18 +77,24 @@ const statusLabel: Record<string, string> = {
                                     </div>
                                 </div>
                                 <div class="event-card-actions">
-                                    <a
-                                        href={`/eventi/${evento.id}`}
-                                        class={btnClass}
-                                    >
-                                        {label}
-                                    </a>
-                                    <a
-                                        href={`/eventi/${evento.id}`}
-                                        class="event-detail-link"
-                                    >
-                                        Scopri la storia →
-                                    </a>
+                                    {evento.data.status === "coming-soon" ? (
+                                        <span class={btnClass}>{label}</span>
+                                    ) : (
+                                        <>
+                                            <a
+                                                href={`/eventi/${evento.id}`}
+                                                class={btnClass}
+                                            >
+                                                {label}
+                                            </a>
+                                            <a
+                                                href={`/eventi/${evento.id}`}
+                                                class="event-detail-link"
+                                            >
+                                                Scopri la storia →
+                                            </a>
+                                        </>
+                                    )}
                                 </div>
                             </article>
                         );

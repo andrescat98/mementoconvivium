@@ -148,6 +148,7 @@
     color: var(--bg);
     background: var(--gold);
     border: 1px solid var(--gold);
+    cursor: pointer;
     transition:
         background 0.3s,
         color 0.3s;

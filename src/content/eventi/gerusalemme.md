@@ -1,5 +1,5 @@
 ---
-title: "Le Chiavi della Città Santa"
+title: "Deus Vult"
 theme: "Crociate · 1100 d.C."
 # Esempio lista date — copiare e decommentare:
 # dates:
@@ -13,7 +13,7 @@ theme: "Crociate · 1100 d.C."
 #     price: "€ 80 a persona (cena inclusa)"
 duration: "2 – 3 ore"
 excerpt: "Dopo la conquista crociata di Gerusalemme, ogni promessa cela un tradimento e ogni decisione può cambiare il destino del regno appena nato."
-status: "coming-soon"
+status: "aperto"
 historicalYear: 1100
 era: "Crociate"
 yearLabel: "1100 d.C."
@@ -24,21 +24,36 @@ quote:
   author: "Grido di guerra della Prima Crociata"
 
 characters:
-  - name: "Goffredo di Buglione"
-    role: "Il Difensore del Santo Sepolcro"
-    hint: "Ha rifiutato la corona d'oro in una città dove Cristo portò la corona di spine. Ma il potere si difende in molti modi."
-  - name: "Il Patriarca Latino di Gerusalemme"
-    role: "La Voce di Dio"
-    hint: "La Chiesa vuole la sua parte. E la Chiesa ha una memoria lunga."
-  - name: "Tancredi di Altavilla"
-    role: "Il Nipote Ambizioso"
-    hint: "Troppo giovane per essere saggio, troppo potente per essere ignorato."
-  - name: "L'Ambasciatore Fatimide"
-    role: "Il Messaggero del Califfo"
-    hint: "La pace ha un prezzo. La guerra ne ha un altro. Lui conosce entrambi."
-  - name: "La Badessa del Convento"
-    role: "Custode dei Segreti"
-    hint: "Ascolta le confessioni di tutti. Non dimentica nulla."
+
+- name: "Goffredo di Buglione"
+  role: "Il Difensore del Santo Sepolcro"
+  hint: "Ha guidato gli uomini verso Gerusalemme e rifiutato la corona. Ma chi rifiuta il potere, a volte, lo desidera più di tutti."
+  portrait: "alby.webp"
+
+- name: "Boemondo di Antiochia"
+  role: "Il Principe Normanno"
+  hint: "Ambizioso, imponente e temuto. Dice di combattere per la fede, ma Antiochia racconta un’altra storia."
+  portrait: "carlo.webp"
+
+- name: "Raimondo di Tolosa"
+  role: "Il Conte Orgoglioso"
+  hint: "Vecchio, ricco e devoto. Ha rinunciato alla corona di Gerusalemme, ma non alle proprie pretese."
+  portrait: "goat.webp"
+
+- name: "Dagoberto da Pisa"
+  role: "Il Patriarca"
+  hint: "Parla in nome della Chiesa e del Cielo. Ma sotto la veste sacra si agitano denaro, potere e vendetta."
+  portrait: "balz.webp"
+
+- name: "Anna Comnena"
+  role: "La Principessa Bizantina"
+  hint: "Osserva, annota e giudica. Conosce la corte, conosce gli intrighi, e sa che la storia la scrive chi sopravvive."
+  portrait: "marty.webp"
+
+- name: "Baldovino di Edessa"
+  role: "Il Re senza Scrupoli"
+  hint: "Fratello di Goffredo, conte di Edessa e futuro re di Gerusalemme. Sa aspettare il momento giusto per trasformare un’eredità in un trono."
+  portrait: "nic.webp"
 ---
 
 Gerusalemme, anno 1100 d.C. Un anno dopo la conquista, la Città Santa è ancora ferita — e ancora contesa.

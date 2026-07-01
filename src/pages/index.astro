@@ -6,6 +6,19 @@ import "../styles/timeline.css";
 import TimelineSection from "../components/TimelineSection.astro";
 
 const eventi = await getCollection("eventi");
+
+// Eventi apribili con almeno una data futura, per il dialog "Partecipa"
+const oggi = new Date().toISOString().slice(0, 10);
+const eventiFuturi = eventi
+    .filter((e) => e.data.status !== "coming-soon")
+    .map((e) => {
+        const next = e.data.dates
+            ?.filter((d) => d.dateISO >= oggi)
+            .sort((a, b) => a.dateISO.localeCompare(b.dateISO))[0];
+        return { id: e.id, title: e.data.title, theme: e.data.theme, next };
+    })
+    .filter((e) => e.next)
+    .sort((a, b) => a.next!.dateISO.localeCompare(b.next!.dateISO));
 ---
 
 <Layout title="Memento Convivium" description="Cene con Delitto a Tema Storico">
@@ -17,7 +30,7 @@ const eventi = await getCollection("eventi");
                 <span class="logo-m">M</span>
                 <span class="logo-full">Memento Convivium</span>
             </div>
-            <a href="/lista-eventi" class="hero-cta">
+            <button type="button" id="hero-cta-btn" class="hero-cta">
                 <svg
                     width="20px"
                     height="20px"
@@ -30,9 +43,154 @@ const eventi = await getCollection("eventi");
                     ></path>
                 </svg>
                 Partecipa al prossimo evento
-            </a>
+            </button>
         </div>
     </section>
+
+    <!-- DIALOG PROSSIMI EVENTI -->
+    <dialog id="prossimi-dialog" class="prossimi-dialog">
+        <button type="button" class="prossimi-close" aria-label="Chiudi">✕</button>
+        <span class="section-label">Prossimi appuntamenti</span>
+        {
+            eventiFuturi.length > 0 ? (
+                <ul class="prossimi-list">
+                    {eventiFuturi.map((e) => (
+                        <li>
+                            <a href={`/eventi/${e.id}`} class="prossimi-item">
+                                <span class="prossimi-theme">{e.theme}</span>
+                                <span class="prossimi-title">{e.title}</span>
+                                <span class="prossimi-date">{e.next!.label}</span>
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <div class="prossimi-empty">
+                    <p>
+                        Al momento non ci sono date in programma, ma nuove
+                        serate sono in arrivo.
+                    </p>
+                    <p>
+                        Scrivici per sapere quali sono i prossimi piani:
+                    </p>
+                    <a
+                        href="mailto:info@mementoconvivium.it"
+                        class="btn-primary"
+                    >
+                        Contattaci via email
+                    </a>
+                    <p class="prossimi-note">
+                        Oppure su <a href="https://www.instagram.com/memento_convivium">Instagram</a>
+                    </p>
+                </div>
+            )
+        }
+    </dialog>
+
+    <script>
+        const dlg = document.getElementById("prossimi-dialog");
+        if (dlg instanceof HTMLDialogElement) {
+            document
+                .getElementById("hero-cta-btn")
+                ?.addEventListener("click", () => dlg.showModal());
+            dlg.querySelector(".prossimi-close")?.addEventListener("click", () =>
+                dlg.close(),
+            );
+            dlg.addEventListener("click", (e) => {
+                if (e.target === dlg) dlg.close();
+            });
+        }
+    </script>
+
+    <style>
+        .prossimi-dialog {
+            margin: auto;
+            width: min(92vw, 480px);
+            border: 1px solid var(--gold-dim);
+            background: var(--bg-card);
+            color: var(--cream);
+            padding: 2.5rem 2rem 2rem;
+            text-align: center;
+        }
+
+        .prossimi-dialog::backdrop {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .prossimi-close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            width: 2rem;
+            height: 2rem;
+            border: 1px solid var(--border);
+            background: none;
+            color: var(--cream);
+            cursor: pointer;
+        }
+
+        .prossimi-list {
+            list-style: none;
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding: 0;
+        }
+
+        .prossimi-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            text-decoration: none;
+            color: var(--cream);
+            transition: border-color 0.3s, background 0.3s;
+        }
+
+        .prossimi-item:hover {
+            border-color: var(--gold);
+            background: var(--bg-2);
+        }
+
+        .prossimi-theme {
+            font-family: var(--font-title);
+            font-size: 0.6rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--gold);
+        }
+
+        .prossimi-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--white);
+        }
+
+        .prossimi-date {
+            font-size: 0.85rem;
+            color: var(--cream-dim);
+        }
+
+        .prossimi-empty {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+            line-height: 1.7;
+        }
+
+        .prossimi-note {
+            font-size: 0.85rem;
+            color: var(--gold-dim);
+        }
+
+        .prossimi-note a {
+            color: var(--gold);
+        }
+    </style>
 
     <!-- COME FUNZIONA -->
     <section class="section come-funziona" id="come-funziona">
