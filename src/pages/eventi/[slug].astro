@@ -363,6 +363,8 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
             if (isDesktop) {
                 zoom = ZOOM_DEFAULT;
                 applyZoom();
+            } else {
+                requestGyroPermission();
             }
             photoDialog.showModal();
         }
@@ -396,6 +398,38 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
             },
             { passive: false },
         );
+    }
+
+    // Su mobile: tilt della card via giroscopio (deviceorientation)
+    if (photoCard && !isDesktop) {
+        let gyroBound = false;
+        const onOrientation = (e: DeviceOrientationEvent) => {
+            const x = Math.max(-45, Math.min(45, e.gamma ?? 0)) / 45;
+            const y = Math.max(-45, Math.min(45, (e.beta ?? 0) - 45)) / 45;
+            photoCard.style.transform = `perspective(900px) rotateY(${x * TILT_DEG}deg) rotateX(${-y * TILT_DEG}deg)`;
+        };
+        var requestGyroPermission = () => {
+            if (gyroBound) return;
+            const DOE = DeviceOrientationEvent as unknown as {
+                requestPermission?: () => Promise<"granted" | "denied">;
+            };
+            if (typeof DOE.requestPermission === "function") {
+                DOE.requestPermission()
+                    .then((state) => {
+                        if (state === "granted") {
+                            gyroBound = true;
+                            window.addEventListener("deviceorientation", onOrientation);
+                        }
+                    })
+                    .catch(() => {});
+            } else {
+                gyroBound = true;
+                window.addEventListener("deviceorientation", onOrientation);
+            }
+        };
+        photoDialog?.addEventListener("close", () => photoCard && (photoCard.style.transform = ""));
+    } else {
+        var requestGyroPermission = () => {};
     }
 </script>
 
