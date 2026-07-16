@@ -367,6 +367,7 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
                 requestGyroPermission();
             }
             photoDialog.showModal();
+            recalibrateGyro();
         }
     });
 
@@ -403,10 +404,36 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
     // Su mobile: tilt della card via giroscopio (deviceorientation)
     if (photoCard && !isDesktop) {
         let gyroBound = false;
+        // baseline = orientazione all'apertura; il tilt è relativo a quella
+        // ponytail: RANGE=30° = escursione piena, alza per meno sensibilità
+        const RANGE = 30;
+        let baseGamma: number | null = null;
+        let baseBeta: number | null = null;
+        // ponytail: SMOOTH=0.15 low-pass, alza per più reattività / abbassa per più fluidità
+        const SMOOTH = 0.15;
+        let curX = 0, curY = 0, tgtX = 0, tgtY = 0, raf = 0;
+        const render = () => {
+            curX += (tgtX - curX) * SMOOTH;
+            curY += (tgtY - curY) * SMOOTH;
+            photoCard.style.transform = `perspective(900px) rotateY(${curX * TILT_DEG}deg) rotateX(${-curY * TILT_DEG}deg)`;
+            raf = Math.abs(tgtX - curX) + Math.abs(tgtY - curY) > 0.001
+                ? requestAnimationFrame(render)
+                : 0;
+        };
+        var recalibrateGyro = () => {
+            baseGamma = null;
+            baseBeta = null;
+            curX = curY = tgtX = tgtY = 0;
+        };
         const onOrientation = (e: DeviceOrientationEvent) => {
-            const x = Math.max(-45, Math.min(45, e.gamma ?? 0)) / 45;
-            const y = Math.max(-45, Math.min(45, (e.beta ?? 0) - 45)) / 45;
-            photoCard.style.transform = `perspective(900px) rotateY(${x * TILT_DEG}deg) rotateX(${-y * TILT_DEG}deg)`;
+            if (baseGamma === null || baseBeta === null) {
+                baseGamma = e.gamma ?? 0;
+                baseBeta = e.beta ?? 0;
+            }
+            const clamp = (v: number) => Math.max(-1, Math.min(1, v / RANGE));
+            tgtX = clamp((e.gamma ?? 0) - baseGamma);
+            tgtY = clamp((e.beta ?? 0) - baseBeta);
+            if (!raf) raf = requestAnimationFrame(render);
         };
         var requestGyroPermission = () => {
             if (gyroBound) return;
@@ -430,6 +457,7 @@ const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
         photoDialog?.addEventListener("close", () => photoCard && (photoCard.style.transform = ""));
     } else {
         var requestGyroPermission = () => {};
+        var recalibrateGyro = () => {};
     }
 </script>
 
