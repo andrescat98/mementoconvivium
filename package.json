@@ -15,7 +15,8 @@
     "db:local": "turso dev --db-file .turso-dev.db",
     "astro": "astro",
     "fix:no-avx2": "sh scripts/no-avx2.sh",
-    "test": "node --test src/lib/*.test.ts"
+    "test": "node --test src/lib/*.test.ts",
+    "build:pages": "cp -r public/. pages/"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.8",

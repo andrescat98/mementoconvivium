@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": [
+    "/fonts/*",
+    "/eventi/farwest/*",
+    "/eventi/gerusalemme/*",
+    "/eventi/pirati/*",
+    "/favicon.svg",
+    "/favicon.ico",
+    "/apple-touch-icon.png",
+    "/M.svg",
+    "/marble.webp",
+    "/og-image.jpg",
+    "/robots.txt"
+  ]
+}

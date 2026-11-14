@@ -10,6 +10,7 @@ Astro 7 SSR su Cloudflare Worker (`@astrojs/cloudflare` 14) + Turso. Italiano in
 - `src/pages/admin.astro` — UI moderatori, vanilla JS, nessun framework
 - `src/pages/img/[id].ts` — BLOB da Turso
 - `src/env.d.ts` — tipi minimi `cloudflare:workers` (i tipi runtime completi confliggono col DOM: usare `npm run types`, non `wrangler types`)
+- `pages/` — progetto Pages = solo proxy (`_worker.js` → service binding `SITE`) + `_routes.json` per servire statici da Pages
 - `db/schema.sql`, `db/seed.sql` — schema e snapshot iniziale (8 eventi)
 
 Regole:

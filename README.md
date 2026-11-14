@@ -2,7 +2,7 @@
 
 Sito delle cene con delitto a tema storico. **Astro 7** renderizzato da un **Cloudflare Worker**, eventi e immagini caricate su **Turso** (libSQL). Tutto su piani gratuiti.
 
-- Sito: https://mementoconvivium.andrescat98.workers.dev
+- Sito: https://mementoconvivium.pages.dev (il Worker diretto: https://mementoconvivium.andrescat98.workers.dev)
 - Area moderatori: `/admin` → guida in [docs/moderatori.md](docs/moderatori.md)
 
 ## Come funziona
@@ -10,6 +10,7 @@ Sito delle cene con delitto a tema storico. **Astro 7** renderizzato da un **Clo
 | Cosa | Dove |
 |---|---|
 | Home, lista eventi, pagina evento | SSR nel Worker, dati da Turso (`src/lib/db.ts`) |
+| Indirizzo pubblico | progetto Pages `mementoconvivium`: `pages/_worker.js` inoltra al Worker via service binding `SITE` (nessun redirect); i file statici in `pages/_routes.json` → `exclude` li serve Pages direttamente |
 | Contatti, privacy | prerenderizzate al build (`export const prerender = true`) |
 | Cache pagine eventi | `memoryCache` di Astro, 5 min + SWR 1 h, tag `eventi` invalidato a ogni salvataggio (`astro.config.mjs`) |
 | Admin | `src/pages/admin.astro` + Astro Actions (`src/actions/index.ts`) |
@@ -55,7 +56,9 @@ npx wrangler secret put ADMIN_PASSWORD       # password lunga per i moderatori
 npm run deploy
 ```
 
-Dopo aver verificato il Worker, disattiva il vecchio progetto Pages (`mementoconvivium.pages.dev`) dalla dashboard Cloudflare.
+Il progetto Pages si aggiorna da solo a ogni push su `master` (build: `npm run build:pages`, output `pages/`, service binding `SITE` → `mementoconvivium`). Il Worker invece si pubblica solo con `npm run deploy`.
+
+Nuova cartella di immagini statiche in `public/`? Aggiungila a `exclude` in `pages/_routes.json`, altrimenti passa (funzionando lo stesso) dal Worker.
 
 Cambiare `ADMIN_PASSWORD` disconnette tutti i moderatori.
 

@@ -7,7 +7,7 @@ import cloudflare from '@astrojs/cloudflare';
 const eventi = { maxAge: 300, swr: 3600, tags: ['eventi'] };
 
 export default defineConfig({
-  site: 'https://mementoconvivium.andrescat98.workers.dev',
+  site: 'https://mementoconvivium.pages.dev',
   output: 'server',
   adapter: cloudflare({ imageService: 'passthrough' }),
   session: false,

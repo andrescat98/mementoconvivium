@@ -1,6 +1,6 @@
 # Guida per i moderatori
 
-Indirizzo: **/admin** (es. https://mementoconvivium.andrescat98.workers.dev/admin). La password è la stessa per tutti: chiedila a chi gestisce il sito. Resti collegato per 7 giorni.
+Indirizzo: **/admin** (es. https://mementoconvivium.pages.dev/admin). La password è la stessa per tutti: chiedila a chi gestisce il sito. Resti collegato per 7 giorni.
 
 ## Modificare un evento
 
