@@ -394,7 +394,7 @@
     }
 
     /* la rotazione 3D del ritratto sporge dal viewport: niente scrollbar orizzontale mentre è aperto */
-    :global(html:has(.ev-photo-dialog[open])) {
+    html:has(.ev-photo-dialog[open]) {
         overflow-x: hidden;
     }
 

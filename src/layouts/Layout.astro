@@ -33,6 +33,9 @@ const ogImage = new URL("/og-image.jpg", Astro.site);
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#f5f2ec" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400&display=swap" />
         {fontHref && <link rel="stylesheet" href={fontHref} />}
 
         <!-- Open Graph (anteprima link su WhatsApp, Facebook, ecc.) -->
@@ -149,7 +152,7 @@ const ogImage = new URL("/og-image.jpg", Astro.site);
         height: 100lvh;
         background:
             linear-gradient(rgba(245, 242, 236, 0.5), rgba(245, 242, 236, 0.5)),
-            url("/marble.jpg") center / cover no-repeat;
+            url("/marble.webp") center / cover no-repeat;
         pointer-events: none;
         z-index: 0;
     }

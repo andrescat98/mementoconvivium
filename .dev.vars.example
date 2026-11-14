@@ -1,0 +1,4 @@
+# Copia in .dev.vars. Con `npm run db:local` (turso dev) il token non serve.
+TURSO_URL=http://127.0.0.1:8080
+TURSO_TOKEN=
+ADMIN_PASSWORD=cambiami

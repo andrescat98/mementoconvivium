@@ -1,9 +1,9 @@
 ---
-import type { CollectionEntry } from "astro:content";
+import type { Evento } from "../lib/schema";
 import Particles from "./Particles.astro";
 
 interface Props {
-    events: CollectionEntry<"eventi">[];
+    events: Evento[];
 }
 
 const { events } = Astro.props;

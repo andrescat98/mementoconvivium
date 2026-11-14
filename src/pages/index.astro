@@ -1,14 +1,15 @@
 ---
-import { getCollection } from "astro:content";
 import Layout from "../layouts/Layout.astro";
 import "../styles/index.css";
 import "../styles/timeline.css";
 import TimelineSection from "../components/TimelineSection.astro";
+import { getEvents } from "../lib/db";
+import { dateLabel, today } from "../lib/format";
 
-const eventi = await getCollection("eventi");
+const eventi = await getEvents();
 
 // Eventi apribili con almeno una data futura, per il dialog "Partecipa"
-const oggi = new Date().toISOString().slice(0, 10);
+const oggi = today();
 const eventiFuturi = eventi
     .filter((e) => e.data.status !== "coming-soon")
     .map((e) => {
@@ -59,7 +60,7 @@ const eventiFuturi = eventi
                             <a href={`/eventi/${e.id}`} class="prossimi-item">
                                 <span class="prossimi-theme">{e.theme}</span>
                                 <span class="prossimi-title">{e.title}</span>
-                                <span class="prossimi-date">{e.next!.label}</span>
+                                <span class="prossimi-date">{dateLabel(e.next!.dateISO)}</span>
                             </a>
                         </li>
                     ))}

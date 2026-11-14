@@ -1,8 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400&display=swap");
-
 @font-face {
     font-family: "Jack Pirate";
-    src: url("/fonts/JackPirate_PERSONAL_USE_ONLY.ttf") format("truetype");
+    src: url("/fonts/JackPirate_PERSONAL_USE_ONLY.woff2") format("woff2");
     font-weight: normal;
     font-style: normal;
     font-display: swap;

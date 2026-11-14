@@ -1,26 +1,15 @@
 ---
-import { getCollection, render } from "astro:content";
-import type { CollectionEntry } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
+import { getEvent } from "../../lib/db";
+import { dateLabel, md, today as oggi } from "../../lib/format";
 import "../../styles/evento.css";
 
-export async function getStaticPaths() {
-    // Le cene coming-soon non hanno una pagina dedicata
-    const eventi = (await getCollection("eventi")).filter(
-        (e: CollectionEntry<"eventi">) => e.data.status !== "coming-soon",
-    );
-    return eventi.map((evento: CollectionEntry<"eventi">) => ({
-        params: { slug: evento.id },
-        props: { evento },
-    }));
+const evento = await getEvent(Astro.params.slug!);
+// Le cene coming-soon non hanno una pagina dedicata
+if (!evento || evento.data.status === "coming-soon") {
+    Astro.cache.set(false);
+    return new Response(null, { status: 404 });
 }
-
-interface Props {
-    evento: CollectionEntry<"eventi">;
-}
-
-const { evento } = Astro.props as Props;
-const { Content } = await render(evento);
 const {
     title,
     theme,
@@ -34,15 +23,10 @@ const {
     characterFont,
 } = evento.data;
 
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-
-const nextDate = dates?.find(
-    (d: { dateISO: string }) => new Date(d.dateISO) >= today,
-);
-
-const displayDate = nextDate?.label ?? dates?.[0]?.label ?? "Da annunciare";
-const displayDateISO = nextDate?.dateISO ?? null;
+const today = oggi();
+const nextDate = dates?.find((d) => d.dateISO >= today);
+const displayISO = nextDate?.dateISO ?? dates?.[0]?.dateISO;
+const displayDate = displayISO ? dateLabel(displayISO) : "Da annunciare";
 
 const statusLabel =
     status === "aperto"
@@ -105,7 +89,7 @@ const fontHref =
             <div class="ev-text">
                 <span class="section-label">La storia</span>
                 <div class="ev-prose">
-                    <Content />
+                    <Fragment set:html={md(evento.body)} />
                 </div>
             </div>
 
@@ -118,11 +102,11 @@ const fontHref =
 
                     {dates && dates.length > 0 ? (
                         <div class="ev-date-boxes">
-                            {dates.map((d: { label: string; dateISO: string; location?: string; price?: string }) => {
-                                const isPast = new Date(d.dateISO) < today;
+                            {dates.map((d) => {
+                                const isPast = d.dateISO < today;
                                 return (
                                     <div class={`ev-date-box${isPast ? " ev-date-box-past" : ""}`}>
-                                        <div class="ev-date-box-label">{d.label}</div>
+                                        <div class="ev-date-box-label">{dateLabel(d.dateISO)}</div>
                                         {d.location && <div class="ev-date-box-info"><span class="meta-label">Luogo</span>{d.location}</div>}
                                         {d.price && <div class="ev-date-box-info"><span class="meta-label">Quota</span>{d.price}</div>}
                                     </div>
@@ -164,7 +148,7 @@ const fontHref =
                                     Include
                                 </span>
                                 <ul class="ev-includes-list">
-                                    {includes.map((item: string) => (
+                                    {includes.map((item) => (
                                         <li>
                                             <span class="ev-check">⬥</span>
                                             {item}
@@ -175,13 +159,14 @@ const fontHref =
                         )
                     }
 
-                    <a
-                        id="ev-prenota-btn"
-                        href="mailto:info@mementoconvivium.it"
-                        class={`${statusClass} ev-cta-btn`}
-                    >
-                        {statusLabel}
-                    </a>
+                    {(nextDate || !dates?.length) && (
+                        <a
+                            href="mailto:info@mementoconvivium.it"
+                            class={`${statusClass} ev-cta-btn`}
+                        >
+                            {statusLabel}
+                        </a>
+                    )}
                     <p class="ev-cta-note">
                         Oppure scrivici su <a href="https://www.instagram.com/memento_convivium"
                             >Instagram</a
@@ -211,27 +196,18 @@ const fontHref =
                     </div>
                     <div class="ev-chars-grid">
                         {characters.map(
-                            (c: {
-                                name: string;
-                                role: string;
-                                hint: string;
-                                portrait?: string;
-                            }) => (
+                            (c) => (
                                 <div class="ev-char-card">
                                     <button
                                         type="button"
                                         class={`ev-char-avatar${c.portrait ? " has-portrait" : ""}`}
-                                        data-portrait={
-                                            c.portrait
-                                                ? `/eventi/${evento.id}/${c.portrait}`
-                                                : undefined
-                                        }
+                                        data-portrait={c.portrait}
                                         data-name={c.name}
                                     >
                                         {c.portrait && (
                                             <img
                                                 class="ev-char-portrait"
-                                                src={`/eventi/${evento.id}/${c.portrait}`}
+                                                src={c.portrait}
                                                 alt={c.name}
                                                 loading="lazy"
                                             />
@@ -312,20 +288,6 @@ const fontHref =
         <p id="ev-photo-dialog-name" class="ev-photo-name"></p>
     </dialog>
 </Layout>
-
-<script define:vars={{ displayDateISO }}>
-    // Nascondi il bottone prenota se non ci sono date future disponibili
-    if (displayDateISO) {
-        const eventDate = new Date(displayDateISO);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (eventDate < today) {
-            const btn = document.getElementById("ev-prenota-btn");
-            if (btn) btn.style.display = "none";
-        }
-    }
-</script>
 
 <script>
     import "../../scripts/ev-photo-dialog.ts";

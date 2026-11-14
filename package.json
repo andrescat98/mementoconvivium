@@ -8,10 +8,23 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
+    "preview": "astro build && astro preview",
+    "deploy": "astro build && wrangler deploy",
+    "check": "npm run types && astro check",
+    "types": "wrangler types --include-runtime=false",
+    "db:local": "turso dev --db-file .turso-dev.db",
+    "astro": "astro",
+    "fix:no-avx2": "sh scripts/no-avx2.sh",
+    "test": "node --test src/lib/*.test.ts"
   },
   "dependencies": {
-    "astro": "^6.1.9"
+    "@astrojs/cloudflare": "^14.4.8",
+    "@libsql/client": "^0.18.0",
+    "astro": "^7.4.12"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.162.0"
   }
 }

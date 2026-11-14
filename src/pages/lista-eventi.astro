@@ -1,19 +1,21 @@
 ---
-import { getCollection } from "astro:content";
 import Layout from "../layouts/Layout.astro";
 import Particles from "../components/Particles.astro";
+import { getEvents } from "../lib/db";
+import { dateLabel, today } from "../lib/format";
+import type { Evento } from "../lib/schema";
 import "../styles/index.css";
 
-const oggi = new Date().toISOString().slice(0, 10);
+const oggi = today();
 
-function nextDateISO(e: Awaited<ReturnType<typeof getCollection<"eventi">>>[number]) {
+function nextDateISO(e: Evento) {
     return (
         e.data.dates?.map((d) => d.dateISO).filter((d) => d >= oggi).sort()[0] ??
         "9999-99-99"
     );
 }
 
-const eventi = (await getCollection("eventi")).sort(
+const eventi = (await getEvents()).sort(
     (a, b) => nextDateISO(a).localeCompare(nextDateISO(b)),
 );
 
@@ -67,8 +69,11 @@ const statusLabel: Record<string, string> = {
                                 <div class="event-meta">
                                     <div class="event-info">
                                         <span class="meta-label">Data</span>
-                                        <span>~
-                                            {evento.data.dates?.find((d) => d.dateISO >= oggi)?.label ?? evento.data.dates?.[0]?.label ?? "Da annunciare"}
+                                        <span>
+                                            {(() => {
+                                                const iso = evento.data.dates?.find((d) => d.dateISO >= oggi)?.dateISO ?? evento.data.dates?.[0]?.dateISO;
+                                                return iso ? dateLabel(iso) : "Da annunciare";
+                                            })()}
                                         </span>
                                     </div>
                                     <div class="event-info">
