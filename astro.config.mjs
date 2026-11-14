@@ -16,5 +16,7 @@ export default defineConfig({
     '/': eventi,
     '/lista-eventi': eventi,
     '/eventi/[slug]': eventi,
+    '/contatti': eventi,
+    '/privacy': eventi,
   },
 });

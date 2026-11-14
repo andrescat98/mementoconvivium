@@ -1,0 +1,14 @@
+---
+// Sfondo di una sezione: colore, immagine inquadrata e velo chiaro. Il genitore deve avere `position: relative`.
+import { imgStyle } from "../lib/format";
+import type { Bg } from "../lib/schema";
+
+const { bg } = Astro.props as { bg?: Bg };
+---
+
+{bg && (bg.color || bg.image) && (
+    <div class="sfondo" aria-hidden="true" style={bg.color && `background:${bg.color}`}>
+        {bg.image && <img src={bg.image.src} alt="" loading="lazy" style={imgStyle(bg.image)} />}
+        {!!bg.veil && <span style={`background:rgb(245 242 236 / ${bg.veil}%)`}></span>}
+    </div>
+)}

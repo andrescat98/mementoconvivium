@@ -2,8 +2,8 @@ import { ActionError, defineAction, type ActionAPIContext } from "astro:actions"
 import { z } from "astro/zod";
 import { env } from "cloudflare:workers";
 import { checkPassword, isAdmin, login, logout } from "../lib/auth";
-import { deleteEvent, getHistory, putImage, saveEvent, StaleError } from "../lib/db";
-import { eventoSchema, slugSchema } from "../lib/schema";
+import { deleteEvent, getHistory, putImage, saveEvent, saveSettings, StaleError } from "../lib/db";
+import { eventoSchema, settingsSchema, slugSchema } from "../lib/schema";
 
 async function guard(ctx: ActionAPIContext) {
   if (!(await isAdmin(ctx.cookies))) throw new ActionError({ code: "UNAUTHORIZED", message: "Sessione scaduta: ricarica la pagina e rientra." });
@@ -38,7 +38,6 @@ export const server = {
       force: z.boolean().optional(),
       author,
       data: eventoSchema,
-      body: z.string(),
     }),
     async handler(input, ctx) {
       await guard(ctx);
@@ -61,6 +60,15 @@ export const server = {
     async handler({ slug, author }, ctx) {
       await guard(ctx);
       await deleteEvent(slug, author);
+      await invalidate(ctx);
+    },
+  }),
+
+  saveSettings: defineAction({
+    input: settingsSchema,
+    async handler(s, ctx) {
+      await guard(ctx);
+      await saveSettings(s);
       await invalidate(ctx);
     },
   }),

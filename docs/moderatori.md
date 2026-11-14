@@ -12,7 +12,7 @@ Indirizzo: **/admin** (es. https://mementoconvivium.pages.dev/admin). La passwor
 
 Se chiudi la pagina o cambi evento con modifiche non salvate, il browser te lo chiede prima.
 
-Le sezioni (Base, Racconto, Date…) si chiudono cliccando sul titolo, per lavorare su una alla volta.
+Le sezioni (Base, Aspetto, Date…) si chiudono cliccando sul titolo, per lavorare su una alla volta.
 
 ## Stati
 
@@ -33,19 +33,48 @@ Bozze e coming soon si possono comunque vedere con **Anteprima ↗**: solo tu (d
 
 ## Date
 
-**+ Aggiungi data** copia luogo e quota dall'ultima data. Il giorno della settimana ("Ven 19 Giu 2026") si scrive da solo sotto la data: controllalo. Le date si mettono in ordine da sole al salvataggio. Le date passate restano visibili ma sbiadite; se tutte le date sono passate, il bottone di prenotazione nel riquadro "Dettagli" sparisce.
+**+ Aggiungi data** copia luogo e quota dall'ultima data. Il giorno della settimana ("Ven 19 Giu 2026") si scrive da solo sotto la data: controllalo. Le date si mettono in ordine da sole al salvataggio. Le date passate restano visibili ma sbiadite; se tutte le date sono passate, il bottone di prenotazione sparisce.
 
 Senza date la pagina mostra "Da annunciare" con **Luogo generico** e **Quota generica**.
 
-## Racconto
+## Schede della pagina
 
-Scrivi normalmente; una riga vuota crea un nuovo paragrafo. Seleziona del testo e usa **G** (grassetto), **C** (corsivo) o **Link**. **Anteprima** mostra il testo come apparirà sul sito.
+La pagina dell'evento non è più una pagina lunga: sotto l'intestazione ci sono dei **pulsanti-scheda** (es. *La storia · Gli abiti dell'epoca · Personaggi*) e si vede una scheda alla volta. Un nuovo evento parte con queste tre.
 
-## Personaggi e foto
+- **Aggiungi scheda**: scegli un modello di partenza (La storia, Gli abiti dell'epoca, Personaggi, Galleria, Testo libero). Titolo e modello si possono cambiare dopo.
+- Clicca il titolo di una scheda per aprirla o chiuderla; ↑ ↓ cambiano l'ordine dei pulsanti sul sito, ✕ rimuove la scheda.
+- **Modelli**:
+  - *Testo + immagine*: il testo e, se vuoi, una foto accanto.
+  - *Galleria di foto*: un'introduzione facoltativa e le foto, ognuna con didascalia. **+ Aggiungi foto** accetta più foto insieme. Sul sito un clic apre la foto a schermo intero.
+  - *Personaggi*: un'introduzione facoltativa e i personaggi (foto, nome, ruolo, indizio).
+- Se cambi modello a una scheda, al salvataggio restano solo i contenuti del nuovo modello.
+- Ogni scheda ha un indirizzo suo da condividere: `/eventi/farwest#personaggi`.
 
-Trascina una foto sul riquadro del personaggio, oppure clicca "sceglila". Viene ridotta e caricata in automatico; poi **salva**. ↑ ↓ cambiano l'ordine, ✕ rimuove.
+**Testo**: scrivi normalmente; una riga vuota crea un nuovo paragrafo. Seleziona del testo e usa **G** (grassetto), **C** (corsivo) o **Link**. **Anteprima** mostra il testo come apparirà sul sito.
 
-**Font del nome nel ritratto**: un font di [Google Fonts](https://fonts.google.com) seguito da uno stile di riserva, es. `Rye, cursive`. Sotto vedi l'anteprima col nome del primo personaggio.
+## Foto e inquadratura
+
+Trascina una foto su un riquadro, oppure clicca "sceglila". Viene ridotta e caricata in automatico; poi **salva**.
+
+**Inquadra** apre la foto intera: clicca (o trascina) sul punto che deve restare sempre visibile, ad esempio il viso, e regola lo **zoom**. A destra vedi come apparirà nella sua forma: tondo per i ritratti, panoramica per la copertina, verticale per la foto accanto al testo. Su schermi diversi il taglio cambia, ma quel punto resta sempre visibile. **Centra** annulla l'inquadratura.
+
+## Aspetto
+
+- **Copertina**: la foto nell'intestazione della pagina (sfumata a sinistra, dietro il titolo) e l'anteprima quando si condivide il link su WhatsApp e simili. Se non c'è un'immagine per la timeline, la usa anche la timeline.
+- **Font**: **Scegli…** apre l'elenco dei font, divisi per atmosfera (romani, medievali, Far West…), con l'anteprima del titolo. Va bene anche un altro font di [Google Fonts](https://fonts.google.com): scrivine il nome esatto seguito da uno stile di riserva, es. `Rye, cursive`. Il font del titolo vale anche per i titoli e i pulsanti delle schede.
+- **Sfondo**: colore (spunta "Colore"), immagine e **velo chiaro** sull'immagine per tenere leggibile il testo. Quello in *Aspetto* vale per tutte le schede; ogni scheda può averne uno suo, che prende il posto di quello predefinito.
+
+## Impostazioni sito
+
+**⚙ Impostazioni sito**, in fondo a sinistra, vale per tutto il sito:
+
+- **Contatti**: email, telefono, WhatsApp, Instagram. Compaiono nella pagina Contatti, nella Privacy, nel footer e nei bottoni "Prenota".
+- **Link di prenotazione**: se lo metti (es. un modulo Google), i bottoni "Prenota" portano lì; se è vuoto aprono una email con l'oggetto già scritto.
+- **Bottone della home**: testo e cosa fa (apre l'elenco delle prossime date, porta alla pagina del prossimo evento oppure a un link).
+- **Menu in alto**: voci e link, in ordine; l'ultima è evidenziata come bottone.
+- **Motto nel footer**.
+
+Dopo il salvataggio il sito si aggiorna entro un minuto.
 
 ## Timeline in home
 

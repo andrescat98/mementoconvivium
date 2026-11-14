@@ -1,4 +1,7 @@
 ---
+import { getSettings } from "../lib/db";
+
+const { tagline, instagram } = await getSettings();
 const year = new Date().getFullYear();
 ---
 
@@ -8,17 +11,11 @@ const year = new Date().getFullYear();
         <div class="footer-logo">
             Memento <em>Convivium</em>
         </div>
-        <p class="footer-tagline">
-            "Omnes vulnerant, ultima necat" — ogni ora ferisce, l'ultima uccide.
-        </p>
+        {tagline && <p class="footer-tagline">{tagline}</p>}
         <nav class="footer-links" aria-label="Footer navigation">
             <a href="/privacy">Privacy</a>
             <a href="/contatti">Contatti</a>
-            <a
-                href="https://www.instagram.com/memento_convivium"
-                target="_blank"
-                rel="noopener noreferrer">Instagram</a
-            >
+            {instagram && <a href={instagram} target="_blank" rel="noopener noreferrer">Instagram</a>}
         </nav>
         <p class="footer-copy">© {year} Memento Convivium</p>
     </div>

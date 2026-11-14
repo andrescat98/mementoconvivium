@@ -5,17 +5,167 @@
         background: var(--bg-2);
         border-bottom: 1px solid var(--border);
         position: relative;
+        overflow: hidden;
     }
 
-    .ev-hero-vignette {
+    /* Copertina: a destra, sfumata nel fondo chiaro a sinistra dove sta il testo */
+    .ev-hero-cover {
+        position: absolute;
+        inset: 0 0 0 auto;
+        width: min(65%, 900px);
+        height: 100%;
+        object-fit: cover;
+        mask-image: linear-gradient(90deg, transparent, #000 45%);
+    }
+
+    .ev-excerpt {
+        font-size: 1.15rem;
+        color: var(--cream-dim);
+        font-style: italic;
+    }
+
+    /* ── Immagini inquadrate (punto focale + zoom da admin, vedi imgStyle) ── */
+    .crop {
+        display: block;
+        overflow: hidden;
+        padding: 0;
+        border: 0;
+        background: none;
+    }
+
+    .crop img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    button.crop {
+        cursor: zoom-in;
+    }
+
+    /* ── Sfondi (componente Sfondo) ── */
+    .sfondo,
+    .sfondo img,
+    .sfondo span {
         position: absolute;
         inset: 0;
-        background: radial-gradient(
-            ellipse at 60% 0%,
-            rgba(0, 0, 0, 0.04) 0%,
-            transparent 70%
-        );
-        pointer-events: none;
+        width: 100%;
+        height: 100%;
+    }
+
+    .sfondo {
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .sfondo img {
+        object-fit: cover;
+    }
+
+    /* ── Schede ── */
+    .ev-tabbar {
+        position: sticky;
+        top: 78px; /* altezza dell'header fisso */
+        z-index: 5;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.25rem 2rem;
+        padding: 0.9rem 1rem;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(8px);
+    }
+
+    .ev-tab {
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+        color: var(--cream-dim);
+        text-decoration: none;
+        padding: 0.3rem 0;
+        border-bottom: 2px solid transparent;
+    }
+
+    .ev-tab:hover,
+    .ev-tab[aria-selected="true"] {
+        color: var(--white);
+    }
+
+    .tabs-on .ev-tab[aria-selected="true"] {
+        border-bottom-color: currentColor;
+    }
+
+    .tabs-on .ev-panel:not(.on) {
+        display: none;
+    }
+
+    .ev-panel {
+        position: relative;
+        border-bottom: 1px solid var(--border);
+        scroll-margin-top: 8rem;
+    }
+
+    .ev-panel-inner {
+        position: relative;
+        z-index: 1;
+    }
+
+    .ev-panel-title {
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+        font-weight: 400;
+        text-align: center;
+    }
+
+    .ev-panel-text,
+    .ev-panel-intro {
+        max-width: 760px;
+        margin: 0 auto 2rem;
+    }
+
+    .ev-panel-grid {
+        display: grid;
+        grid-template-columns: 1fr minmax(240px, 400px);
+        gap: 3rem;
+        align-items: start;
+    }
+
+    .ev-figure {
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        border: 1px solid var(--border);
+    }
+
+    .ev-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 280px));
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .ev-gallery .crop {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        border: 1px solid var(--border);
+    }
+
+    .ev-gallery figcaption {
+        font-size: 0.9rem;
+        color: var(--cream-dim);
+        text-align: center;
+        margin-top: 0.4rem;
+    }
+
+    .ev-preview-banner {
+        position: fixed;
+        inset: auto 0 0 0;
+        z-index: 9999;
+        margin: 0;
+        padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+        background: #a12a1f;
+        color: #fff;
+        text-align: center;
+        font: 600 0.9rem system-ui;
     }
 
     .ev-hero-inner {
@@ -45,8 +195,13 @@
         max-width: 700px;
     }
 
+    .ev-title,
+    .ev-panel-title,
+    .ev-tab {
+        font-family: var(--ev-font, var(--font-display));
+    }
+
     .ev-title {
-        font-family: var(--font-display);
         font-size: clamp(2rem, 5vw, 3.8rem);
         font-weight: 400;
         color: var(--white);
@@ -87,25 +242,6 @@
         opacity: 0.5;
     }
 
-    /* ── Body narrativo ── */
-    .ev-body {
-        background: var(--bg-card);
-        border-top: 1px solid var(--border);
-    }
-
-    /* ── Body grid ── */
-    .ev-grid {
-        display: grid;
-        grid-template-columns: 1fr 360px;
-        gap: 4rem;
-        align-items: start;
-    }
-
-    /* ── Testo narrativo ── */
-    .ev-text .section-label {
-        margin-bottom: 1.5rem;
-    }
-
     .ev-prose {
         font-size: 1.1rem;
         line-height: 1.85;
@@ -126,75 +262,17 @@
         font-style: italic;
     }
 
-    /* ── Sidebar infobox ── */
-    .ev-infobox {
-        border: 1px solid var(--border);
-        background: var(--bg-card);
-        padding: 2rem;
-        position: sticky;
-        top: 6rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.9rem;
-    }
-
-    .ev-infobox-title {
-        font-size: 1rem;
-        color: var(--white);
-        letter-spacing: 0.1em;
-    }
-
-    .ev-info-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        font-size: 0.9rem;
-        padding: 0.4rem 0;
-        border-bottom: 1px solid var(--border);
-    }
-
-    .ev-info-row:last-of-type {
-        border-bottom: none;
-    }
-
-    .ev-includes {
-        padding-top: 0.5rem;
-    }
-
-    .ev-includes-list {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        font-size: 0.88rem;
-        color: var(--cream-dim);
-    }
-
-    .ev-includes-list li {
-        display: flex;
-        align-items: baseline;
-        gap: 0.6rem;
-    }
-
-    .ev-check {
-        color: var(--gold);
-        font-size: 0.45rem;
-        flex-shrink: 0;
-        position: relative;
-        top: -1px;
-    }
-
     /* ── Box date ── */
     .ev-date-boxes {
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
         gap: 0.6rem;
-        padding: 0.2rem 0 0.6rem;
-        border-bottom: 1px solid var(--border);
+        margin-top: 1.5rem;
     }
 
     .ev-date-box {
         border: 1px solid var(--border);
+        background: var(--bg-card);
         padding: 0.75rem 1rem;
         display: flex;
         flex-direction: column;
@@ -229,39 +307,11 @@
     }
 
     .ev-cta-btn {
-        display: block;
-        text-align: center;
-        margin-top: 0.5rem;
-    }
-
-    .ev-cta-note {
-        font-size: 0.8rem;
-        color: var(--gold-dim);
-        text-align: center;
-    }
-
-    .ev-cta-note a {
-        color: var(--gold);
-        text-decoration: none;
-    }
-
-    .ev-cta-note a:hover {
-        text-decoration: underline;
+        display: inline-block;
+        margin-top: 2rem;
     }
 
     /* ── Personaggi ── */
-    .ev-characters {
-        background: var(--bg-2);
-        border-top: 1px solid var(--border);
-    }
-
-    .ev-characters-sub {
-        color: var(--cream-dim);
-        font-size: 1rem;
-        line-height: 1.7;
-        margin-top: 0.5rem;
-    }
-
     /* flex + centratura: l'ultima riga si centra, mai celle vuote */
     .ev-chars-grid {
         display: flex;
@@ -360,11 +410,9 @@
         border-radius: 50%;
     }
 
-    .ev-char-portrait {
+    .ev-char-avatar .crop {
         width: 100%;
         height: 100%;
-        object-fit: cover;
-        object-position: top;
         border-radius: 50%;
         border: 1px solid var(--border);
     }
@@ -533,14 +581,15 @@
     }
 
     /* ── Responsive ── */
-    @media (max-width: 900px) {
-        .ev-grid {
+    @media (max-width: 800px) {
+        .ev-panel-grid {
             grid-template-columns: 1fr;
-            gap: 2.5rem;
         }
 
-        .ev-infobox {
-            position: static;
+        .ev-hero-cover {
+            width: 100%;
+            mask-image: linear-gradient(180deg, transparent, #000 70%);
+            opacity: 0.35;
         }
     }
 

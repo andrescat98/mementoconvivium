@@ -36,7 +36,7 @@
     document.addEventListener("click", (e) => {
         const avatar =
             e.target instanceof Element
-                ? e.target.closest<HTMLElement>(".ev-char-avatar[data-portrait]")
+                ? e.target.closest<HTMLElement>("[data-portrait]")
                 : null;
         if (avatar && photoDialog && photoDialogImg instanceof HTMLImageElement) {
             photoDialogImg.src = avatar.dataset.portrait ?? "";

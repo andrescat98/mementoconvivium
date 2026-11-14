@@ -19,7 +19,9 @@ Sito delle cene con delitto a tema storico. **Astro 7** renderizzato da un **Clo
 | Immagini storiche | asset statici in `public/ritratti/<slug>/` (non in `/eventi/`: Pages servirebbe la cartella al posto della pagina evento) |
 | Schema dati | `src/lib/schema.ts` (zod), tabelle in `db/schema.sql` |
 
-Un evento è una riga di `events`: `data` (JSON validato dallo schema) + `body` (racconto in Markdown minimo: paragrafi, `**grassetto**`, `*corsivo*`, `[link](https://…)`). Le etichette delle date ("Ven 19 Giu 2026") sono calcolate da `dateISO`.
+Un evento è una riga di `events`: `data` è il JSON validato dallo schema, schede comprese (`tabs`: titolo, modello `testo`/`galleria`/`personaggi`, testo in Markdown minimo — paragrafi, `**grassetto**`, `*corsivo*`, `[link](https://…)` —, immagini, sfondo). La colonna `body` serve solo ai vecchi eventi senza schede: `normalize()` in `db.ts` li converte alla lettura e il primo salvataggio la svuota. Le etichette delle date ("Ven 19 Giu 2026") sono calcolate da `dateISO`.
+
+Le immagini sono `{src, x, y, zoom}`: punto focale in % e zoom scelti in /admin, applicati con `object-position` + `transform` (`imgStyle()` in `format.ts`). Contatti, menu e bottone della home sono in `settings` (una riga JSON, `settingsSchema`).
 
 ## Sviluppo locale
 

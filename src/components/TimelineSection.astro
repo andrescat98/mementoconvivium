@@ -1,4 +1,5 @@
 ---
+import { imgStyle } from "../lib/format";
 import type { Evento } from "../lib/schema";
 import Particles from "./Particles.astro";
 
@@ -57,9 +58,10 @@ const zeroInsertAfter = sorted.filter((e) => (e.data.historicalYear ?? 0) < 0).l
                                         <line x1="16" y1="55" x2="48" y2="55" />
                                         <path d="M19 9 L45 9 L32 32 L45 55 L19 55 L32 32 Z" />
                                     </svg>
-                                    {evento.data.timelineImage && (
+                                    {(evento.data.timelineImage ?? evento.data.cover) && (
                                         <img
-                                            src={evento.data.timelineImage}
+                                            src={(evento.data.timelineImage ?? evento.data.cover)!.src}
+                                            style={imgStyle(evento.data.timelineImage ?? evento.data.cover)}
                                             alt={evento.data.era ?? evento.data.title}
                                             class="card-image"
                                             loading="lazy"

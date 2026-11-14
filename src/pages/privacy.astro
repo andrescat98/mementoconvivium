@@ -1,6 +1,8 @@
 ---
-export const prerender = true;
 import Layout from "../layouts/Layout.astro";
+import { getSettings } from "../lib/db";
+
+const s = await getSettings();
 import "../styles/index.css";
 ---
 
@@ -50,10 +52,7 @@ import "../styles/index.css";
                 <p>
                     Puoi chiedere in qualsiasi momento di accedere, correggere o
                     cancellare i tuoi dati, o opporti al loro trattamento. Scrivici a
-                    <a href="mailto:info@mementoconvivium.it"
-                        >info@mementoconvivium.it</a
-                    > o chiamaci al
-                    <a href="tel:+393893137494">+39 389 313 7494</a>.
+                    <a href={"mailto:" + s.email}>{s.email}</a>{s.phone && <> o chiamaci al <a href={"tel:" + s.phone.replace(/[^\d+]/g, "")}>{s.phone}</a></>}.
                 </p>
             </div>
         </div>

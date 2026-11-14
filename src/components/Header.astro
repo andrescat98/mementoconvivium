@@ -1,5 +1,7 @@
 ---
+import { getSettings } from "../lib/db";
 
+const { nav } = await getSettings();
 ---
 
 <header class="site-header">
@@ -13,9 +15,7 @@
         </a>
 
         <nav class="nav" id="mainNav">
-            <a href="/#come-funziona">Come funziona</a>
-            <a href="/lista-eventi">Lista eventi</a>
-            <a href="/#prenota" class="nav-cta">Prenota</a>
+            {nav.map((l, i) => <a href={l.href} class={i === nav.length - 1 ? "nav-cta" : undefined}>{l.label}</a>)}
         </nav>
 
         <button

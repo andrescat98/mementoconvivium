@@ -1,4 +1,5 @@
--- Un evento = una riga. `data` è il JSON validato da src/lib/schema.ts, `body` il racconto in Markdown.
+-- Un evento = una riga. `data` è il JSON validato da src/lib/schema.ts (schede comprese).
+-- `body` è il racconto dei vecchi eventi senza schede: convertito alla lettura (normalize in db.ts), poi vuoto.
 CREATE TABLE IF NOT EXISTS events (
   slug       TEXT PRIMARY KEY CHECK (slug GLOB '[a-z0-9]*' AND slug NOT GLOB '*[^a-z0-9-]*'),
   data       TEXT NOT NULL CHECK (json_valid(data)),
@@ -26,6 +27,12 @@ CREATE TABLE IF NOT EXISTS images (
   mime       TEXT NOT NULL,
   data       BLOB NOT NULL,
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+
+-- Impostazioni del sito (contatti, link, bottone home): una riga JSON, validata da settingsSchema.
+CREATE TABLE IF NOT EXISTS settings (
+  id   INTEGER PRIMARY KEY CHECK (id = 1),
+  data TEXT NOT NULL CHECK (json_valid(data))
 );
 
 -- Migrazione 2026-11-14 per DB creati prima di updated_by/rev:

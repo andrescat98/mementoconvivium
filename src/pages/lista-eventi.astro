@@ -1,7 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Particles from "../components/Particles.astro";
-import { getEvents } from "../lib/db";
+import { getEvents, getSettings } from "../lib/db";
 import { dateLabel, today } from "../lib/format";
 import type { Evento } from "../lib/schema";
 import "../styles/index.css";
@@ -15,6 +15,7 @@ function nextDateISO(e: Evento) {
     );
 }
 
+const s = await getSettings();
 const eventi = (await getEvents()).sort(
     (a, b) => nextDateISO(a).localeCompare(nextDateISO(b)),
 );
@@ -126,13 +127,13 @@ const statusLabel: Record<string, string> = {
                     Ogni evento è a numero chiuso.
                 </p>
                 <a
-                    href="mailto:info@mementoconvivium.it"
+                    href={"mailto:" + s.email}
                     class="btn-primary btn-large"
                 >
                     Contattaci
                 </a>
                 <p class="prenota-note">
-                    Oppure scrivici su <a href="https://www.instagram.com/memento_convivium"
+                    Oppure scrivici su <a href={s.instagram}
                         >Instagram</a
                     >
                 </p>

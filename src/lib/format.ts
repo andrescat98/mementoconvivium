@@ -41,3 +41,42 @@ export const md = (src: string) =>
           .replace(/\n/g, "<br>")}</p>`,
     )
     .join("");
+
+/** Immagine con inquadratura: punto focale x/y in % (0–100) e zoom (1–3). */
+export interface Img {
+  src: string;
+  x?: number;
+  y?: number;
+  zoom?: number;
+}
+
+/** Accetta anche il vecchio formato (solo URL). */
+export const toImg = (v?: string | Img | null): Img | undefined =>
+  !v ? undefined : typeof v === "string" ? { src: v } : v;
+
+/**
+ * Stile per un <img> con `object-fit: cover` dentro un contenitore `overflow: hidden`:
+ * il punto focale resta fermo anche zoomando. `defY` = punto verticale se non scelto (ritratti: 0 = in alto).
+ */
+export function imgStyle(i?: Img, defY = 50) {
+  if (!i) return "";
+  const x = i.x ?? 50, y = i.y ?? defY, z = i.zoom ?? 1;
+  return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%` + (z > 1 ? `;transform:scale(${z})` : "");
+}
+
+/** Font già caricati dal sito (non vanno chiesti a Google Fonts). */
+export const BASE_FONTS = ["Cinzel", "Cinzel Decorative", "Cormorant Garamond", "Jack Pirate"];
+
+/** URL Google Fonts per i font-family dati ("Rye, cursive"), esclusi quelli del sito; undefined se nessuno. */
+export function googleFontsHref(...fonts: (string | undefined)[]) {
+  const fams = [...new Set(fonts.map((f) => f?.split(",")[0].trim().replace(/['"]/g, "")).filter((f): f is string => !!f && !BASE_FONTS.includes(f)))];
+  return fams.length ? `https://fonts.googleapis.com/css2?${fams.map((f) => "family=" + f.replace(/ /g, "+")).join("&")}&display=swap` : undefined;
+}
+
+/** Slug per ancore (#la-storia). */
+export const slugify = (s: string) =>
+  s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** Dove porta "Prenota": link esterno se impostato, altrimenti email con oggetto. */
+export const bookHref = (s: { email: string; bookingUrl?: string }, title?: string) =>
+  s.bookingUrl ?? `mailto:${s.email}${title ? "?subject=" + encodeURIComponent("Prenotazione: " + title) : ""}`;

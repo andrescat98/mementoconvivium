@@ -1,8 +1,9 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import Sfondo from "../../components/Sfondo.astro";
 import { isAdmin } from "../../lib/auth";
-import { getEvent } from "../../lib/db";
-import { dateLabel, md, today as oggi } from "../../lib/format";
+import { getEvent, getSettings } from "../../lib/db";
+import { bookHref, dateLabel, googleFontsHref, imgStyle, md, slugify, today as oggi } from "../../lib/format";
 import "../../styles/evento.css";
 
 const evento = await getEvent(Astro.params.slug!);
@@ -15,282 +16,167 @@ const hidden = evento.data.status === "bozza" || evento.data.status === "coming-
 const preview = hidden && (await isAdmin(Astro.cookies));
 if (hidden) Astro.cache.set(false);
 if (hidden && !preview) return new Response(null, { status: 404 });
-const {
-    title,
-    theme,
-    dates,
-    duration,
-    location,
-    price,
-    includes,
-    characters,
-    status,
-    characterFont,
-} = evento.data;
+
+const s = await getSettings();
+const { title, theme, excerpt, dates, duration, location, price, includes, status, cover, background, tabs, titleFont, characterFont } = evento.data;
 
 const today = oggi();
 const nextDate = dates?.find((d) => d.dateISO >= today);
-const displayISO = nextDate?.dateISO ?? dates?.[0]?.dateISO;
-const displayDate = displayISO ? dateLabel(displayISO) : "Da annunciare";
-
-const statusLabel =
-    status === "aperto"
-        ? "Prenota ora"
-        : status === "lista-attesa"
-          ? "Lista d'attesa"
-          : status === "chiuso"
-            ? "Prenotazioni chiuse"
-            : "Coming soon";
-
+const statusLabel = { aperto: "Prenota ora", "lista-attesa": "Lista d'attesa", chiuso: "Prenotazioni chiuse" }[status as string] ?? "Coming soon";
 const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
+const canBook = status !== "chiuso" && (!!nextDate || !dates?.length);
+const book = bookHref(s, title);
 
-// characterFont es. "Rye, cursive" → carica "Rye" da Google Fonts per questa pagina.
-// I font base sono già nel global.css: non li ricarichiamo. Font non-Google (@font-face
-// locale) vanno elencati qui per non provare a caricarli da Google.
-const LOCAL_OR_BASE = ["Cinzel", "Cinzel Decorative", "Cormorant Garamond", "Jack Pirate"];
-const fontFamily = characterFont?.split(",")[0].trim().replace(/['"]/g, "");
-const fontHref =
-    fontFamily && !LOCAL_OR_BASE.includes(fontFamily)
-        ? `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, "+")}&display=swap`
-        : undefined;
-
+// ancore uniche per scheda (#la-storia, #personaggi…)
+const seen = new Set<string>();
+const ids = tabs.map((t, i) => {
+    let id = slugify(t.title) || `scheda-${i + 1}`;
+    if (seen.has(id)) id += `-${i + 1}`;
+    seen.add(id);
+    return id;
+});
 ---
 
 <Layout
     title={`${title} · Memento Convivium`}
-    description={evento.data.excerpt}
-    fontHref={fontHref}
+    description={excerpt}
+    fontHref={googleFontsHref(titleFont, characterFont)}
+    image={cover?.src}
 >
-    <!-- HERO EVENTO -->
     {preview && (
-        <p style="position:fixed;inset:auto 0 0 0;z-index:9999;margin:0;padding:.7rem 1rem calc(.7rem + env(safe-area-inset-bottom, 0px));background:#a12a1f;color:#fff;text-align:center;font:600 .9rem system-ui">
-            Anteprima moderatori · stato "{evento.data.status}": questa pagina non è visibile al pubblico
+        <p class="ev-preview-banner">
+            Anteprima moderatori · stato "{status}": questa pagina non è visibile al pubblico
         </p>
     )}
-    <section class="ev-hero">
-        <div class="ev-hero-vignette" aria-hidden="true"></div>
-        <div class="container ev-hero-inner">
-            <a href="/#eventi" class="ev-back">
-                <span>←</span> Tutti gli eventi
-            </a>
-            <div class="ev-hero-content">
-                <span class="section-label">{theme}</span>
-                <h1 class="ev-title">{title}</h1>
-                <div class="ev-meta-row">
-                    <div class="ev-meta-item">
-                        <span class="meta-label">Data</span>
-                        <span>{displayDate}</span>
-                    </div>
-                    <div class="ev-meta-divider">⬥</div>
-                    <div class="ev-meta-item">
-                        <span class="meta-label">Durata</span>
-                        <span>{duration}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="greek-border"></div>
-    </section>
-
-    <!-- CORPO NARRATIVO -->
-    <section class="section ev-body">
-        <div class="container ev-grid">
-            <!-- Colonna sinistra: testo -->
-            <div class="ev-text">
-                <span class="section-label">La storia</span>
-                <div class="ev-prose">
-                    <Fragment set:html={md(evento.body)} />
-                </div>
-            </div>
-
-            <!-- Colonna destra: info box -->
-            <aside class="ev-sidebar">
-                <!-- Info pratiche -->
-                <div class="ev-infobox">
-                    <h3 class="ev-infobox-title">Dettagli</h3>
-                    <div class="divider"><span>⬥</span></div>
-
-                    {dates && dates.length > 0 ? (
+    <div class="ev-page" style={titleFont && `--ev-font:${titleFont}`}>
+        <section class="ev-hero">
+            {cover && <img class="ev-hero-cover" src={cover.src} alt="" style={imgStyle(cover)} />}
+            <div class="container ev-hero-inner">
+                <a href="/#eventi" class="ev-back"><span>←</span> Tutti gli eventi</a>
+                <div class="ev-hero-content">
+                    <span class="section-label">{theme}</span>
+                    <h1 class="ev-title">{title}</h1>
+                    <p class="ev-excerpt">{excerpt}</p>
+                    {dates?.length ? (
                         <div class="ev-date-boxes">
-                            {dates.map((d) => {
-                                const isPast = d.dateISO < today;
-                                return (
-                                    <div class={`ev-date-box${isPast ? " ev-date-box-past" : ""}`}>
-                                        <div class="ev-date-box-label">{dateLabel(d.dateISO)}</div>
-                                        {d.location && <div class="ev-date-box-info"><span class="meta-label">Luogo</span>{d.location}</div>}
-                                        {d.price && <div class="ev-date-box-info"><span class="meta-label">Quota</span>{d.price}</div>}
-                                    </div>
-                                );
-                            })}
+                            {dates.map((d) => (
+                                <div class={`ev-date-box${d.dateISO < today ? " ev-date-box-past" : ""}`}>
+                                    <div class="ev-date-box-label">{dateLabel(d.dateISO)}</div>
+                                    {d.location && <div class="ev-date-box-info"><span class="meta-label">Luogo</span>{d.location}</div>}
+                                    {d.price && <div class="ev-date-box-info"><span class="meta-label">Quota</span>{d.price}</div>}
+                                </div>
+                            ))}
                         </div>
                     ) : (
-                        <>
-                            <div class="ev-info-row">
-                                <span class="meta-label">Data</span>
-                                <span>Da annunciare</span>
-                            </div>
-                            {location && (
-                                <div class="ev-info-row">
-                                    <span class="meta-label">Luogo</span>
-                                    <span>{location}</span>
-                                </div>
-                            )}
-                            {price && (
-                                <div class="ev-info-row">
-                                    <span class="meta-label">Quota</span>
-                                    <span>{price}</span>
-                                </div>
-                            )}
-                        </>
-                    )}
-                    <div class="ev-info-row">
-                        <span class="meta-label">Durata</span>
-                        <span>{duration}</span>
-                    </div>
-
-                    {
-                        includes && includes.length > 0 && (
-                            <div class="ev-includes">
-                                <span
-                                    class="meta-label"
-                                    style="display:block; margin-bottom:.75rem;"
-                                >
-                                    Include
-                                </span>
-                                <ul class="ev-includes-list">
-                                    {includes.map((item) => (
-                                        <li>
-                                            <span class="ev-check">⬥</span>
-                                            {item}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )
-                    }
-
-                    {(nextDate || !dates?.length) && (
-                        <a
-                            href="mailto:info@mementoconvivium.it"
-                            class={`${statusClass} ev-cta-btn`}
-                        >
-                            {statusLabel}
-                        </a>
-                    )}
-                    <p class="ev-cta-note">
-                        Oppure scrivici su <a href="https://www.instagram.com/memento_convivium"
-                            >Instagram</a
-                        >
-                    </p>
-                </div>
-            </aside>
-        </div>
-    </section>
-
-    <!-- PERSONAGGI -->
-    {
-        characters && characters.length > 0 && (
-            <section class="section ev-characters">
-                <div class="container">
-                    <div class="section-header">
-                        <span class="section-label">I protagonisti</span>
-                        <h2>I personaggi della serata</h2>
-                        <div class="divider">
-                            <span>⬥</span>
+                        <div class="ev-meta-row">
+                            <div class="ev-meta-item"><span class="meta-label">Data</span><span>Da annunciare</span></div>
+                            {location && <div class="ev-meta-item"><span class="meta-label">Luogo</span><span>{location}</span></div>}
+                            {price && <div class="ev-meta-item"><span class="meta-label">Quota</span><span>{price}</span></div>}
                         </div>
-                        <p class="ev-characters-sub">
-                            Ogni ospite riceverà la propria scheda via email.
-                            <br />
-                            Questi sono i volti che troverai al banchetto.
-                        </p>
-                    </div>
-                    <div class="ev-chars-grid">
-                        {characters.map(
-                            (c) => (
-                                <div class="ev-char-card">
-                                    <button
-                                        type="button"
-                                        class={`ev-char-avatar${c.portrait ? " has-portrait" : ""}`}
-                                        data-portrait={c.portrait}
-                                        data-name={c.name}
-                                    >
-                                        {c.portrait && (
-                                            <img
-                                                class="ev-char-portrait"
-                                                src={c.portrait}
-                                                alt={c.name}
-                                                loading="lazy"
-                                            />
-                                        )}
-                                        <span class="ev-char-initial">
-                                            {c.name.charAt(0)}
-                                        </span>
-                                    </button>
-                                    <h4 class="ev-char-name">{c.name}</h4>
-                                    <p class="ev-char-role">{c.role}</p>
-                                    <div class="divider">
-                                        <span>⬥</span>
-                                    </div>
-                                    <p class="ev-char-hint">"{c.hint}"</p>
-                                </div>
-                            ),
+                    )}
+                    <div class="ev-meta-row">
+                        <div class="ev-meta-item"><span class="meta-label">Durata</span><span>{duration}</span></div>
+                        {!!includes?.length && (
+                            <div class="ev-meta-item"><span class="meta-label">Include</span><span>{includes.join(" · ")}</span></div>
                         )}
                     </div>
+                    {canBook && <a href={book} class={`${statusClass} ev-cta-btn`}>{statusLabel}</a>}
                 </div>
-            </section>
-        )
-    }
+            </div>
+            <div class="greek-border"></div>
+        </section>
 
-    <!-- CTA FINALE -->
+        {tabs.length > 0 && (
+            <div class="ev-tabs" data-tabs>
+                {tabs.length > 1 && (
+                    <nav class="ev-tabbar" role="tablist" aria-label="Sezioni dell'evento">
+                        {tabs.map((t, i) => (
+                            <a href={`#${ids[i]}`} role="tab" class="ev-tab" aria-controls={ids[i]} aria-selected={i === 0 ? "true" : "false"}>{t.title}</a>
+                        ))}
+                    </nav>
+                )}
+                {tabs.map((t, i) => (
+                    <section id={ids[i]} class={`ev-panel section${i === 0 ? " on" : ""}`} role="tabpanel">
+                        <Sfondo bg={t.background ?? background} />
+                        <div class="container ev-panel-inner">
+                            <h2 class="ev-panel-title">{t.title}</h2>
+                            <div class="divider"><span>⬥</span></div>
+                            {t.template === "testo" ? (
+                                <div class={t.image ? "ev-panel-grid" : "ev-panel-text"}>
+                                    <div class="ev-prose" set:html={md(t.body ?? "")} />
+                                    {t.image && (
+                                        <button type="button" class="ev-figure crop" data-portrait={t.image.src} data-name="">
+                                            <img src={t.image.src} alt="" loading="lazy" style={imgStyle(t.image)} />
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    {t.body && <div class="ev-prose ev-panel-intro" set:html={md(t.body)} />}
+                                    {t.template === "galleria" ? (
+                                        <div class="ev-gallery">
+                                            {t.gallery?.map((g) => (
+                                                <figure>
+                                                    <button type="button" class="crop" data-portrait={g.image.src} data-name={g.caption ?? ""}>
+                                                        <img src={g.image.src} alt={g.caption ?? ""} loading="lazy" style={imgStyle(g.image)} />
+                                                    </button>
+                                                    {g.caption && <figcaption>{g.caption}</figcaption>}
+                                                </figure>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div class="ev-chars-grid">
+                                            {t.characters?.map((c) => (
+                                                <div class="ev-char-card">
+                                                    {c.portrait ? (
+                                                        <button type="button" class="ev-char-avatar has-portrait" data-portrait={c.portrait.src} data-name={c.name}>
+                                                            <span class="crop"><img src={c.portrait.src} alt={c.name} loading="lazy" style={imgStyle(c.portrait, 0)} /></span>
+                                                            <span class="ev-char-initial">{c.name.charAt(0)}</span>
+                                                        </button>
+                                                    ) : (
+                                                        <span class="ev-char-avatar"><span class="ev-char-initial">{c.name.charAt(0)}</span></span>
+                                                    )}
+                                                    <h4 class="ev-char-name">{c.name}</h4>
+                                                    <p class="ev-char-role">{c.role}</p>
+                                                    <div class="divider"><span>⬥</span></div>
+                                                    <p class="ev-char-hint">"{c.hint}"</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </section>
+                ))}
+            </div>
+        )}
+    </div>
+
     <section class="section ev-final-cta">
         <div class="container">
             <div class="prenota-inner">
-                <div class="prenota-ornament">
-                    <span>✦</span>
-                </div>
+                <div class="prenota-ornament"><span>✦</span></div>
                 <span class="section-label">Partecipa</span>
                 <h2>Sei pronto a sederti al banchetto?</h2>
                 <p>
-                    Riserva il tuo posto al tavolo: scrivici e ti racconteremo
-                    come unirti alla prossima serata. Ogni evento è a numero
-                    chiuso e i posti vanno in fretta.
+                    Riserva il tuo posto al tavolo: scrivici e ti racconteremo come unirti alla prossima
+                    serata. Ogni evento è a numero chiuso e i posti vanno in fretta.
                 </p>
-                <a
-                    href="mailto:info@mementoconvivium.it"
-                    class={`${statusClass} btn-large`}
-                >
-                    {statusLabel}
-                </a>
-                <p class="prenota-note">
-                    Oppure scrivici su <a href="https://www.instagram.com/memento_convivium"
-                        >Instagram</a
-                    >
-                </p>
-
+                {canBook && <a href={book} class={`${statusClass} btn-large`}>{statusLabel}</a>}
+                {s.instagram && <p class="prenota-note">Oppure scrivici su <a href={s.instagram}>Instagram</a></p>}
                 <div class="prenota-locale">
-                    <p class="prenota-locale-text">
-                        Sei un locale, un ristorante o un'associazione?
-                    </p>
-                    <a
-                        href="mailto:info@mementoconvivium.it?subject=Portare%20questa%20cena%20con%20delitto%20nel%20mio%20locale"
-                        class="btn-ghost"
-                    >
+                    <p class="prenota-locale-text">Sei un locale, un ristorante o un'associazione?</p>
+                    <a href={`mailto:${s.email}?subject=${encodeURIComponent(`Portare "${title}" nel mio locale`)}`} class="btn-ghost">
                         Porta questa cena con delitto da te →
                     </a>
                 </div>
-                <div class="prenota-ornament">
-                    <span>✦</span>
-                </div>
+                <div class="prenota-ornament"><span>✦</span></div>
             </div>
         </div>
     </section>
 
-    <!-- FULLSCREEN RITRATTO -->
-    <dialog
-        id="ev-photo-dialog"
-        class="ev-photo-dialog"
-        style={`--char-font: ${characterFont ?? "var(--font-title)"}`}
-    >
+    <dialog id="ev-photo-dialog" class="ev-photo-dialog" style={`--char-font: ${characterFont ?? "var(--font-title)"}`}>
         <button type="button" class="ev-photo-close" aria-label="Chiudi">✕</button>
         <div class="ev-photo-card" id="ev-photo-card">
             <img id="ev-photo-dialog-img" alt="" />
@@ -301,5 +187,27 @@ const fontHref =
 
 <script>
     import "../../scripts/ev-photo-dialog.ts";
-</script>
 
+    // Schede: senza JS si vedono tutte una sotto l'altra; con JS una alla volta, scelta dall'ancora (#la-storia)
+    const box = document.querySelector<HTMLElement>("[data-tabs]");
+    if (box) {
+        const tabs = [...box.querySelectorAll<HTMLAnchorElement>(".ev-tab")];
+        const show = (id: string, focus = false) => {
+            const panel = box.querySelector<HTMLElement>(`.ev-panel[id="${CSS.escape(id)}"]`);
+            if (!panel) return false;
+            box.querySelectorAll(".ev-panel").forEach((p) => p.classList.toggle("on", p === panel));
+            tabs.forEach((t) => t.setAttribute("aria-selected", String(t.hash === "#" + id)));
+            if (focus) box.scrollIntoView({ behavior: "smooth", block: "start" });
+            return true;
+        };
+        box.classList.add("tabs-on");
+        tabs.forEach((t) =>
+            t.addEventListener("click", (e) => {
+                e.preventDefault();
+                history.replaceState(null, "", t.hash);
+                show(t.hash.slice(1));
+            }),
+        );
+        if (location.hash) show(decodeURIComponent(location.hash.slice(1)), true);
+    }
+</script>

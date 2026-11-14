@@ -1,16 +1,36 @@
 import { createClient, type Client, type Row } from "@libsql/client/web";
 import { env } from "cloudflare:workers";
-import type { Evento, EventoData } from "./schema";
+import { DEFAULT_SETTINGS, type Evento, type EventoData, type Settings } from "./schema";
 
 let client: Client | undefined;
 export const db = () =>
   (client ??= createClient({ url: env.TURSO_URL, authToken: env.TURSO_TOKEN }));
 
+/**
+ * Eventi salvati prima delle schede (racconto in `body`, personaggi in `data.characters`):
+ * convertiti alla lettura in schede "La storia" + "Personaggi". Si riscrivono al primo salvataggio.
+ */
+function normalize(json: string, body: string): EventoData {
+  const d = JSON.parse(json);
+  if (!d.tabs) {
+    d.tabs = [];
+    if (body) d.tabs.push({ title: "La storia", template: "testo", body });
+    if (d.characters?.length)
+      d.tabs.push({
+        title: "Personaggi",
+        template: "personaggi",
+        body: "Ogni ospite riceverà la propria scheda via email.\nQuesti sono i volti che troverai al banchetto.",
+        characters: d.characters,
+      });
+    delete d.characters;
+  }
+  return d;
+}
+
 const COLS = "slug, data, body, updated_at, updated_by, rev";
 const toEvento = (r: Row): Evento => ({
   id: r.slug as string,
-  data: JSON.parse(r.data as string),
-  body: r.body as string,
+  data: normalize(r.data as string, r.body as string),
   updatedAt: Number(r.updated_at),
   updatedBy: (r.updated_by as string | null) ?? undefined,
   rev: Number(r.rev),
@@ -44,7 +64,6 @@ const snapshot = (slug: string) => [
 export async function saveEvent(o: {
   slug: string;
   data: EventoData;
-  body: string;
   originalSlug?: string;
   rev?: number;
   force?: boolean;
@@ -64,13 +83,13 @@ export async function saveEvent(o: {
     let res;
     if (orig === o.slug) {
       res = await tx.execute({
-        sql: "UPDATE events SET data = ?, body = ?, updated_by = ?, updated_at = unixepoch(), rev = rev + 1 WHERE slug = ? RETURNING updated_at, rev",
-        args: [json, o.body, o.author ?? null, o.slug],
+        sql: "UPDATE events SET data = ?, body = '', updated_by = ?, updated_at = unixepoch(), rev = rev + 1 WHERE slug = ? RETURNING updated_at, rev",
+        args: [json, o.author ?? null, o.slug],
       });
     } else {
       res = await tx.execute({
-        sql: "INSERT INTO events (slug, data, body, updated_by) VALUES (?, ?, ?, ?) RETURNING updated_at, rev",
-        args: [o.slug, json, o.body, o.author ?? null],
+        sql: "INSERT INTO events (slug, data, updated_by) VALUES (?, ?, ?) RETURNING updated_at, rev",
+        args: [o.slug, json, o.author ?? null],
       });
       if (orig) {
         await tx.execute({ sql: "DELETE FROM events WHERE slug = ?", args: [orig] });
@@ -101,7 +120,6 @@ export interface Version {
   id: number;
   slug: string;
   data: EventoData;
-  body: string;
   author?: string;
   savedAt: number;
   deleted: boolean;
@@ -109,8 +127,7 @@ export interface Version {
 const toVersion = (r: Row): Version => ({
   id: Number(r.id),
   slug: r.slug as string,
-  data: JSON.parse(r.data as string),
-  body: r.body as string,
+  data: normalize(r.data as string, r.body as string),
   author: (r.author as string | null) ?? undefined,
   savedAt: Number(r.saved_at),
   deleted: Boolean(r.deleted),
@@ -154,4 +171,26 @@ export async function putImage(bytes: ArrayBuffer, mime: string): Promise<string
 export async function getImage(id: string) {
   const { rows } = await db().execute({ sql: "SELECT mime, data FROM images WHERE id = ?", args: [id] });
   return rows[0] as unknown as { mime: string; data: ArrayBuffer } | undefined;
+}
+
+// ── Impostazioni del sito: una riga JSON, unita ai default (campi nuovi = valore di default)
+let settingsCache: { at: number; p: Promise<Settings> } | undefined;
+export function getSettings(): Promise<Settings> {
+  // ponytail: cache per isolate di 60 s; il salvataggio la svuota solo nell'isolate corrente
+  if (!settingsCache || Date.now() - settingsCache.at > 60_000) {
+    const p = db()
+      .execute("SELECT data FROM settings WHERE id = 1")
+      .then(({ rows }) => ({ ...DEFAULT_SETTINGS, ...(rows[0] ? JSON.parse(rows[0].data as string) : {}) }));
+    settingsCache = { at: Date.now(), p };
+    p.catch(() => (settingsCache = undefined));
+  }
+  return settingsCache.p;
+}
+
+export async function saveSettings(s: Settings) {
+  await db().execute({
+    sql: "INSERT INTO settings (id, data) VALUES (1, ?) ON CONFLICT (id) DO UPDATE SET data = excluded.data",
+    args: [JSON.stringify(s)],
+  });
+  settingsCache = undefined;
 }
