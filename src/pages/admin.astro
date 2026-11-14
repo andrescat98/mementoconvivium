@@ -13,7 +13,7 @@ if ((login && !login.error) || Astro.getActionResult(actions.logout)) return Ast
 const authed = await isAdmin(Astro.cookies);
 const [eventi, deleted, s] = authed ? await Promise.all([getEvents(true), getDeleted(), getSettings()]) : [[], [], undefined];
 // `<` escapato: il JSON finisce dentro un <script>
-const json = JSON.stringify({ eventi, deleted }).replace(/</g, "\\u003c");
+const json = JSON.stringify({ eventi, deleted, settings: s }).replace(/</g, "\\u003c");
 const STATUS_HINT: Record<string, string> = {
     aperto: "si prenota",
     "lista-attesa": "pubblico",
@@ -22,6 +22,9 @@ const STATUS_HINT: Record<string, string> = {
     bozza: "nascosto",
 };
 const TEMPLATE_TEXT: Record<string, string> = { testo: "Testo + immagine", galleria: "Galleria di foto", personaggi: "Personaggi" };
+// pagine con testi modificabili (attributo data-k): la pagina evento solo se ce n'è una pubblica
+const evPage = eventi.find((e) => e.data.status !== "bozza" && e.data.status !== "coming-soon");
+const PAGES = [["/", "Home"], ["/lista-eventi", "Lista eventi"], ...(evPage ? [[`/eventi/${evPage.id}`, `Pagina evento (${evPage.data.title})`]] : [])];
 const HERO_TEXT: Record<string, string> = {
     lista: "Apre l'elenco delle prossime date",
     prossimo: "Porta alla pagina del prossimo evento",
@@ -56,6 +59,7 @@ const fontsHref =
     <>
     <header class="top">
         <strong class="brand">Memento Convivium · Moderatori</strong>
+        <span id="dirty" hidden>● Non salvato</span>
         <label class="who">Il tuo nome<input id="who" maxlength="40" placeholder="per la cronologia" autocomplete="nickname" /></label>
         <button type="button" id="backup" title="Scarica tutti gli eventi in un file JSON">Backup</button>
         <a href="/" target="_blank">Sito ↗</a>
@@ -71,7 +75,8 @@ const fontsHref =
                 <summary>Eliminati (<span></span>)</summary>
                 <ul></ul>
             </details>
-            <a href="#impostazioni" id="settings-link">⚙ Impostazioni sito</a>
+            <a href="#pagine" class="view-link" data-view="pages">✎ Testi delle pagine</a>
+            <a href="#impostazioni" class="view-link" data-view="settings">⚙ Impostazioni sito</a>
         </nav>
 
         <p id="empty" class="hint">Scegli un evento da modificare o creane uno nuovo.</p>
@@ -91,18 +96,16 @@ const fontsHref =
                     <label>WhatsApp (solo cifre, con prefisso)<input name="whatsapp" value={s.whatsapp} pattern="\d{8,15}" placeholder="393893137494" /></label>
                     <label>Instagram (link)<input name="instagram" type="url" value={s.instagram} /></label>
                     <label class="wide">Link di prenotazione (vuoto = i bottoni "Prenota" aprono una email)<input name="bookingUrl" type="url" value={s.bookingUrl} placeholder="https://…" /></label>
-                    <label class="wide">Motto nel footer<input name="tagline" value={s.tagline} /></label>
                 </fieldset>
             </details>
             <details open class="sec">
                 <summary>Bottone della home</summary>
                 <fieldset>
-                    <label>Testo<input name="heroLabel" required value={s.heroLabel} /></label>
                     <label>Cosa fa
                         <select name="heroAction">{HERO_ACTIONS.map((a) => <option value={a} selected={a === s.heroAction}>{HERO_TEXT[a]}</option>)}</select>
                     </label>
                     <label data-show="link">Link<input name="heroUrl" type="url" value={s.heroUrl} placeholder="https://…" /></label>
-                    <p class="hint">"Prossimo evento" = quello aperto con la data più vicina; se non ce ne sono, apre l'elenco.</p>
+                    <p class="hint">"Prossimo evento" = quello aperto con la data più vicina; se non ce ne sono, apre l'elenco. Il testo del bottone e il motto del footer si cambiano in <a href="#pagine">Testi delle pagine</a>.</p>
                 </fieldset>
             </details>
             <details open class="sec">
@@ -123,6 +126,17 @@ const fontsHref =
             </details>
         </form>
 
+        <!-- ── Testi delle pagine: la pagina vera in un iframe, testi data-k modificabili al clic -->
+        <section id="pages" hidden>
+            <div class="bar">
+                <div class="bar-title"><h2>Testi delle pagine</h2><small>Clicca su un testo tratteggiato e scrivi. Invio = a capo; testo vuoto = torna all'originale.</small></div>
+                <select name="page" aria-label="Pagina">{PAGES.map(([href, label]) => <option value={href}>{label}</option>)}</select>
+                <button type="button" class="primary" id="pages-save">Salva testi</button>
+            </div>
+            <p class="msg" role="status"></p>
+            <iframe class="page-frame" title="Pagina da modificare"></iframe>
+        </section>
+
         <!-- ── Editor evento -->
         <form id="editor" hidden>
             <div class="bar">
@@ -130,7 +144,6 @@ const fontsHref =
                     <h2 id="ed-title">Nuovo evento</h2>
                     <small id="ed-meta"></small>
                 </div>
-                <span id="dirty" hidden>● Non salvato</span>
                 <a id="preview" target="_blank" hidden>Anteprima ↗</a>
                 <select id="history" hidden aria-label="Cronologia versioni"></select>
                 <button type="button" id="dup" hidden>Duplica</button>
@@ -159,7 +172,7 @@ const fontsHref =
             <details open class="sec">
                 <summary>Aspetto</summary>
                 <fieldset>
-                    <div class="img" data-name="cover" data-shape="wide" data-label="Copertina (intestazione e anteprima sui social)"></div>
+                    <div class="img" data-name="cover" data-shape="wide" data-preview data-label="Copertina (intestazione, card della timeline se non ha un'immagine sua, social)"></div>
                     <div class="font-field">
                         <label>Font del titolo e delle schede<input name="titleFont" placeholder="predefinito" /></label>
                         <button type="button" data-font="titleFont">Scegli…</button>
@@ -209,8 +222,13 @@ const fontsHref =
                     <label>Etichetta anno<input name="yearLabel" placeholder="1697" /></label>
                     <label>Epoca<input name="era" /></label>
                     <label>Luogo storico<input name="place" /></label>
-                    <div class="img" data-name="timelineImage" data-shape="wide" data-label="Immagine della card (vuota = copertina)"></div>
+                    <div class="img" data-name="timelineImage" data-shape="wide" data-preview data-label="Immagine della card (vuota = copertina)"></div>
                 </fieldset>
+            </details>
+            <details class="sec" id="prev-sec">
+                <summary>Anteprima: intestazione e card</summary>
+                <p class="hint prev-hint">Componenti e stili veri del sito, coi dati non ancora salvati. Si aggiorna mentre scrivi.</p>
+                <div class="prev"><iframe title="Anteprima"></iframe></div>
             </details>
         </form>
     </main>
@@ -228,6 +246,7 @@ const fontsHref =
                 <button type="button" data-reset>Centra</button>
             </div>
         </div>
+        <div class="prev" hidden><iframe title="Anteprima sul sito"></iframe></div>
         <div class="dlg-btns"><button type="button" data-close>Annulla</button><button type="button" class="primary" data-ok>Applica</button></div>
     </dialog>
 

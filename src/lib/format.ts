@@ -12,6 +12,10 @@ export const dateLabel = (iso: string) =>
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
+/** Prima data futura (ISO) dell'evento, undefined se non ce ne sono. */
+export const nextDate = (d: { dates?: { dateISO: string }[] }) =>
+  d.dates?.map((x) => x.dateISO).filter((x) => x >= today()).sort()[0];
+
 export const STATUS_TEXT: Record<string, string> = {
   aperto: "Aperto",
   "lista-attesa": "Lista d'attesa",
@@ -64,6 +68,10 @@ export function imgStyle(i?: Img, defY = 50) {
   return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%` + (z > 1 ? `;transform:scale(${z})` : "");
 }
 
+/** Foglio Google Fonts con i font del sito (Layout e anteprima admin). */
+export const SITE_FONTS_HREF =
+  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400&display=swap";
+
 /** Font già caricati dal sito (non vanno chiesti a Google Fonts). */
 export const BASE_FONTS = ["Cinzel", "Cinzel Decorative", "Cormorant Garamond", "Jack Pirate"];
 
@@ -77,6 +85,20 @@ export function googleFontsHref(...fonts: (string | undefined)[]) {
 export const slugify = (s: string) =>
   s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+/** Testo del bottone di prenotazione per stato. */
+export const BOOK_TEXT: Record<string, string> = {
+  aperto: "Prenota ora",
+  "lista-attesa": "Lista d'attesa",
+  "coming-soon": "Coming soon",
+  chiuso: "Prenotazioni chiuse",
+};
+
 /** Dove porta "Prenota": link esterno se impostato, altrimenti email con oggetto. */
 export const bookHref = (s: { email: string; bookingUrl?: string }, title?: string) =>
   s.bookingUrl ?? `mailto:${s.email}${title ? "?subject=" + encodeURIComponent("Prenotazione: " + title) : ""}`;
+
+/** Bottone "Prenota" della pagina evento; undefined se chiuso o con sole date passate. */
+export function bookCta(d: { title: string; status: string; dates?: { dateISO: string }[] }, s: { email: string; bookingUrl?: string }) {
+  if (d.status === "chiuso" || (d.dates?.length && !nextDate(d))) return;
+  return { href: bookHref(s, d.title), label: BOOK_TEXT[d.status] ?? "Coming soon", cls: d.status === "aperto" ? "btn-primary" : "btn-ghost" };
+}

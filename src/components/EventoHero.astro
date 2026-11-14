@@ -1,0 +1,47 @@
+---
+// Intestazione della pagina evento: copertina, date, bottone. Usata anche dall'anteprima in /admin.
+import { dateLabel, imgStyle, today, type bookCta } from "../lib/format";
+import type { EventoData } from "../lib/schema";
+
+interface Props {
+    d: EventoData;
+    cta?: ReturnType<typeof bookCta>;
+}
+const { d, cta } = Astro.props;
+const oggi = today();
+---
+
+<section class="ev-hero">
+    {d.cover && <img class="ev-hero-cover" src={d.cover.src} alt="" style={imgStyle(d.cover)} />}
+    <div class="container ev-hero-inner">
+        <a href="/lista-eventi" class="ev-back"><span>←</span> Tutti gli eventi</a>
+        <div class="ev-hero-content">
+            <span class="section-label">{d.theme}</span>
+            <h1 class="ev-title">{d.title}</h1>
+            <p class="ev-excerpt">{d.excerpt}</p>
+            {d.dates?.length ? (
+                <div class="ev-date-boxes">
+                    {d.dates.map((x) => (
+                        <div class={`ev-date-box${x.dateISO < oggi ? " ev-date-box-past" : ""}`}>
+                            <div class="ev-date-box-label">{dateLabel(x.dateISO)}</div>
+                            {x.location && <div class="ev-date-box-info"><span class="meta-label">Luogo</span>{x.location}</div>}
+                            {x.price && <div class="ev-date-box-info"><span class="meta-label">Quota</span>{x.price}</div>}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div class="ev-meta-row">
+                    <div class="ev-meta-item"><span class="meta-label">Data</span><span>Da annunciare</span></div>
+                    {d.location && <div class="ev-meta-item"><span class="meta-label">Luogo</span><span>{d.location}</span></div>}
+                    {d.price && <div class="ev-meta-item"><span class="meta-label">Quota</span><span>{d.price}</span></div>}
+                </div>
+            )}
+            <div class="ev-meta-row">
+                <div class="ev-meta-item"><span class="meta-label">Durata</span><span>{d.duration}</span></div>
+                {!!d.includes?.length && <div class="ev-meta-item"><span class="meta-label">Include</span><span>{d.includes.join(" · ")}</span></div>}
+            </div>
+            {cta && <a href={cta.href} class={`${cta.cls} ev-cta-btn`}>{cta.label}</a>}
+        </div>
+    </div>
+    <div class="greek-border"></div>
+</section>

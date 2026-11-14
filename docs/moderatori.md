@@ -56,7 +56,7 @@ La pagina dell'evento non è più una pagina lunga: sotto l'intestazione ci sono
 
 Trascina una foto su un riquadro, oppure clicca "sceglila". Viene ridotta e caricata in automatico; poi **salva**.
 
-**Inquadra** apre la foto intera: clicca (o trascina) sul punto che deve restare sempre visibile, ad esempio il viso, e regola lo **zoom**. A destra vedi come apparirà nella sua forma: tondo per i ritratti, panoramica per la copertina, verticale per la foto accanto al testo. Su schermi diversi il taglio cambia, ma quel punto resta sempre visibile. **Centra** annulla l'inquadratura.
+**Inquadra** apre la foto intera: clicca (o trascina) sul punto che deve restare sempre visibile, ad esempio il viso, e regola lo **zoom**. A destra vedi come apparirà nella sua forma: tondo per i ritratti, verticale per la foto accanto al testo. Per **copertina** e **immagine della timeline** sotto la foto compare l'anteprima vera: intestazione della pagina e card della timeline (computer e telefono), che si aggiornano mentre sposti il punto. Su schermi diversi il taglio cambia, ma quel punto resta sempre visibile. **Centra** annulla l'inquadratura.
 
 ## Aspetto
 
@@ -70,11 +70,18 @@ Trascina una foto su un riquadro, oppure clicca "sceglila". Viene ridotta e cari
 
 - **Contatti**: email, telefono, WhatsApp, Instagram. Compaiono nella pagina Contatti, nella Privacy, nel footer e nei bottoni "Prenota".
 - **Link di prenotazione**: se lo metti (es. un modulo Google), i bottoni "Prenota" portano lì; se è vuoto aprono una email con l'oggetto già scritto.
-- **Bottone della home**: testo e cosa fa (apre l'elenco delle prossime date, porta alla pagina del prossimo evento oppure a un link).
+- **Bottone della home**: cosa fa (apre l'elenco delle prossime date, porta alla pagina del prossimo evento oppure a un link).
 - **Menu in alto**: voci e link, in ordine; l'ultima è evidenziata come bottone.
-- **Motto nel footer**.
 
 Dopo il salvataggio il sito si aggiorna entro un minuto.
+
+## Testi delle pagine
+
+**✎ Testi delle pagine** mostra la pagina vera (Home, Lista eventi, pagina di un evento): i testi con il bordo tratteggiato si modificano cliccandoci sopra. Invio va a capo; un testo svuotato torna all'originale. Poi **Salva testi**. Qui si cambiano anche il testo del bottone della home e il motto nel footer.
+
+## Anteprima dell'evento
+
+In fondo all'evento, **Anteprima: intestazione e card** mostra intestazione, card della timeline e card della lista eventi coi dati non ancora salvati, con gli stessi stili del sito.
 
 ## Timeline in home
 

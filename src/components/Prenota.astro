@@ -1,0 +1,27 @@
+---
+// Box finale "Partecipa", uguale su tutte le pagine. Testi da /admin → Pagine.
+// Lo slot predefinito sostituisce il bottone "Contattaci"; lo slot "extra" va sotto Instagram.
+import { getSettings } from "../lib/db";
+
+interface Props {
+    k?: "prenotaText" | "prenotaEventoText";
+    class?: string;
+}
+const { k = "prenotaText", class: cls = "" } = Astro.props;
+const s = await getSettings();
+---
+
+<section class={`section prenota ${cls}`} id="prenota">
+    <div class="container">
+        <div class="prenota-inner">
+            <div class="prenota-ornament"><span>✦</span><div class="orn-line"></div><span>✦</span></div>
+            <span class="section-label" data-k="prenotaLabel">{s.prenotaLabel}</span>
+            <h2 data-k="prenotaTitle">{s.prenotaTitle}</h2>
+            <p data-k={k}>{s[k]}</p>
+            <slot><a href={"mailto:" + s.email} class="btn-primary btn-large">Contattaci</a></slot>
+            {s.instagram && <p class="prenota-note">Oppure scrivici su <a href={s.instagram}>Instagram</a></p>}
+            <slot name="extra" />
+            <div class="prenota-ornament"><span>✦</span><div class="orn-line"></div><span>✦</span></div>
+        </div>
+    </div>
+</section>

@@ -1,6 +1,6 @@
 // Logica di /admin (vanilla, nessun framework). Markup e <template> in src/pages/admin.astro.
 import { actions, isInputError } from "astro:actions";
-import { BASE_FONTS, dateLabel, imgStyle, md, slugify, STATUS_TEXT, today, type Img } from "../lib/format";
+import { BASE_FONTS, dateLabel, imgStyle, md, nextDate, slugify, STATUS_TEXT, today, type Img } from "../lib/format";
 import type { Version } from "../lib/db";
 import type { Evento } from "../lib/schema";
 
@@ -10,11 +10,14 @@ const $$ = <T extends Element = HTMLInputElement>(sel: string, root: ParentNode 
 const clone = (id: string) => $<HTMLTemplateElement>(`#tpl-${id}`).content.firstElementChild!.cloneNode(true) as HTMLElement;
 const form = document.querySelector<HTMLFormElement>("#editor");
 const settingsForm = $<HTMLFormElement>("#settings");
+const pagesView = $<HTMLElement>("#pages");
 
 if (form) {
-    const init = JSON.parse($("#admin-data").textContent!) as { eventi: Evento[]; deleted: Version[] };
+    const init = JSON.parse($("#admin-data").textContent!) as { eventi: Evento[]; deleted: Version[]; settings: Data };
     const eventi = init.eventi;
     let deleted = init.deleted;
+    let settings = init.settings; // impostazioni salvate; ogni vista salva le sue modifiche sopra queste
+    let view: "editor" | "settings" | "pages" | "empty" = "empty";
     const oggi = today();
     let current: Evento | undefined; // evento salvato aperto nel form (undefined = nuovo)
     let versions: Version[] = [];
@@ -25,17 +28,18 @@ if (form) {
     // ── utilità
     const fmtTime = (s: number) =>
         new Date(s * 1000).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
-    const nextDate = (e: Evento) => e.data.dates?.map((d) => d.dateISO).filter((d) => d >= oggi).sort()[0];
     const discardOk = () => !dirty || confirm("Ci sono modifiche non salvate. Vuoi scartarle?");
     function say(text: string, err = false, action?: [string, () => void]) {
         msg.textContent = text;
         msg.classList.toggle("err", err);
         if (action) msg.append(" ", Object.assign(document.createElement("button"), { type: "button", textContent: action[0], onclick: action[1] }));
     }
+    const savedAt = () => new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
     function setDirty(v: boolean) {
         dirty = v;
         $<HTMLElement>("#dirty").hidden = !v;
         document.title = (v ? "● " : "") + "Moderatori · Memento Convivium";
+        if (v) queuePrev();
     }
     addEventListener("beforeunload", (e) => dirty && e.preventDefault());
 
@@ -53,7 +57,7 @@ if (form) {
         const q = search.value.trim().toLowerCase();
         const items = eventi
             .filter((e) => !q || `${e.data.title} ${e.id} ${e.data.theme}`.toLowerCase().includes(q))
-            .sort((a, b) => (nextDate(a) ?? "9").localeCompare(nextDate(b) ?? "9") || a.data.title.localeCompare(b.data.title));
+            .sort((a, b) => (nextDate(a.data) ?? "9").localeCompare(nextDate(b.data) ?? "9") || a.data.title.localeCompare(b.data.title));
         list.replaceChildren(
             ...items.map((e) => {
                 const li = clone("item");
@@ -64,7 +68,7 @@ if (form) {
                 const st = $<HTMLElement>(".st", li);
                 st.textContent = STATUS_TEXT[e.data.status] ?? e.data.status;
                 st.dataset.st = e.data.status;
-                const next = nextDate(e);
+                const next = nextDate(e.data);
                 $(".nd", li).textContent = next ? `· ${dateLabel(next)}` : e.data.dates?.length ? "· date passate" : "";
                 return li;
             }),
@@ -165,6 +169,7 @@ if (form) {
     const cropSrc = $<HTMLElement>(".crop-src", cropDlg);
     const cropPrev = $<HTMLElement>(".crop-prev", cropDlg);
     const zoomEl = $("[name=zoom]", cropDlg);
+    const cropView = $<HTMLElement>(".prev", cropDlg);
     let cropBox: HTMLElement | undefined;
     let crop: Img = { src: "" };
     function drawCrop() {
@@ -173,6 +178,10 @@ if (form) {
         $<HTMLImageElement>("img", cropPrev).style.cssText = imgStyle({ ...crop, x, y });
         zoomEl.value = String(crop.zoom ?? 1);
         $("output", cropDlg).textContent = `${Number(zoomEl.value).toFixed(2)}×`;
+        // stessa inquadratura dal vivo sulle immagini dell'anteprima vera (copertina, card della timeline)
+        $<HTMLIFrameElement>("iframe", cropView).contentDocument
+            ?.querySelectorAll<HTMLImageElement>(`img[src="${CSS.escape(crop.src)}"]`)
+            .forEach((im) => (im.style.cssText = imgStyle({ ...crop, x, y })));
     }
     function openCrop(box: HTMLElement) {
         const i = getImg(box);
@@ -181,8 +190,11 @@ if (form) {
         crop = { ...i };
         $<HTMLImageElement>("img", cropSrc).src = $<HTMLImageElement>("img", cropPrev).src = i.src;
         cropPrev.dataset.shape = box.dataset.shape;
+        cropView.hidden = !("preview" in box.dataset);
+        cropDlg.classList.toggle("with-prev", !cropView.hidden);
         drawCrop();
         cropDlg.showModal();
+        if (!cropView.hidden) renderPrev(cropView).then(drawCrop);
     }
     const pickFocus = (e: PointerEvent) => {
         const r = $("img", cropSrc).getBoundingClientRect();
@@ -201,6 +213,45 @@ if (form) {
         setDirty(true);
         cropDlg.close();
     };
+
+    // ── anteprima vera: /admin/anteprima renderizza intestazione e card coi componenti del sito.
+    // L'iframe è largo come una pagina (PREV_W) e viene rimpicciolito per stare nel riquadro.
+    const PREV_W = 1200;
+    async function renderPrev(wrap: HTMLElement) {
+        const frame = $<HTMLIFrameElement>("iframe", wrap);
+        const seq = String(Number(wrap.dataset.seq ?? 0) + 1);
+        wrap.dataset.seq = seq;
+        const res = await fetch("/admin/anteprima", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(collect()) });
+        const html = res.ok ? await res.text() : "<p>Sessione scaduta: ricarica la pagina e rientra.</p>";
+        if (wrap.dataset.seq !== seq) return; // nel frattempo è partita un'anteprima più recente
+        const doc = frame.contentDocument;
+        if (doc?.querySelector("main")) {
+            // già caricata: si sostituisce solo il contenuto, così non lampeggia
+            const n = new DOMParser().parseFromString(html, "text/html");
+            for (const l of n.head.querySelectorAll("link"))
+                if (!doc.head.querySelector(`link[href="${CSS.escape(l.getAttribute("href")!)}"]`)) doc.head.append(doc.adoptNode(l));
+            doc.body.replaceWith(doc.adoptNode(n.body));
+        } else await new Promise((r) => { frame.onload = r; frame.srcdoc = html; });
+        fitPrev(wrap);
+        frame.contentDocument?.fonts.ready.then(() => fitPrev(wrap));
+    }
+    function fitPrev(wrap: HTMLElement) {
+        const frame = $<HTMLIFrameElement>("iframe", wrap);
+        const main = frame.contentDocument?.querySelector("main");
+        if (!main) return;
+        const k = Math.min(1, wrap.clientWidth / PREV_W);
+        const h = main.getBoundingClientRect().height;
+        frame.style.cssText = `height:${h}px;transform:scale(${k})`;
+        wrap.style.height = `${h * k}px`;
+    }
+    addEventListener("resize", () => $$<HTMLElement>(".prev").forEach(fitPrev));
+    const prevSec = $<HTMLDetailsElement>("#prev-sec");
+    let prevTimer = 0;
+    function queuePrev() {
+        clearTimeout(prevTimer);
+        if (prevSec.open && !form!.hidden) prevTimer = window.setTimeout(() => renderPrev($<HTMLElement>(".prev", prevSec)), 500);
+    }
+    prevSec.ontoggle = queuePrev;
 
     // ── sfondo: colore (facoltativo), immagine inquadrata, velo chiaro
     function initBg(box: HTMLElement, b: Data = {}) {
@@ -486,14 +537,18 @@ if (form) {
         };
     }
 
-    // ── viste: editor evento | impostazioni | vuoto
-    function show(view: "editor" | "settings" | "empty") {
-        form!.hidden = view !== "editor";
-        settingsForm.hidden = view !== "settings";
-        $<HTMLElement>("#empty").hidden = view !== "empty";
-        $("#settings-link").classList.toggle("on", view === "settings");
-        msg = $<HTMLElement>(".msg", view === "settings" ? settingsForm : form!);
+    // ── viste: editor evento | impostazioni | testi delle pagine | vuoto
+    function show(v: typeof view) {
+        view = v;
+        form!.hidden = v !== "editor";
+        settingsForm.hidden = v !== "settings";
+        pagesView.hidden = v !== "pages";
+        $<HTMLElement>("#empty").hidden = v !== "empty";
+        $$<HTMLElement>(".view-link").forEach((a) => a.classList.toggle("on", a.dataset.view === v));
+        msg = $<HTMLElement>(".msg", { editor: form!, settings: settingsForm, pages: pagesView, empty: form! }[v]);
     }
+    // indirizzo della vista aperta, per tornarci se si annulla un cambio di vista
+    const here = () => ({ editor: `#${current?.id ?? ""}`, settings: "#impostazioni", pages: "#pagine", empty: location.pathname })[view];
 
     // ── evento aperto: intestazione, pulsanti, cronologia
     const histSel = $<HTMLSelectElement>("#history");
@@ -536,9 +591,10 @@ if (form) {
 
     function open(ev: Evento | undefined, o: { data?: Data; slug?: string; note?: string } = {}) {
         if (!discardOk()) {
-            history.replaceState(null, "", current && !form!.hidden ? `#${current.id}` : location.pathname);
+            history.replaceState(null, "", here());
             return false;
         }
+        edits = {};
         // nuovo evento: parte con le tre schede tipiche
         fill(o.data ?? ev?.data ?? { tabs: [PRESETS.storia, PRESETS.abiti, PRESETS.personaggi] }, o.slug ?? ev?.id ?? "");
         // nuovo evento senza slug: lo slug segue il titolo finché non lo si modifica a mano
@@ -550,6 +606,7 @@ if (form) {
         show("editor");
         setCurrent(ev);
         setDirty(!ev && !!o.data);
+        queuePrev();
         say(o.note ?? "");
         if (matchMedia("(max-width: 760px)").matches) form!.scrollIntoView();
         return true;
@@ -575,7 +632,7 @@ if (form) {
         setCurrent(saved);
         setDirty(false);
         history.replaceState(null, "", `#${saved.id}`);
-        say(`Salvato alle ${new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} ✓`);
+        say(`Salvato alle ${savedAt()} ✓`);
     }
     form.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -584,8 +641,9 @@ if (form) {
     addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === "s") {
             e.preventDefault();
-            if (!form.hidden) form.requestSubmit();
-            else if (!settingsForm.hidden) settingsForm.requestSubmit();
+            if (view === "editor") form.requestSubmit();
+            else if (view === "settings") settingsForm.requestSubmit();
+            else if (view === "pages") saveSettings(edits);
         }
     });
 
@@ -644,26 +702,69 @@ if (form) {
         else if (row && b && "up" in b.dataset) row.previousElementSibling?.before(row);
         else if (row && b && "down" in b.dataset) row.nextElementSibling?.after(row);
     });
-    settingsForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const v = (n: string, root: ParentNode = settingsForm) => $(`[name=${n}]`, root).value.trim();
+    // salva le impostazioni: quelle già salvate + le modifiche della vista (form o testi delle pagine)
+    async function saveSettings(changes: Data) {
         say("Salvataggio…");
-        const { error } = await actions.saveSettings({
-            email: v("email"), phone: v("phone") || undefined, whatsapp: v("whatsapp"),
-            instagram: v("instagram"), bookingUrl: v("bookingUrl"), tagline: v("tagline") || undefined,
-            heroLabel: v("heroLabel"), heroAction: heroAction.value as any, heroUrl: v("heroUrl"),
+        const next = { ...settings, ...changes };
+        const { error } = await actions.saveSettings(next as any);
+        if (error) return say(isInputError(error) ? "Controlla i campi: " + Object.keys(error.fields).join(", ") : error.message, true);
+        settings = next;
+        edits = {};
+        setDirty(false);
+        say(`Salvato alle ${savedAt()} ✓ (il sito si aggiorna entro un minuto)`);
+    }
+    settingsForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const v = (n: string, root: ParentNode = settingsForm) => $(`[name=${n}]`, root).value.trim() || undefined;
+        saveSettings({
+            email: v("email"), phone: v("phone"), whatsapp: v("whatsapp") ?? "",
+            instagram: v("instagram") ?? "", bookingUrl: v("bookingUrl") ?? "",
+            heroAction: heroAction.value, heroUrl: v("heroUrl") ?? "",
             nav: $$(".row", $("#nav", settingsForm)).map((r) => ({ label: v("label", r), href: v("href", r) })),
         });
-        if (error) return say(isInputError(error) ? "Controlla i campi: " + Object.keys(error.fields).join(", ") : error.message, true);
-        say(`Impostazioni salvate alle ${new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} ✓ (il sito si aggiorna entro un minuto)`);
     });
+
+    // ── testi delle pagine: la pagina vera in un iframe, gli elementi [data-k] diventano modificabili
+    let edits: Data = {}; // testi cambiati e non ancora salvati
+    const pageFrame = $<HTMLIFrameElement>(".page-frame", pagesView);
+    const pageSel = $<HTMLSelectElement>("[name=page]", pagesView);
+    const EDIT_CSS = `[data-k]{outline:1px dashed rgb(0 0 0/.45);outline-offset:4px;cursor:text}
+        [data-k]:hover{outline-color:#000}[data-k]:focus{outline:2px solid #1f5fa8;background:rgb(255 255 255/.7)}`;
+    pageSel.onchange = () => (pageFrame.src = pageSel.value);
+    pageFrame.onload = () => {
+        const doc = pageFrame.contentDocument;
+        if (!doc) return;
+        doc.head.append(Object.assign(doc.createElement("style"), { textContent: EDIT_CSS }));
+        const cur = { ...settings, ...edits };
+        for (const el of doc.querySelectorAll<HTMLElement>("[data-k]")) {
+            // la pagina può arrivare dalla cache: si mostrano i testi aggiornati
+            if (cur[el.dataset.k!] !== undefined) el.textContent = cur[el.dataset.k!];
+            el.contentEditable = "plaintext-only";
+        }
+        // niente link, menu o dialog della pagina mentre si modifica
+        doc.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (!(e.target as Element).closest("[data-k]") || (e.target as Element).closest("a")) e.preventDefault();
+        }, true);
+        doc.addEventListener("input", (e) => {
+            const el = (e.target as Element).closest<HTMLElement>("[data-k]");
+            if (!el) return;
+            edits[el.dataset.k!] = el.textContent!.trim() || undefined;
+            setDirty(true);
+        });
+    };
+    $<HTMLButtonElement>("#pages-save").onclick = () => saveSettings(edits);
 
     const fromHash = () => {
         const id = decodeURIComponent(location.hash.slice(1));
-        if (id === "impostazioni") {
-            if (!form.hidden && !discardOk()) return history.replaceState(null, "", `#${current?.id ?? ""}`);
+        const v = ({ impostazioni: "settings", pagine: "pages" } as const)[id];
+        if (v) {
+            if (view === v) return;
+            if (!discardOk()) return history.replaceState(null, "", here());
             setDirty(false);
-            show("settings");
+            edits = {};
+            show(v);
+            if (v === "pages") pageFrame.src = pageSel.value; // ricarica: niente modifiche scartate a schermo
             renderList();
             return;
         }

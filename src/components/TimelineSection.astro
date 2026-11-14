@@ -1,18 +1,20 @@
 ---
-import { imgStyle } from "../lib/format";
+import { getSettings } from "../lib/db";
 import type { Evento } from "../lib/schema";
 import Particles from "./Particles.astro";
+import TimelineCard from "./TimelineCard.astro";
 
 interface Props {
     events: Evento[];
 }
 
 const { events } = Astro.props;
+const s = await getSettings();
 
-// Sort by historicalYear
-const sorted = [...events]
-    .filter((e) => e.data.historicalYear !== undefined && e.data.historicalYear !== null)
-    .sort((a, b) => (a.data.historicalYear ?? 0) - (b.data.historicalYear ?? 0));
+// in ordine di anno storico; senza anno non compaiono
+const sorted = events
+    .filter((e) => e.data.historicalYear != null)
+    .sort((a, b) => a.data.historicalYear! - b.data.historicalYear!);
 
 const zeroInsertAfter = sorted.filter((e) => (e.data.historicalYear ?? 0) < 0).length;
 ---
@@ -21,13 +23,10 @@ const zeroInsertAfter = sorted.filter((e) => (e.data.historicalYear ?? 0) < 0).l
     <Particles />
     <div class="container">
         <div class="section-header">
-            <span class="section-label">La nostra storia</span>
-            <h2>Il viaggio nel tempo</h2>
+            <span class="section-label" data-k="timelineLabel">{s.timelineLabel}</span>
+            <h2 data-k="timelineTitle">{s.timelineTitle}</h2>
             <div class="divider"><span>⬥</span></div>
-            <p class="timeline-intro">
-                Ogni spettacolo ci porta in un'epoca diversa. Dalla corte dei faraoni
-                all'era del jazz — ogni banchetto è una porta sul passato.
-            </p>
+            <p class="timeline-intro" data-k="timelineIntro">{s.timelineIntro}</p>
         </div>
 
         <div class="timeline">
@@ -51,45 +50,7 @@ const zeroInsertAfter = sorted.filter((e) => (e.data.historicalYear ?? 0) < 0).l
                             <div class="timeline-dot">
                                 <span class="dot-inner"></span>
                             </div>
-                            <article class="timeline-card">
-                                <div class="card-image-wrap">
-                                    <svg class="card-fallback-orn" viewBox="0 0 64 64" aria-hidden="true">
-                                        <line x1="16" y1="9" x2="48" y2="9" />
-                                        <line x1="16" y1="55" x2="48" y2="55" />
-                                        <path d="M19 9 L45 9 L32 32 L45 55 L19 55 L32 32 Z" />
-                                    </svg>
-                                    {(evento.data.timelineImage ?? evento.data.cover) && (
-                                        <img
-                                            src={(evento.data.timelineImage ?? evento.data.cover)!.src}
-                                            style={imgStyle(evento.data.timelineImage ?? evento.data.cover)}
-                                            alt={evento.data.era ?? evento.data.title}
-                                            class="card-image"
-                                            loading="lazy"
-                                            onerror="this.style.display='none'"
-                                        />
-                                    )}
-                                    <div class="card-image-overlay"></div>
-                                </div>
-                                <div class="card-body">
-                                    <span class="card-era">{evento.data.era}</span>
-                                    <div class="card-year">{evento.data.yearLabel}</div>
-                                    {evento.data.place && (
-                                        <div class="card-place">
-                                            <span class="place-icon">⌖</span>
-                                            {evento.data.place}
-                                        </div>
-                                    )}
-                                    <h3 class="card-title">{evento.data.title}</h3>
-                                    <p class="card-excerpt">{evento.data.excerpt}</p>
-                                    {evento.data.status === "coming-soon" ? (
-                                        <span class="card-link">Coming soon</span>
-                                    ) : (
-                                        <a href={`/eventi/${evento.id}`} class="card-link">
-                                            Scopri lo spettacolo →
-                                        </a>
-                                    )}
-                                </div>
-                            </article>
+                            <TimelineCard evento={evento} />
                         </div>
                     </>
                 );

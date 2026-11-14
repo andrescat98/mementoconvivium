@@ -1,0 +1,80 @@
+---
+// Anteprima per /admin: intestazione, card della timeline e card della lista eventi coi componenti
+// e il CSS veri, a partire dai dati non ancora salvati (POST JSON { slug, data }).
+// scripts/admin.ts la carica in un iframe e aggiorna dal vivo l'inquadratura delle immagini.
+import EventCard from "../../components/EventCard.astro";
+import EventoHero from "../../components/EventoHero.astro";
+import TimelineCard from "../../components/TimelineCard.astro";
+import { isAdmin } from "../../lib/auth";
+import { getSettings } from "../../lib/db";
+import { bookCta, googleFontsHref, SITE_FONTS_HREF } from "../../lib/format";
+import { eventoSchema, type Evento } from "../../lib/schema";
+import "../../styles/global.css";
+import "../../styles/index.css";
+import "../../styles/timeline.css";
+import "../../styles/evento.css";
+
+if (Astro.request.method !== "POST" || !(await isAdmin(Astro.cookies))) return new Response(null, { status: 401 });
+const { slug, data } = await Astro.request.json();
+// campi obbligatori ancora vuoti: segnaposto, così l'anteprima si vede già mentre si scrive
+const r = eventoSchema.safeParse({ title: "Titolo dell'evento", theme: "Tema", duration: "—", excerpt: "Estratto dell'evento…", ...data });
+const evento: Evento | undefined = r.success ? { id: slug || "anteprima", data: r.data } : undefined;
+const s = await getSettings();
+// larghezze reali: colonna della timeline su computer e telefono, metà griglia della lista eventi
+const cards = [
+    ["Timeline · computer", "400px", TimelineCard],
+    ["Timeline · telefono", "330px", TimelineCard],
+    ["Lista eventi", "540px", EventCard],
+] as const;
+---
+
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="stylesheet" href={SITE_FONTS_HREF} />
+    {evento && googleFontsHref(evento.data.titleFont) && <link rel="stylesheet" href={googleFontsHref(evento.data.titleFont)} />}
+</head>
+<body>
+    <main>
+        {evento ? (
+            <>
+                <div class="ev-page" style={evento.data.titleFont && `--ev-font:${evento.data.titleFont}`}>
+                    <EventoHero d={evento.data} cta={bookCta(evento.data, s)} />
+                </div>
+                <div class="prev-cards">
+                    {cards.map(([label, w, Card]) => (
+                        <figure style={`width:${w}`}>
+                            <figcaption>{label}</figcaption>
+                            <Card evento={evento} />
+                        </figure>
+                    ))}
+                </div>
+            </>
+        ) : (
+            <p class="prev-err">Da correggere per l'anteprima: {r.error?.issues.map((i) => i.path.join(".")).join(", ")}</p>
+        )}
+    </main>
+</body>
+</html>
+
+<style>
+    .prev-cards {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: start;
+        gap: 2.5rem;
+        padding: 2.5rem 2rem 3rem;
+    }
+    figcaption,
+    .prev-err {
+        font: 600 0.8rem/1.4 system-ui, sans-serif;
+        color: var(--cream-dim);
+        margin-bottom: 0.5rem;
+    }
+    .prev-err {
+        padding: 2rem;
+        font-size: 1rem;
+    }
+</style>

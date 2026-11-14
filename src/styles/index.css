@@ -414,14 +414,6 @@
     font-size: 0.85rem;
 }
 
-.meta-label {
-    font-family: var(--font-title);
-    font-size: 0.6rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--gold-dim);
-}
-
 .event-card-actions {
     display: flex;
     align-items: center;
@@ -460,61 +452,6 @@
 
 .event-card-actions .event-detail-link {
     position: static;
-}
-
-/* ── Prenota ────────────────────── */
-.prenota {
-    border-top: 1px solid var(--border);
-    text-align: center;
-    background: var(--bg-2);
-}
-
-.prenota-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.25rem;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.prenota-inner h2 {
-    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-    color: var(--white);
-}
-
-.prenota-inner > p {
-    color: var(--cream-dim);
-}
-
-.prenota-note {
-    font-size: 0.85rem;
-    color: var(--gold-dim);
-}
-
-.prenota-note a {
-    color: var(--gold);
-    text-decoration: none;
-}
-
-.prenota-note a:hover {
-    text-decoration: underline;
-}
-
-.prenota-ornament {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    width: 100%;
-    max-width: 300px;
-    color: var(--gold-dim);
-    font-size: 0.5rem;
-}
-
-.orn-line {
-    flex: 1;
-    height: 1px;
-    background: var(--border);
 }
 
 /* ── Responsive ─────────────────── */

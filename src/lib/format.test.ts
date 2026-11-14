@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bookHref, dateLabel, googleFontsHref, imgStyle, md, slugify } from "./format.ts";
+import { bookCta, bookHref, dateLabel, googleFontsHref, imgStyle, md, slugify, today } from "./format.ts";
 
 test("dateLabel", () => {
   assert.equal(dateLabel("2026-06-19"), "Ven 19 Giu 2026");
@@ -30,4 +30,14 @@ test("slugify e bookHref", () => {
   assert.equal(slugify("Città è"), "citta-e");
   assert.equal(bookHref({ email: "a@b.it" }, "Roma"), "mailto:a@b.it?subject=Prenotazione%3A%20Roma");
   assert.equal(bookHref({ email: "a@b.it", bookingUrl: "https://x.it" }, "Roma"), "https://x.it");
+});
+
+test("bookCta: niente bottone se chiuso o con sole date passate", () => {
+  const s = { email: "a@b.it" };
+  const futura = "2999-01-01";
+  assert.equal(bookCta({ title: "X", status: "chiuso" }, s), undefined);
+  assert.equal(bookCta({ title: "X", status: "aperto", dates: [{ dateISO: "2000-01-01" }] }, s), undefined);
+  assert.deepEqual(bookCta({ title: "X", status: "aperto", dates: [{ dateISO: futura }] }, s)?.cls, "btn-primary");
+  assert.equal(bookCta({ title: "X", status: "lista-attesa" }, s)?.label, "Lista d'attesa");
+  assert.ok(today() < futura);
 });

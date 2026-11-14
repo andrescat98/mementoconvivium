@@ -1,31 +1,14 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import EventCard from "../components/EventCard.astro";
 import Particles from "../components/Particles.astro";
+import Prenota from "../components/Prenota.astro";
 import { getEvents, getSettings } from "../lib/db";
-import { dateLabel, today } from "../lib/format";
-import type { Evento } from "../lib/schema";
+import { nextDate } from "../lib/format";
 import "../styles/index.css";
 
-const oggi = today();
-
-function nextDateISO(e: Evento) {
-    return (
-        e.data.dates?.map((d) => d.dateISO).filter((d) => d >= oggi).sort()[0] ??
-        "9999-99-99"
-    );
-}
-
-const s = await getSettings();
-const eventi = (await getEvents()).sort(
-    (a, b) => nextDateISO(a).localeCompare(nextDateISO(b)),
-);
-
-const statusLabel: Record<string, string> = {
-    aperto: "Prenota ora",
-    "lista-attesa": "Lista d'attesa",
-    "coming-soon": "Coming soon",
-    chiuso: "Prenotazioni chiuse",
-};
+const [eventi, s] = await Promise.all([getEvents(), getSettings()]);
+eventi.sort((a, b) => (nextDate(a.data) ?? "9").localeCompare(nextDate(b.data) ?? "9"));
 ---
 
 <Layout
@@ -37,13 +20,10 @@ const statusLabel: Record<string, string> = {
         <div class="page-hero-vignette" aria-hidden="true"></div>
         <div class="page-hero-content">
             <a href="/" class="page-hero-back">← Torna alla home</a>
-            <span class="section-label">Prossimi appuntamenti</span>
-            <h1>Gli spettacoli</h1>
+            <span class="section-label" data-k="listaLabel">{s.listaLabel}</span>
+            <h1 data-k="listaTitle">{s.listaTitle}</h1>
             <div class="divider"><span>⬥</span></div>
-            <p class="page-hero-sub">
-                Ogni serata è un viaggio in un'epoca diversa.<br />
-                Scegli il tuo banchetto e prenota il tuo posto.
-            </p>
+            <p class="page-hero-sub" data-k="listaSub">{s.listaSub}</p>
         </div>
     </section>
 
@@ -52,99 +32,12 @@ const statusLabel: Record<string, string> = {
         <Particles />
         <div class="container">
             <div class="events-grid">
-                {
-                    eventi.map((evento) => {
-                        const label =
-                            statusLabel[evento.data.status] ?? "Scopri di più";
-                        const btnClass =
-                            evento.data.status === "aperto"
-                                ? "btn-primary"
-                                : "btn-ghost";
-                        return (
-                            <article class="event-card">
-                                <div class="event-theme">
-                                    {evento.data.theme}
-                                </div>
-                                <h3 class="event-title">{evento.data.title}</h3>
-                                <p class="event-desc">{evento.data.excerpt}</p>
-                                <div class="event-meta">
-                                    <div class="event-info">
-                                        <span class="meta-label">Data</span>
-                                        <span>
-                                            {(() => {
-                                                const iso = evento.data.dates?.find((d) => d.dateISO >= oggi)?.dateISO ?? evento.data.dates?.[0]?.dateISO;
-                                                return iso ? dateLabel(iso) : "Da annunciare";
-                                            })()}
-                                        </span>
-                                    </div>
-                                    <div class="event-info">
-                                        <span class="meta-label">Durata</span>
-                                        <span>{evento.data.duration}</span>
-                                    </div>
-                                </div>
-                                <div class="event-card-actions">
-                                    {evento.data.status === "coming-soon" ? (
-                                        <span class={btnClass}>{label}</span>
-                                    ) : (
-                                        <>
-                                            <a
-                                                href={`/eventi/${evento.id}`}
-                                                class={btnClass}
-                                            >
-                                                {label}
-                                            </a>
-                                            <a
-                                                href={`/eventi/${evento.id}`}
-                                                class="event-detail-link"
-                                            >
-                                                Scopri la storia →
-                                            </a>
-                                        </>
-                                    )}
-                                </div>
-                            </article>
-                        );
-                    })
-                }
+                {eventi.map((evento) => <EventCard evento={evento} />)}
             </div>
         </div>
     </section>
 
-    <!-- CTA PRENOTA -->
-    <section class="section prenota" id="prenota">
-        <div class="container">
-            <div class="prenota-inner">
-                <div class="prenota-ornament">
-                    <span>✦</span>
-                    <div class="orn-line"></div>
-                    <span>✦</span>
-                </div>
-                <span class="section-label">Partecipa</span>
-                <h2>Sei pronto a sederti al banchetto?</h2>
-                <p>
-                    Scrivi per prenotare il tuo posto o richiedere informazioni.<br
-                    />
-                    Ogni evento è a numero chiuso.
-                </p>
-                <a
-                    href={"mailto:" + s.email}
-                    class="btn-primary btn-large"
-                >
-                    Contattaci
-                </a>
-                <p class="prenota-note">
-                    Oppure scrivici su <a href={s.instagram}
-                        >Instagram</a
-                    >
-                </p>
-                <div class="prenota-ornament">
-                    <span>✦</span>
-                    <div class="orn-line"></div>
-                    <span>✦</span>
-                </div>
-            </div>
-        </div>
-    </section>
+    <Prenota />
 </Layout>
 
 <style>

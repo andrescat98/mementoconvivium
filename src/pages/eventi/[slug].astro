@@ -1,9 +1,11 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import EventoHero from "../../components/EventoHero.astro";
+import Prenota from "../../components/Prenota.astro";
 import Sfondo from "../../components/Sfondo.astro";
 import { isAdmin } from "../../lib/auth";
 import { getEvent, getSettings } from "../../lib/db";
-import { bookHref, dateLabel, googleFontsHref, imgStyle, md, slugify, today as oggi } from "../../lib/format";
+import { bookCta, googleFontsHref, imgStyle, md, slugify } from "../../lib/format";
 import "../../styles/evento.css";
 
 const evento = await getEvent(Astro.params.slug!);
@@ -18,14 +20,8 @@ if (hidden) Astro.cache.set(false);
 if (hidden && !preview) return new Response(null, { status: 404 });
 
 const s = await getSettings();
-const { title, theme, excerpt, dates, duration, location, price, includes, status, cover, background, tabs, titleFont, characterFont } = evento.data;
-
-const today = oggi();
-const nextDate = dates?.find((d) => d.dateISO >= today);
-const statusLabel = { aperto: "Prenota ora", "lista-attesa": "Lista d'attesa", chiuso: "Prenotazioni chiuse" }[status as string] ?? "Coming soon";
-const statusClass = status === "aperto" ? "btn-primary" : "btn-ghost";
-const canBook = status !== "chiuso" && (!!nextDate || !dates?.length);
-const book = bookHref(s, title);
+const { title, excerpt, status, cover, background, tabs, titleFont, characterFont } = evento.data;
+const cta = bookCta(evento.data, s);
 
 // ancore uniche per scheda (#la-storia, #personaggi…)
 const seen = new Set<string>();
@@ -49,42 +45,7 @@ const ids = tabs.map((t, i) => {
         </p>
     )}
     <div class="ev-page" style={titleFont && `--ev-font:${titleFont}`}>
-        <section class="ev-hero">
-            {cover && <img class="ev-hero-cover" src={cover.src} alt="" style={imgStyle(cover)} />}
-            <div class="container ev-hero-inner">
-                <a href="/#eventi" class="ev-back"><span>←</span> Tutti gli eventi</a>
-                <div class="ev-hero-content">
-                    <span class="section-label">{theme}</span>
-                    <h1 class="ev-title">{title}</h1>
-                    <p class="ev-excerpt">{excerpt}</p>
-                    {dates?.length ? (
-                        <div class="ev-date-boxes">
-                            {dates.map((d) => (
-                                <div class={`ev-date-box${d.dateISO < today ? " ev-date-box-past" : ""}`}>
-                                    <div class="ev-date-box-label">{dateLabel(d.dateISO)}</div>
-                                    {d.location && <div class="ev-date-box-info"><span class="meta-label">Luogo</span>{d.location}</div>}
-                                    {d.price && <div class="ev-date-box-info"><span class="meta-label">Quota</span>{d.price}</div>}
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div class="ev-meta-row">
-                            <div class="ev-meta-item"><span class="meta-label">Data</span><span>Da annunciare</span></div>
-                            {location && <div class="ev-meta-item"><span class="meta-label">Luogo</span><span>{location}</span></div>}
-                            {price && <div class="ev-meta-item"><span class="meta-label">Quota</span><span>{price}</span></div>}
-                        </div>
-                    )}
-                    <div class="ev-meta-row">
-                        <div class="ev-meta-item"><span class="meta-label">Durata</span><span>{duration}</span></div>
-                        {!!includes?.length && (
-                            <div class="ev-meta-item"><span class="meta-label">Include</span><span>{includes.join(" · ")}</span></div>
-                        )}
-                    </div>
-                    {canBook && <a href={book} class={`${statusClass} ev-cta-btn`}>{statusLabel}</a>}
-                </div>
-            </div>
-            <div class="greek-border"></div>
-        </section>
+        <EventoHero d={evento.data} cta={cta} />
 
         {tabs.length > 0 && (
             <div class="ev-tabs" data-tabs>
@@ -153,28 +114,15 @@ const ids = tabs.map((t, i) => {
         )}
     </div>
 
-    <section class="section ev-final-cta">
-        <div class="container">
-            <div class="prenota-inner">
-                <div class="prenota-ornament"><span>✦</span></div>
-                <span class="section-label">Partecipa</span>
-                <h2>Sei pronto a sederti al banchetto?</h2>
-                <p>
-                    Riserva il tuo posto al tavolo: scrivici e ti racconteremo come unirti alla prossima
-                    serata. Ogni evento è a numero chiuso e i posti vanno in fretta.
-                </p>
-                {canBook && <a href={book} class={`${statusClass} btn-large`}>{statusLabel}</a>}
-                {s.instagram && <p class="prenota-note">Oppure scrivici su <a href={s.instagram}>Instagram</a></p>}
-                <div class="prenota-locale">
-                    <p class="prenota-locale-text">Sei un locale, un ristorante o un'associazione?</p>
-                    <a href={`mailto:${s.email}?subject=${encodeURIComponent(`Portare "${title}" nel mio locale`)}`} class="btn-ghost">
-                        Porta questa cena con delitto da te →
-                    </a>
-                </div>
-                <div class="prenota-ornament"><span>✦</span></div>
-            </div>
+    <Prenota k="prenotaEventoText" class="ev-final-cta">
+        {cta ? <a href={cta.href} class={`${cta.cls} btn-large`}>{cta.label}</a> : <span />}
+        <div class="prenota-locale" slot="extra">
+            <p class="prenota-locale-text">Sei un locale, un ristorante o un'associazione?</p>
+            <a href={`mailto:${s.email}?subject=${encodeURIComponent(`Portare "${title}" nel mio locale`)}`} class="btn-ghost">
+                Porta questa cena con delitto da te →
+            </a>
         </div>
-    </section>
+    </Prenota>
 
     <dialog id="ev-photo-dialog" class="ev-photo-dialog" style={`--char-font: ${characterFont ?? "var(--font-title)"}`}>
         <button type="button" class="ev-photo-close" aria-label="Chiudi">✕</button>

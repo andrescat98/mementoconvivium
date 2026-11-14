@@ -6,10 +6,60 @@
     font-display: swap;
 }
 
-/* ─── VARIABLES: definite in Layout.astro <style is:global> ── */
-/* Qui si usano solo le variabili --* già dichiarate nel Layout. */
+:root {
+    /* ── Backgrounds (marmo bianco) ── */
+    --bg: #f5f2ec;
+    --bg-2: rgba(240, 237, 230, 0.55);
+    --bg-card: rgba(248, 246, 241, 0.9);
+    --bg-footer: #f0ede6;
 
-/* ─── RESET ─────────────────────────────────────────────── */
+    /* ── Ivory (accento primario) ── */
+    --ivory: #f4f0e8;
+    --ivory-dim: #d6cfc4;
+    --ivory-faint: #b0a99f;
+
+    /* ── Gold → rimappato su grafite/nero per questo tema ── */
+    --gold: #1a1a1a;
+    --gold-light: #3d3d3d;
+    --gold-dim: #7a7a7a;
+
+    /* ── Text ── */
+    --cream: #111111;
+    --cream-dim: #555555;
+    --white: #000000;
+
+    /* ── Header (avorio su grafite scuro) ── */
+    --bg-header: rgba(28, 26, 24, 0.95);
+    --bg-header-mob: rgba(28, 26, 24, 0.99);
+    --header-text: #f4f0e8;
+    --header-text-dim: #b0a99f;
+
+    /* ── Borders ── */
+    --border: rgba(0, 0, 0, 0.12);
+    --border-strong: rgba(0, 0, 0, 0.35);
+
+    /* ── Typography ── */
+    --font-display: "Cinzel Decorative", serif;
+    --font-title: "Cinzel", serif;
+    --font-body: "Cormorant Garamond", serif;
+    --font-jack: "Jack Pirate", cursive;
+    --font-logo: "Cinzel Decorative", serif;
+
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* ── Vignette (hero) ── */
+    --vignette-edge: rgba(247, 244, 239, 0.82);
+    --vignette-mid: rgba(247, 244, 239, 0.45);
+
+    /* ── Glow / shadow (grafite) ── */
+    --gold-glow: rgba(0, 0, 0, 0.2);
+    --gold-glow-strong: rgba(0, 0, 0, 0.3);
+    --gold-glow-faint: rgba(0, 0, 0, 0.06);
+
+    /* ── Button hover ── */
+    --gold-hover-bg: rgba(0, 0, 0, 0.06);
+}
+
 *,
 *::before,
 *::after {
@@ -22,22 +72,41 @@ html {
     scroll-behavior: smooth;
 }
 
-/* ─── TYPOGRAPHY ───────────────────────────────────────────── */
-h1,
-h2,
-h3,
-h4 {
-    font-family: var(--font-title);
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    line-height: 1.2;
+body {
+    background-color: var(--bg);
+    color: var(--cream);
+    font-family: var(--font-body);
+    font-size: 20px;
+    line-height: 1.7;
+    overflow-x: hidden;
+    cursor: default;
 }
 
-a {
-    color: var(--gold);
+/* Marmo + overlay avorio 50% in un layer fixed: niente background-attachment
+   (janky su mobile) e altezza 100lvh così non risponde alla barra URL */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100lvh;
+    background:
+        linear-gradient(rgba(245, 242, 236, 0.5), rgba(245, 242, 236, 0.5)),
+        url("/marble.webp") center / cover no-repeat;
+    pointer-events: none;
+    z-index: 0;
 }
 
-/* ─── GREEK BORDER ───────────────────────────────────────── */
+/* Tutto il contenuto sopra l'overlay */
+main,
+.site-header,
+.site-footer {
+    position: relative;
+    z-index: 1;
+}
+
+/* Greek meander border */
 .greek-border {
     width: 100%;
     height: 2px;
@@ -65,7 +134,164 @@ a {
     opacity: 0.6;
 }
 
-/* ─── LAYOUT UTILITIES ───────────────────────────────────── */
+/* Header */
+.site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--bg-header);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.2rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--white);
+}
+
+.logo-ornament {
+    color: var(--gold);
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.logo-text {
+    font-family: var(--font-title);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.logo-text em {
+    font-style: italic;
+    font-family: var(--font-body);
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--gold-light);
+    font-size: 1.05em;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.nav a {
+    font-family: var(--font-title);
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    text-decoration: none;
+    transition: color 0.3s;
+    position: relative;
+}
+
+.nav a::after {
+    content: "";
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transition: transform 0.3s var(--ease-out);
+    transform-origin: left;
+}
+
+.nav a:hover {
+    color: var(--gold-light);
+}
+
+.nav a:hover::after {
+    transform: scaleX(1);
+}
+
+.nav-cta {
+    border: 1px solid var(--border-strong) !important;
+    padding: 0.5rem 1.2rem;
+    color: var(--gold) !important;
+    border-radius: 0;
+    transition:
+        background 0.3s,
+        color 0.3s !important;
+}
+
+.nav-cta:hover {
+    background: var(--gold) !important;
+    color: var(--bg) !important;
+}
+
+.nav-cta::after {
+    display: none !important;
+}
+
+.nav-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.nav-toggle span {
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--header-text);
+    transition:
+        transform 0.3s,
+        opacity 0.3s;
+}
+
+.nav-toggle.active span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+}
+.nav-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+.nav-toggle.active span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+}
+
+/* Typography globals */
+h1,
+h2,
+h3,
+h4 {
+    font-family: var(--font-title);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+}
+
+a {
+    color: var(--gold);
+}
+
+/* Utilities */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -76,7 +302,6 @@ a {
     padding: 6rem 0;
 }
 
-/* ─── TEXT UTILITIES ─────────────────────────────────────── */
 .section-label {
     font-family: var(--font-title);
     font-size: 0.65rem;
@@ -87,18 +312,6 @@ a {
     margin-bottom: 1rem;
 }
 
-.section-header {
-    text-align: center;
-    margin-bottom: 4rem;
-}
-
-.section-header h2 {
-    font-size: clamp(1.8rem, 4vw, 2.8rem);
-    color: var(--white);
-    margin-bottom: 1rem;
-}
-
-/* ─── DIVIDER ────────────────────────────────────────────── */
 .divider {
     display: flex;
     align-items: center;
@@ -118,6 +331,18 @@ a {
     color: var(--gold);
     font-size: 0.7rem;
 }
+
+.section-header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.section-header h2 {
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    color: var(--cream);
+    margin-bottom: 1rem;
+}
+
 
 /* ─── BUTTONS ────────────────────────────────────────────── */
 .btn-primary {
@@ -172,6 +397,70 @@ a {
     padding: 1.1rem 3rem;
 }
 
+/* ─── ETICHETTE E BOX "PARTECIPA" (components/Prenota.astro) ─── */
+.meta-label {
+    font-family: var(--font-title);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+}
+
+/* ── Prenota ────────────────────── */
+.prenota {
+    border-top: 1px solid var(--border);
+    text-align: center;
+    background: var(--bg-2);
+}
+
+.prenota-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.prenota-inner h2 {
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    color: var(--white);
+}
+
+.prenota-inner > p {
+    color: var(--cream-dim);
+}
+
+.prenota-note {
+    font-size: 0.85rem;
+    color: var(--gold-dim);
+}
+
+.prenota-note a {
+    color: var(--gold);
+    text-decoration: none;
+}
+
+.prenota-note a:hover {
+    text-decoration: underline;
+}
+
+.prenota-ornament {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 300px;
+    color: var(--gold-dim);
+    font-size: 0.5rem;
+}
+
+.orn-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
 /* ─── ANIMATIONS ─────────────────────────────────────────── */
 .animate {
     opacity: 0;
@@ -187,8 +476,35 @@ a {
     }
 }
 
-/* ─── RESPONSIVE ─────────────────────────────────────────── */
+/* Testi modificabili da /admin → Pagine: gli a capo del testo restano a capo */
+[data-k] {
+    white-space: pre-line;
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
+    .nav {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: var(--bg-header-mob);
+        flex-direction: column;
+        padding: 2rem;
+        gap: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        transform: translateY(-110%);
+        transition: transform 0.4s var(--ease-out);
+    }
+
+    .nav.open {
+        transform: translateY(0);
+    }
+
+    .nav-toggle {
+        display: flex;
+    }
+
     .section {
         padding: 4rem 0;
     }

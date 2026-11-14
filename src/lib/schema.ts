@@ -75,7 +75,34 @@ export interface Evento {
   rev?: number; // contatore salvataggi, per rilevare modifiche concorrenti
 }
 
-// ── Impostazioni del sito: contatti, link, bottone della home
+// ── Testi fissi delle pagine: si modificano cliccandoci sopra in /admin → Pagine (attributo data-k).
+// Un a capo nel testo resta a capo sulla pagina.
+export const DEFAULT_TESTI = {
+  heroLabel: "Partecipa al prossimo evento",
+  stepsTitle: "Come funziona",
+  step1Title: "Vesti il tuo ruolo",
+  step1Text: "Indossa abiti ispirati all'epoca e lasciati avvolgere dall'atmosfera della serata. Ogni dettaglio del tuo look contribuirà a rendere l'esperienza più autentica, immersiva e memorabile.",
+  step2Title: "La cena accompagna il mistero",
+  step2Text: "Lo spettacolo prende vita durante la cena: tra una portata e l'altra, la storia si sviluppa, gli indizi emergono e gli ospiti vengono accompagnati in un'esperienza coinvolgente.",
+  step3Title: "La storia prende vita",
+  step3Text: "Attori in costume interpretano personaggi dell'epoca e danno forma al racconto. Scene, dialoghi ed eventi si susseguono, facendo rivivere agli ospiti l'atmosfera, i segreti e i conflitti del passato.",
+  timelineLabel: "La nostra storia",
+  timelineTitle: "Il viaggio nel tempo",
+  timelineIntro: "Ogni spettacolo ci porta in un'epoca diversa. Dalla corte dei faraoni all'era del jazz — ogni banchetto è una porta sul passato.",
+  listaLabel: "Prossimi appuntamenti",
+  listaTitle: "Gli spettacoli",
+  listaSub: "Ogni serata è un viaggio in un'epoca diversa.\nScegli il tuo banchetto e prenota il tuo posto.",
+  prenotaLabel: "Partecipa",
+  prenotaTitle: "Sei pronto a sederti al banchetto?",
+  prenotaText: "Scrivi per prenotare il tuo posto o richiedere informazioni.\nOgni evento è a numero chiuso.",
+  prenotaEventoText: "Riserva il tuo posto al tavolo: scrivici e ti racconteremo come unirti alla prossima serata. Ogni evento è a numero chiuso e i posti vanno in fretta.",
+};
+export type TestoKey = keyof typeof DEFAULT_TESTI;
+// vuoto = testo predefinito (getSettings unisce DEFAULT_SETTINGS)
+const testo = z.string().trim().min(1).max(2000).optional();
+const testi = Object.fromEntries(Object.keys(DEFAULT_TESTI).map((k) => [k, testo])) as Record<TestoKey, typeof testo>;
+
+// ── Impostazioni del sito: contatti, link, bottone della home, testi delle pagine
 const url = z.union([z.url(), z.literal("").transform(() => undefined)]).optional();
 export const HERO_ACTIONS = ["lista", "prossimo", "link"] as const;
 export const settingsSchema = z.object({
@@ -84,11 +111,11 @@ export const settingsSchema = z.object({
   whatsapp: z.union([z.string().regex(/^\d{8,15}$/, "solo cifre con prefisso, es. 393893137494"), z.literal("").transform(() => undefined)]).optional(),
   instagram: url,
   bookingUrl: url, // se c'è, i bottoni "Prenota" portano qui invece che all'email
-  heroLabel: z.string().trim().min(1),
   heroAction: z.enum(HERO_ACTIONS), // lista prossime date | pagina del prossimo evento | link
   heroUrl: url,
   nav: z.array(z.object({ label: z.string().trim().min(1), href: z.string().trim().min(1) })).default([]),
   tagline: opt, // motto nel footer
+  ...testi,
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -97,7 +124,6 @@ export const DEFAULT_SETTINGS: Settings = {
   phone: "+39 389 313 7494",
   whatsapp: "393893137494",
   instagram: "https://www.instagram.com/memento_convivium",
-  heroLabel: "Partecipa al prossimo evento",
   heroAction: "lista",
   nav: [
     { label: "Come funziona", href: "/#come-funziona" },
@@ -105,4 +131,5 @@ export const DEFAULT_SETTINGS: Settings = {
     { label: "Prenota", href: "/#prenota" },
   ],
   tagline: "\"Omnes vulnerant, ultima necat\" — ogni ora ferisce, l'ultima uccide.",
+  ...DEFAULT_TESTI,
 };

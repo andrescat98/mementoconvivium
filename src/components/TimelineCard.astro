@@ -1,0 +1,33 @@
+---
+// Card di un evento nella timeline della home (usata anche dall'anteprima in /admin)
+import { imgStyle } from "../lib/format";
+import type { Evento } from "../lib/schema";
+
+const { evento } = Astro.props as { evento: Evento };
+const d = evento.data;
+const img = d.timelineImage ?? d.cover;
+---
+
+<article class="timeline-card">
+    <div class="card-image-wrap">
+        <svg class="card-fallback-orn" viewBox="0 0 64 64" aria-hidden="true">
+            <line x1="16" y1="9" x2="48" y2="9" />
+            <line x1="16" y1="55" x2="48" y2="55" />
+            <path d="M19 9 L45 9 L32 32 L45 55 L19 55 L32 32 Z" />
+        </svg>
+        {img && <img src={img.src} style={imgStyle(img)} alt={d.era ?? d.title} class="card-image" loading="lazy" onerror="this.style.display='none'" />}
+        <div class="card-image-overlay"></div>
+    </div>
+    <div class="card-body">
+        <span class="card-era">{d.era}</span>
+        <div class="card-year">{d.yearLabel}</div>
+        {d.place && <div class="card-place"><span class="place-icon">⌖</span>{d.place}</div>}
+        <h3 class="card-title">{d.title}</h3>
+        <p class="card-excerpt">{d.excerpt}</p>
+        {d.status === "coming-soon" ? (
+            <span class="card-link">Coming soon</span>
+        ) : (
+            <a href={`/eventi/${evento.id}`} class="card-link">Scopri lo spettacolo →</a>
+        )}
+    </div>
+</article>
