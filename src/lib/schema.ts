@@ -1,7 +1,7 @@
 import { z } from "astro/zod";
 
 const opt = z.string().trim().optional();
-// URL immagine: statica (/eventi/…) o caricata da admin (/img/<id>)
+// URL immagine: statica (/ritratti/…) o caricata da admin (/img/<id>)
 const imgUrl = z.string().regex(/^\/[\w\-./]+$/).optional();
 
 // "bozza": invisibile al pubblico, visibile in anteprima ai moderatori

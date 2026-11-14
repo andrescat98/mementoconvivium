@@ -16,7 +16,7 @@ Sito delle cene con delitto a tema storico. **Astro 7** renderizzato da un **Clo
 | Admin | `src/pages/admin.astro` + Astro Actions (`src/actions/index.ts`) |
 | Login | password unica (secret `ADMIN_PASSWORD`), cookie HMAC 7 giorni, max 5 tentativi/min per IP |
 | Immagini caricate | ridimensionate a 1600 px e convertite in webp nel browser, salvate come BLOB in Turso, servite da `/img/<hash>` con cache immutabile |
-| Immagini storiche | asset statici in `public/eventi/<slug>/` |
+| Immagini storiche | asset statici in `public/ritratti/<slug>/` (non in `/eventi/`: Pages servirebbe la cartella al posto della pagina evento) |
 | Schema dati | `src/lib/schema.ts` (zod), tabelle in `db/schema.sql` |
 
 Un evento è una riga di `events`: `data` (JSON validato dallo schema) + `body` (racconto in Markdown minimo: paragrafi, `**grassetto**`, `*corsivo*`, `[link](https://…)`). Le etichette delle date ("Ven 19 Giu 2026") sono calcolate da `dateISO`.
