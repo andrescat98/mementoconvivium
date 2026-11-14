@@ -12,6 +12,14 @@ export const dateLabel = (iso: string) =>
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
+export const STATUS_TEXT: Record<string, string> = {
+  aperto: "Aperto",
+  "lista-attesa": "Lista d'attesa",
+  chiuso: "Chiuso",
+  "coming-soon": "Coming soon",
+  bozza: "Bozza",
+};
+
 const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 

@@ -1,16 +1,24 @@
 ---
 import { actions } from "astro:actions";
 import { isAdmin } from "../lib/auth";
-import { getEvents } from "../lib/db";
+import { getDeleted, getEvents } from "../lib/db";
+import { STATUS_TEXT } from "../lib/format";
 import { STATUS } from "../lib/schema";
 
 const login = Astro.getActionResult(actions.login);
 if ((login && !login.error) || Astro.getActionResult(actions.logout)) return Astro.redirect("/admin");
 
 const authed = await isAdmin(Astro.cookies);
-const eventi = authed ? await getEvents() : [];
+const [eventi, deleted] = authed ? await Promise.all([getEvents(true), getDeleted()]) : [[], []];
 // `<` escapato: il JSON finisce dentro un <script>
-const json = JSON.stringify(eventi).replace(/</g, "\\u003c");
+const json = JSON.stringify({ eventi, deleted }).replace(/</g, "\\u003c");
+const STATUS_HINT: Record<string, string> = {
+    aperto: "si prenota",
+    "lista-attesa": "pubblico",
+    chiuso: "pubblico",
+    "coming-soon": "senza pagina",
+    bozza: "nascosto",
+};
 ---
 
 <!doctype html>
@@ -33,81 +41,125 @@ const json = JSON.stringify(eventi).replace(/</g, "\\u003c");
 ) : (
     <>
     <header class="top">
-        <strong>Memento Convivium · Moderatori</strong>
-        <a href="/" target="_blank">Vedi il sito ↗</a>
+        <strong class="brand">Memento Convivium · Moderatori</strong>
+        <label class="who">Il tuo nome<input id="who" maxlength="40" placeholder="per la cronologia" autocomplete="nickname" /></label>
+        <button type="button" id="backup" title="Scarica tutti gli eventi in un file JSON">Backup</button>
+        <a href="/" target="_blank">Sito ↗</a>
         <form method="POST" action={actions.logout}><button>Esci</button></form>
     </header>
+
     <main class="admin">
-        <nav class="list">
+        <nav class="side">
             <button type="button" id="new" class="primary">+ Nuovo evento</button>
-            <ul>
-                {eventi.map((e) => (
-                    <li><a href={`#${e.id}`}>{e.data.title}<small>{e.id} · {e.data.status}</small></a></li>
-                ))}
-            </ul>
+            <input id="search" type="search" placeholder="Cerca evento…" aria-label="Cerca evento" />
+            <ul id="list"></ul>
+            <details id="trash" hidden>
+                <summary>Eliminati (<span></span>)</summary>
+                <ul></ul>
+            </details>
         </nav>
 
         <p id="empty" class="hint">Scegli un evento da modificare o creane uno nuovo.</p>
 
         <form id="editor" hidden>
             <div class="bar">
-                <h2 id="ed-title">Nuovo evento</h2>
-                <a id="preview" target="_blank" hidden>Apri pagina ↗</a>
+                <div class="bar-title">
+                    <h2 id="ed-title">Nuovo evento</h2>
+                    <small id="ed-meta"></small>
+                </div>
+                <span id="dirty" hidden>● Non salvato</span>
+                <a id="preview" target="_blank" hidden>Anteprima ↗</a>
+                <select id="history" hidden aria-label="Cronologia versioni"></select>
+                <button type="button" id="dup" hidden>Duplica</button>
                 <button type="button" id="del" class="danger" hidden>Elimina</button>
-                <button class="primary">Salva</button>
+                <button class="primary" title="Ctrl+S">Salva</button>
             </div>
             <p id="msg" role="status"></p>
 
-            <fieldset>
-                <legend>Base</legend>
-                <label>Titolo<input name="title" required /></label>
-                <label>Slug (URL)<input name="slug" required pattern="[a-z0-9][a-z0-9\-]*" placeholder="es. pirati" /></label>
-                <label>Tema<input name="theme" required placeholder="Era dei Pirati · 1697" /></label>
-                <label>Stato
-                    <select name="status">{STATUS.map((s) => <option>{s}</option>)}</select>
-                </label>
-                <label>Durata<input name="duration" required placeholder="2 – 3 ore" /></label>
-                <label class="wide">Estratto (card e anteprime)<textarea name="excerpt" rows="3" required></textarea></label>
-                <label class="wide">Racconto
-                    <textarea name="body" rows="12"></textarea>
-                    <small>Riga vuota = nuovo paragrafo · **grassetto** · *corsivo* · [testo](https://link)</small>
-                </label>
-            </fieldset>
+            <details open class="sec">
+                <summary>Base</summary>
+                <fieldset>
+                    <label>Titolo<input name="title" required /></label>
+                    <label>Slug (indirizzo /eventi/…)<input name="slug" required pattern="[a-z0-9][a-z0-9\-]*" placeholder="si compila dal titolo" /></label>
+                    <label>Tema<input name="theme" required placeholder="Era dei Pirati · 1697" /></label>
+                    <label>Stato
+                        <select name="status">{STATUS.map((s) => <option value={s}>{STATUS_TEXT[s]} — {STATUS_HINT[s]}</option>)}</select>
+                    </label>
+                    <label>Durata<input name="duration" required placeholder="2 – 3 ore" /></label>
+                    <label class="wide">Estratto (card, anteprime e Google)
+                        <textarea name="excerpt" rows="3" required></textarea>
+                        <small id="excerpt-count"></small>
+                    </label>
+                </fieldset>
+            </details>
 
-            <fieldset>
-                <legend>Date</legend>
-                <div id="dates" class="rows"></div>
-                <button type="button" data-add="date">+ Aggiungi data</button>
-                <p class="hint">Se non ci sono date, la pagina mostra luogo e quota generici:</p>
-                <label>Luogo generico<input name="location" /></label>
-                <label>Quota generica<input name="price" /></label>
-                <label class="wide">Cosa include (una voce per riga)<textarea name="includes" rows="3"></textarea></label>
-            </fieldset>
+            <details open class="sec">
+                <summary>Racconto</summary>
+                <fieldset>
+                    <div class="wide md">
+                        <div class="md-tools">
+                            <button type="button" data-md="b" title="Grassetto"><b>G</b></button>
+                            <button type="button" data-md="i" title="Corsivo"><i>C</i></button>
+                            <button type="button" data-md="link">Link</button>
+                            <button type="button" id="md-toggle" aria-pressed="false">Anteprima</button>
+                            <small>Riga vuota = nuovo paragrafo</small>
+                        </div>
+                        <div class="md-split">
+                            <textarea name="body" rows="14" aria-label="Racconto"></textarea>
+                            <div id="md-preview" class="md-out" hidden></div>
+                        </div>
+                    </div>
+                </fieldset>
+            </details>
 
-            <fieldset>
-                <legend>Personaggi</legend>
-                <div id="chars" class="rows"></div>
-                <button type="button" data-add="char">+ Aggiungi personaggio</button>
-                <label>Font nome nel ritratto (Google Fonts)<input name="characterFont" placeholder="Rye, cursive" /></label>
-            </fieldset>
+            <details open class="sec">
+                <summary>Date e prezzi</summary>
+                <fieldset>
+                    <div id="dates" class="rows"></div>
+                    <button type="button" data-add="date">+ Aggiungi data</button>
+                    <p class="hint">Senza date la pagina mostra "Da annunciare" con luogo e quota generici:</p>
+                    <label>Luogo generico<input name="location" /></label>
+                    <label>Quota generica<input name="price" /></label>
+                    <label class="wide">Cosa include (una voce per riga)<textarea name="includes" rows="3"></textarea></label>
+                </fieldset>
+            </details>
 
-            <fieldset>
-                <legend>Timeline in home</legend>
-                <label>Anno storico (negativo = a.C.)<input name="historicalYear" type="number" step="1" /></label>
-                <label>Etichetta anno<input name="yearLabel" placeholder="1697" /></label>
-                <label>Epoca<input name="era" /></label>
-                <label>Luogo storico<input name="place" /></label>
-                <div class="img wide" data-name="timelineImage"></div>
-            </fieldset>
+            <details open class="sec">
+                <summary>Personaggi</summary>
+                <fieldset>
+                    <div id="chars" class="rows"></div>
+                    <button type="button" data-add="char">+ Aggiungi personaggio</button>
+                    <label>Font del nome nel ritratto (Google Fonts)<input name="characterFont" placeholder="Rye, cursive" /></label>
+                    <p id="font-sample" class="font-sample" aria-hidden="true"></p>
+                </fieldset>
+            </details>
+
+            <details open class="sec">
+                <summary>Timeline in home</summary>
+                <fieldset>
+                    <label>Anno storico (negativo = a.C.)<input name="historicalYear" type="number" step="1" /></label>
+                    <label>Etichetta anno<input name="yearLabel" placeholder="1697" /></label>
+                    <label>Epoca<input name="era" /></label>
+                    <label>Luogo storico<input name="place" /></label>
+                    <div class="img" data-name="timelineImage"></div>
+                </fieldset>
+            </details>
         </form>
     </main>
 
+    <template id="tpl-item">
+        <li><a><span class="t"></span><small><span class="st"></span> <span class="nd"></span></small></a></li>
+    </template>
     <template id="tpl-date">
-        <div class="row">
-            <label>Data<input type="date" name="dateISO" required /></label>
+        <div class="row date">
+            <label>Data<input type="date" name="dateISO" required /><small data-dl></small></label>
             <label>Luogo<input name="location" /></label>
             <label>Quota<input name="price" /></label>
-            <span class="row-btns"><button type="button" data-up title="Sposta su">↑</button><button type="button" data-rm title="Rimuovi">✕</button></span>
+            <span class="row-btns">
+                <button type="button" data-up title="Sposta su">↑</button>
+                <button type="button" data-down title="Sposta giù">↓</button>
+                <button type="button" data-rm title="Rimuovi">✕</button>
+            </span>
         </div>
     </template>
     <template id="tpl-char">
@@ -116,30 +168,117 @@ const json = JSON.stringify(eventi).replace(/</g, "\\u003c");
             <label>Nome<input name="name" required /></label>
             <label>Ruolo<input name="role" required /></label>
             <label class="wide">Indizio<textarea name="hint" rows="2" required></textarea></label>
-            <span class="row-btns"><button type="button" data-up title="Sposta su">↑</button><button type="button" data-rm title="Rimuovi">✕</button></span>
+            <span class="row-btns">
+                <button type="button" data-up title="Sposta su">↑</button>
+                <button type="button" data-down title="Sposta giù">↓</button>
+                <button type="button" data-rm title="Rimuovi">✕</button>
+            </span>
         </div>
     </template>
     <template id="tpl-img">
         <img alt="" hidden />
         <input type="hidden" />
-        <label class="file">Immagine<input type="file" accept="image/*" /></label>
-        <button type="button" data-clear hidden>Rimuovi immagine</button>
+        <label class="file"><span>Trascina una foto o <u>sceglila</u></span><input type="file" accept="image/*" /></label>
+        <button type="button" data-clear hidden>Rimuovi foto</button>
     </template>
-    <script type="application/json" id="eventi-data" set:html={json} />
+    <script type="application/json" id="admin-data" set:html={json} />
     </>
 )}
 
 <script>
     import { actions, isInputError } from "astro:actions";
+    import { dateLabel, md, STATUS_TEXT, today } from "../lib/format";
+    import type { Version } from "../lib/db";
     import type { Evento } from "../lib/schema";
 
     const form = document.querySelector<HTMLFormElement>("#editor");
     if (form) {
-        const $ = <T extends Element = HTMLInputElement>(sel: string, root: ParentNode = form) => root.querySelector<T>(sel)!;
-        const eventi: Evento[] = JSON.parse(document.getElementById("eventi-data")!.textContent!);
-        const msg = $<HTMLElement>("#msg");
-        let current: string | undefined; // slug originale dell'evento aperto
+        const $ = <T extends Element = HTMLInputElement>(sel: string, root: ParentNode = document) => root.querySelector<T>(sel)!;
+        const init = JSON.parse($("#admin-data").textContent!) as { eventi: Evento[]; deleted: Version[] };
+        const eventi = init.eventi;
+        let deleted = init.deleted;
+        const oggi = today();
+        let current: Evento | undefined; // evento salvato aperto nel form (undefined = nuovo)
+        let versions: Version[] = [];
         let dirty = false;
+        const msg = $<HTMLElement>("#msg");
+        const bodyEl = $<HTMLTextAreaElement>("[name=body]", form);
+        const slugEl = $("[name=slug]", form);
+
+        // ── utilità
+        const fmtTime = (s: number) =>
+            new Date(s * 1000).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+        const nextDate = (e: Evento) => e.data.dates?.map((d) => d.dateISO).filter((d) => d >= oggi).sort()[0];
+        const slugify = (s: string) =>
+            s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        const discardOk = () => !dirty || confirm("Ci sono modifiche non salvate. Vuoi scartarle?");
+        function say(text: string, err = false, action?: [string, () => void]) {
+            msg.textContent = text;
+            msg.className = err ? "err" : "";
+            if (action) {
+                const b = Object.assign(document.createElement("button"), { type: "button", textContent: action[0], onclick: action[1] });
+                msg.append(" ", b);
+            }
+        }
+        function setDirty(v: boolean) {
+            dirty = v;
+            $<HTMLElement>("#dirty").hidden = !v;
+            document.title = (v ? "● " : "") + "Moderatori · Memento Convivium";
+        }
+        addEventListener("beforeunload", (e) => dirty && e.preventDefault());
+
+        // ── nome del moderatore (finisce nella cronologia), ricordato nel browser
+        const who = $("#who");
+        try { who.value = localStorage.getItem("mc_author") ?? ""; } catch {}
+        who.addEventListener("change", () => { try { localStorage.setItem("mc_author", who.value.trim()); } catch {} });
+        const author = () => who.value.trim() || undefined;
+
+        // ── lista eventi (ordinata per prossima data) e cestino
+        const list = $<HTMLUListElement>("#list");
+        const search = $("#search");
+        search.addEventListener("input", renderList);
+        function renderList() {
+            const q = search.value.trim().toLowerCase();
+            const items = eventi
+                .filter((e) => !q || `${e.data.title} ${e.id} ${e.data.theme}`.toLowerCase().includes(q))
+                .sort((a, b) => (nextDate(a) ?? "9").localeCompare(nextDate(b) ?? "9") || a.data.title.localeCompare(b.data.title));
+            list.replaceChildren(
+                ...items.map((e) => {
+                    const li = $<HTMLTemplateElement>("#tpl-item").content.firstElementChild!.cloneNode(true) as HTMLElement;
+                    const a = $<HTMLAnchorElement>("a", li);
+                    a.href = `#${e.id}`;
+                    a.classList.toggle("on", e.id === current?.id);
+                    $(".t", li).textContent = e.data.title;
+                    const st = $<HTMLElement>(".st", li);
+                    st.textContent = STATUS_TEXT[e.data.status] ?? e.data.status;
+                    st.dataset.st = e.data.status;
+                    const next = nextDate(e);
+                    $(".nd", li).textContent = next ? `· ${dateLabel(next)}` : e.data.dates?.length ? "· date passate" : "";
+                    return li;
+                }),
+            );
+            if (!items.length) list.innerHTML = `<li class="hint">Nessun evento trovato.</li>`;
+        }
+        function renderTrash() {
+            const box = $<HTMLDetailsElement>("#trash");
+            box.hidden = !deleted.length;
+            $("span", box).textContent = String(deleted.length);
+            $("ul", box).replaceChildren(
+                ...deleted.map((v) => {
+                    const li = document.createElement("li");
+                    const b = Object.assign(document.createElement("button"), { type: "button", textContent: "Ripristina" });
+                    b.onclick = () =>
+                        open(undefined, {
+                            data: v.data,
+                            body: v.body,
+                            slug: v.slug,
+                            note: `Evento eliminato il ${fmtTime(v.savedAt)}${v.author ? " da " + v.author : ""}: premi Salva per ripristinarlo.`,
+                        });
+                    li.append(Object.assign(document.createElement("span"), { textContent: v.data.title }), b);
+                    return li;
+                }),
+            );
+        }
 
         // ── immagini: ridimensionate e convertite in webp nel browser, poi caricate su Turso
         const MAX_SIDE = 1600;
@@ -152,80 +291,170 @@ const json = JSON.stringify(eventi).replace(/</g, "\\u003c");
             // Safari non codifica webp: ripiega su jpeg
             return webp.type === "image/webp" ? webp : c.convertToBlob({ type: "image/jpeg", quality: 0.82 });
         }
-        function initImg(box: HTMLElement, url?: string) {
-            box.append($<HTMLTemplateElement>("#tpl-img", document).content.cloneNode(true));
-            const img = $<HTMLImageElement>("img", box), hidden = $("input[type=hidden]", box), clear = $("[data-clear]", box);
-            hidden.name = box.dataset.name!;
-            const set = (u = "") => { hidden.value = u; img.src = u; img.hidden = clear.hidden = !u; };
-            set(url);
-            clear.onclick = () => { set(); dirty = true; };
-            $("input[type=file]", box).onchange = async (e) => {
-                const input = e.target as HTMLInputElement;
-                const file = input.files?.[0];
-                if (!file) return;
-                say("Caricamento immagine…");
+        async function upload(file: File | undefined, set: (u: string) => void, box: HTMLElement) {
+            if (!file?.type.startsWith("image/")) return say("Serve un file immagine (jpg, png, webp…).", true);
+            box.classList.add("busy");
+            say("Caricamento immagine…");
+            try {
                 const blob = await shrink(file);
                 const fd = new FormData();
                 fd.append("file", new File([blob], "img", { type: blob.type }));
                 const { data, error } = await actions.uploadImage(fd);
-                input.value = "";
                 if (error) return say(error.message, true);
                 set(data.url);
-                dirty = true;
-                say("Immagine caricata. Ricorda di salvare.");
+                setDirty(true);
+                say("Immagine caricata: ricorda di salvare.");
+            } catch {
+                say("Non riesco a leggere questa immagine: prova con un jpg o png.", true);
+            } finally {
+                box.classList.remove("busy");
+            }
+        }
+        function initImg(box: HTMLElement, url?: string) {
+            box.append($<HTMLTemplateElement>("#tpl-img").content.cloneNode(true));
+            const img = $<HTMLImageElement>("img", box), hidden = $("input[type=hidden]", box), clear = $("[data-clear]", box);
+            const file = $("input[type=file]", box);
+            hidden.name = box.dataset.name!;
+            const set = (u = "") => {
+                hidden.value = u;
+                img.src = u;
+                img.hidden = clear.hidden = !u;
+                box.classList.toggle("has", !!u);
+            };
+            set(url);
+            clear.onclick = () => { set(); setDirty(true); };
+            file.onchange = () => { upload(file.files?.[0], set, box); file.value = ""; };
+            box.ondragover = (e) => { e.preventDefault(); box.classList.add("drag"); };
+            box.ondragleave = () => box.classList.remove("drag");
+            box.ondrop = (e) => {
+                e.preventDefault();
+                box.classList.remove("drag");
+                upload(e.dataTransfer?.files[0], set, box);
             };
         }
 
         // ── righe ripetibili (date, personaggi)
-        function addRow(kind: "date" | "char", v: Record<string, string | undefined> = {}) {
-            const row = $<HTMLTemplateElement>(`#tpl-${kind}`, document).content.firstElementChild!.cloneNode(true) as HTMLElement;
+        function addRow(kind: "date" | "char", v: Record<string, any> = {}) {
+            const row = $<HTMLTemplateElement>(`#tpl-${kind}`).content.firstElementChild!.cloneNode(true) as HTMLElement;
             row.querySelectorAll<HTMLInputElement>("[name]").forEach((el) => (el.value = v[el.name] ?? ""));
             row.querySelectorAll<HTMLElement>(".img").forEach((b) => initImg(b, v[b.dataset.name!]));
-            $(`#${kind}s`).append(row);
+            $(`#${kind}s`, form!).append(row);
+            if (kind === "date") markDate(row);
+            return row;
         }
+        function markDate(row: Element) {
+            const iso = $("[name=dateISO]", row).value;
+            row.classList.toggle("past", !!iso && iso < oggi);
+            $("[data-dl]", row).textContent = iso ? dateLabel(iso) + (iso < oggi ? " · passata" : "") : "";
+        }
+
         form.addEventListener("click", (e) => {
             const b = (e.target as Element).closest("button");
             if (!b) return;
             const row = b.closest(".row");
-            if (b.dataset.add) addRow(b.dataset.add as "date" | "char");
+            if (b.dataset.add === "date") {
+                // la nuova data copia luogo e quota dall'ultima
+                const last = [...form.querySelectorAll("#dates > .row")].pop();
+                const r = addRow("date", last ? { location: $("[name=location]", last).value, price: $("[name=price]", last).value } : {});
+                $("[name=dateISO]", r).focus();
+            } else if (b.dataset.add === "char") $("[name=name]", addRow("char")).focus();
             else if (row && "rm" in b.dataset) row.remove();
             else if (row && "up" in b.dataset) row.previousElementSibling?.before(row);
+            else if (row && "down" in b.dataset) row.nextElementSibling?.after(row);
+            else if (b.dataset.md) return mdTool(b.dataset.md);
             else return;
-            dirty = true;
+            setDirty(true);
         });
-        form.addEventListener("input", () => (dirty = true));
-        addEventListener("beforeunload", (e) => dirty && e.preventDefault());
 
-        // ── carica un evento nel form (undefined = nuovo)
-        function open(ev?: Evento) {
-            if (dirty && !confirm("Ci sono modifiche non salvate. Continuare?")) return false;
-            const d = (ev?.data ?? {}) as Record<string, any>;
+        form.addEventListener("input", (e) => {
+            const t = e.target as HTMLInputElement;
+            if (t.type === "file") return;
+            setDirty(true);
+            if (t.name === "dateISO") markDate(t.closest(".row")!);
+            if (t.name === "title") {
+                $("#ed-title").textContent = t.value || "Nuovo evento";
+                if (slugEl.dataset.auto) slugEl.value = slugify(t.value);
+            }
+            if (t === slugEl) delete slugEl.dataset.auto;
+            if (t.name === "excerpt") countExcerpt();
+            if (t.name === "body") renderPreview();
+            if (t.name === "name") fontSample(false);
+        });
+        form.addEventListener("change", (e) => {
+            if ((e.target as HTMLInputElement).name === "characterFont") fontSample(true);
+        });
+
+        function countExcerpt() {
+            const n = $<HTMLTextAreaElement>("[name=excerpt]", form!).value.trim().length;
+            const el = $<HTMLElement>("#excerpt-count");
+            el.textContent = `${n} caratteri · ideale 120–220`;
+            el.classList.toggle("warn", n > 260);
+        }
+
+        // ── racconto: barra markdown e anteprima
+        const mdOut = $<HTMLElement>("#md-preview");
+        const mdBtn = $<HTMLButtonElement>("#md-toggle");
+        const renderPreview = () => { if (!mdOut.hidden) mdOut.innerHTML = md(bodyEl.value); };
+        mdBtn.onclick = () => {
+            mdOut.hidden = !mdOut.hidden;
+            mdBtn.setAttribute("aria-pressed", String(!mdOut.hidden));
+            renderPreview();
+        };
+        function mdTool(kind: string) {
+            const { selectionStart: s, selectionEnd: e, value } = bodyEl;
+            const sel = value.slice(s, e);
+            if (kind === "link") {
+                const url = prompt("Indirizzo del link (https://…)", "https://");
+                if (!url || !/^https?:\/\/\S+$/.test(url)) return;
+                bodyEl.setRangeText(`[${sel || "testo del link"}](${url})`, s, e, "select");
+            } else {
+                const m = kind === "b" ? "**" : "*";
+                bodyEl.setRangeText(m + (sel || "testo") + m, s, e, "select");
+            }
+            bodyEl.focus();
+            bodyEl.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
+        // ── anteprima del font dei ritratti
+        const BASE_FONTS = ["Cinzel", "Cinzel Decorative", "Cormorant Garamond", "Jack Pirate"];
+        const loadedFonts = new Set<string>();
+        function fontSample(load: boolean) {
+            const font = $("[name=characterFont]", form!).value.trim();
+            const fam = font.split(",")[0].trim().replace(/['"]/g, "");
+            const el = $<HTMLElement>("#font-sample");
+            el.style.fontFamily = font;
+            el.textContent = form!.querySelector<HTMLInputElement>("#chars [name=name]")?.value || "Nome del personaggio";
+            el.hidden = !font;
+            if (load && fam && !loadedFonts.has(fam) && !BASE_FONTS.includes(fam)) {
+                loadedFonts.add(fam);
+                document.head.append(
+                    Object.assign(document.createElement("link"), {
+                        rel: "stylesheet",
+                        href: `https://fonts.googleapis.com/css2?family=${fam.replace(/ /g, "+")}&display=swap`,
+                    }),
+                );
+            }
+        }
+
+        // ── form ⇄ dati
+        function fill(d: Record<string, any>, body: string, slug: string) {
             form!.reset();
-            form!.querySelectorAll(".rows").forEach((r) => (r.innerHTML = ""));
-            form!.querySelectorAll<HTMLElement>(".img").forEach((b) => (b.innerHTML = ""));
+            form!.querySelectorAll(".rows, fieldset > .img").forEach((r) => r.replaceChildren());
             for (const el of form!.querySelectorAll<HTMLInputElement>("fieldset > label > [name]")) {
                 el.value = el.name === "includes" ? (d.includes ?? []).join("\n") : String(d[el.name] ?? "");
             }
-            $("[name=slug]").value = ev?.id ?? "";
-            $("[name=body]").value = ev?.body ?? "";
-            $("[name=status]").value = d.status ?? "aperto";
+            slugEl.value = slug;
+            $("[name=status]", form!).value = d.status ?? "bozza";
+            bodyEl.value = body;
             d.dates?.forEach((x: any) => addRow("date", x));
             d.characters?.forEach((x: any) => addRow("char", x));
-            initImg($<HTMLElement>("fieldset > .img"), d.timelineImage);
-            current = ev?.id;
-            $<HTMLElement>("#ed-title").textContent = d.title ?? "Nuovo evento";
-            const preview = $<HTMLAnchorElement>("#preview");
-            preview.href = `/eventi/${ev?.id}`;
-            preview.hidden = $<HTMLElement>("#del").hidden = !ev;
-            form!.hidden = false;
-            $<HTMLElement>("#empty", document).hidden = true;
-            document.querySelectorAll(".list a").forEach((a) => a.classList.toggle("on", a.getAttribute("href") === `#${ev?.id}`));
-            say("");
-            dirty = false;
-            return true;
+            initImg($<HTMLElement>("fieldset > .img", form!), d.timelineImage);
+            $("#ed-title").textContent = d.title || "Nuovo evento";
+            countExcerpt();
+            renderPreview();
+            fontSample(true);
         }
 
-        // ── form → payload per l'action saveEvent
         function collect() {
             // senza root: solo i campi diretti dei fieldset (le righe date hanno anche loro "location"/"price")
             const val = (name: string, root?: ParentNode) =>
@@ -237,14 +466,17 @@ const json = JSON.stringify(eventi).replace(/</g, "\\u003c");
             const year = val("historicalYear");
             return {
                 slug: val("slug") ?? "",
-                originalSlug: current,
-                body: $("[name=body]").value,
+                body: bodyEl.value,
                 data: {
                     title: val("title"), theme: val("theme"), status: val("status"),
                     duration: val("duration"), excerpt: val("excerpt"),
-                    dates: list(rows("dates").map((r) => ({ dateISO: val("dateISO", r), location: val("location", r), price: val("price", r) }))),
+                    dates: list(
+                        rows("dates")
+                            .map((r) => ({ dateISO: val("dateISO", r)!, location: val("location", r), price: val("price", r) }))
+                            .sort((a, b) => a.dateISO.localeCompare(b.dateISO)),
+                    ),
                     location: val("location"), price: val("price"),
-                    includes: list($("[name=includes]").value.split("\n").map((s) => s.trim()).filter(Boolean)),
+                    includes: list($("[name=includes]", form!).value.split("\n").map((s) => s.trim()).filter(Boolean)),
                     characters: list(rows("chars").map((r) => ({ name: val("name", r), role: val("role", r), hint: val("hint", r), portrait: val("portrait", r) }))),
                     characterFont: val("characterFont"),
                     historicalYear: year === undefined ? undefined : Number(year),
@@ -254,43 +486,156 @@ const json = JSON.stringify(eventi).replace(/</g, "\\u003c");
             };
         }
 
-        function say(text: string, err = false) {
-            msg.textContent = text;
-            msg.className = err ? "err" : "";
+        // ── evento aperto: intestazione, pulsanti, cronologia
+        const histSel = $<HTMLSelectElement>("#history");
+        function setCurrent(ev: Evento | undefined) {
+            current = ev;
+            $("#ed-meta").textContent = ev?.updatedAt
+                ? `Ultima modifica ${fmtTime(ev.updatedAt)}${ev.updatedBy ? " · " + ev.updatedBy : ""}`
+                : "Non ancora salvato";
+            $<HTMLAnchorElement>("#preview").href = `/eventi/${ev?.id}`;
+            for (const id of ["#preview", "#dup", "#del", "#history"]) $<HTMLElement>(id).hidden = !ev;
+            versions = [];
+            renderHistory();
+            if (ev) loadHistory(ev.id);
+            renderList();
+        }
+        function renderHistory() {
+            histSel.replaceChildren(
+                new Option(versions.length ? `Cronologia (${versions.length})` : "Cronologia: vuota", ""),
+                ...versions.map((v, i) =>
+                    new Option(`${fmtTime(v.savedAt)}${v.author ? " · " + v.author : ""}${v.deleted ? " · eliminato" : ""}`, String(i)),
+                ),
+            );
+        }
+        async function loadHistory(slug: string) {
+            const { data } = await actions.history({ slug });
+            if (data && current?.id === slug) {
+                versions = data;
+                renderHistory();
+            }
+        }
+        histSel.onchange = () => {
+            const v = versions[Number(histSel.value)];
+            histSel.value = "";
+            if (!v || !current || !discardOk()) return;
+            fill(v.data, v.body, current.id);
+            delete slugEl.dataset.auto;
+            setDirty(true);
+            say(`Caricata la versione del ${fmtTime(v.savedAt)}: premi Salva per ripristinarla (o riapri l'evento per annullare).`);
+        };
+
+        function open(ev: Evento | undefined, o: { data?: Record<string, any>; body?: string; slug?: string; note?: string } = {}) {
+            if (!discardOk()) {
+                history.replaceState(null, "", current ? `#${current.id}` : location.pathname);
+                return false;
+            }
+            fill(o.data ?? ev?.data ?? {}, o.body ?? ev?.body ?? "", o.slug ?? ev?.id ?? "");
+            // nuovo evento senza slug: lo slug segue il titolo finché non lo si modifica a mano
+            if (ev || o.slug) delete slugEl.dataset.auto;
+            else {
+                slugEl.dataset.auto = "1";
+                slugEl.value = slugify(o.data?.title ?? "");
+            }
+            setCurrent(ev);
+            form!.hidden = false;
+            $<HTMLElement>("#empty").hidden = true;
+            setDirty(!ev && !!o.data);
+            say(o.note ?? "");
+            if (matchMedia("(max-width: 760px)").matches) form!.scrollIntoView();
+            return true;
         }
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
+        // ── salvataggio senza ricaricare la pagina
+        async function save(force = false) {
             say("Salvataggio…");
-            const { data, error } = await actions.saveEvent(collect() as any);
+            const p = collect();
+            const { data, error } = await actions.saveEvent({
+                ...p,
+                originalSlug: current?.id,
+                rev: current?.rev,
+                force,
+                author: author(),
+            } as any);
             if (error) {
+                if (error.code === "PRECONDITION_FAILED")
+                    return say(error.message + " Salvando sovrascrivi le sue modifiche (restano nella cronologia).", true, ["Sovrascrivi comunque", () => save(true)]);
                 return say(
-                    isInputError(error)
-                        ? "Controlla i campi: " + Object.keys(error.fields).join(", ").replace(/data\./g, "")
-                        : error.message,
+                    isInputError(error) ? "Controlla i campi: " + Object.keys(error.fields).join(", ").replace(/data\./g, "") : error.message,
                     true,
                 );
             }
-            dirty = false;
-            location.hash = data.slug;
-            location.reload();
+            const saved: Evento = { id: data.slug, data: p.data as Evento["data"], body: p.body, updatedAt: data.updatedAt, updatedBy: author(), rev: data.rev };
+            const i = current ? eventi.indexOf(current) : -1;
+            if (i >= 0) eventi[i] = saved;
+            else eventi.push(saved);
+            deleted = deleted.filter((v) => v.slug !== saved.id);
+            renderTrash();
+            delete slugEl.dataset.auto;
+            setCurrent(saved);
+            setDirty(false);
+            history.replaceState(null, "", `#${saved.id}`);
+            say(`Salvato alle ${new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} ✓`);
+        }
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            save();
+        });
+        addEventListener("keydown", (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+                e.preventDefault();
+                if (!form.hidden) form.requestSubmit();
+            }
         });
 
-        $("#del").onclick = async () => {
-            if (!current || !confirm(`Eliminare definitivamente "${current}"?`)) return;
-            const { error } = await actions.deleteEvent({ slug: current });
+        $<HTMLButtonElement>("#del").onclick = async () => {
+            const ev = current;
+            if (!ev || !confirm(`Eliminare "${ev.data.title}"?\nPotrai ripristinarlo dalla sezione "Eliminati".`)) return;
+            const { error } = await actions.deleteEvent({ slug: ev.id, author: author() });
             if (error) return say(error.message, true);
-            dirty = false;
-            location.hash = "";
-            location.reload();
+            eventi.splice(eventi.indexOf(ev), 1);
+            deleted.unshift({ id: 0, slug: ev.id, data: ev.data, body: ev.body, author: author(), savedAt: Date.now() / 1000, deleted: true });
+            renderTrash();
+            setDirty(false);
+            setCurrent(undefined);
+            form.hidden = true;
+            const empty = $<HTMLElement>("#empty");
+            empty.hidden = false;
+            empty.textContent = `"${ev.data.title}" eliminato. Puoi ripristinarlo da "Eliminati".`;
+            history.replaceState(null, "", location.pathname);
         };
 
-        $<HTMLButtonElement>("#new", document).onclick = () => open() && history.replaceState(null, "", "#");
+        $<HTMLButtonElement>("#dup").onclick = () => {
+            const d = structuredClone(collect().data) as Record<string, any>;
+            d.title = `${d.title} (copia)`;
+            d.status = "bozza";
+            delete d.dates;
+            const body = bodyEl.value;
+            setDirty(false);
+            open(undefined, { data: d, body, note: "Copia creata come bozza e senza date. Controlla titolo e slug, poi salva." });
+        };
+
+        $<HTMLButtonElement>("#new").onclick = () => {
+            if (open(undefined)) history.replaceState(null, "", location.pathname);
+            $("[name=title]", form).focus();
+        };
+
+        $<HTMLButtonElement>("#backup").onclick = () => {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(eventi, null, 2)], { type: "application/json" }));
+            a.download = `mementoconvivium-eventi-${oggi}.json`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        };
+
         const fromHash = () => {
-            const ev = eventi.find((x) => x.id === decodeURIComponent(location.hash.slice(1)));
-            if (ev && ev.id !== current) open(ev);
+            const id = decodeURIComponent(location.hash.slice(1));
+            const ev = eventi.find((x) => x.id === id);
+            if (ev && ev !== current) open(ev);
         };
         addEventListener("hashchange", fromHash);
+        renderList();
+        renderTrash();
         fromHash();
     }
 </script>
@@ -305,19 +650,20 @@ const json = JSON.stringify(eventi).replace(/</g, "\\u003c");
         background: var(--bg);
     }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     body { margin: 0; }
-    h1, h2, legend { font-family: Cinzel, Georgia, serif; letter-spacing: 0.04em; }
+    h1, h2, summary { font-family: Cinzel, Georgia, serif; letter-spacing: 0.04em; }
     input, select, textarea, button { font: inherit; color: inherit; }
     input, select, textarea {
         width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--line);
         border-radius: 6px; background: #fff;
     }
-    input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+    input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, summary:focus-visible {
         outline: 2px solid var(--accent); outline-offset: 2px;
     }
     textarea { resize: vertical; }
-    label { display: grid; gap: 0.25rem; font-size: 0.85rem; color: var(--dim); }
-    label small { color: var(--dim); }
+    label { display: grid; gap: 0.25rem; font-size: 0.85rem; color: var(--dim); align-content: start; }
+    label small, .hint { color: var(--dim); font-size: 0.8rem; }
     button {
         padding: 0.45rem 0.9rem; border: 1px solid var(--line); border-radius: 6px;
         background: var(--card); cursor: pointer;
@@ -326,61 +672,109 @@ const json = JSON.stringify(eventi).replace(/</g, "\\u003c");
     .primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     .danger { color: var(--danger); border-color: currentColor; }
     .err { color: var(--danger); }
-    .hint { color: var(--dim); font-size: 0.85rem; }
+    .warn { color: var(--danger); }
     .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
 
     .login { max-width: 22rem; margin: 15vh auto; padding: 2rem; display: grid; gap: 1rem; }
     .login h1 { margin: 0; font-size: 1.3rem; }
 
+    /* ── header */
     .top {
-        position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2;
-        display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
-        padding: 0.6rem 1rem; background: #1c1a18; color: #f4f0e8;
+        position: sticky; top: env(safe-area-inset-top, 0px); z-index: 3;
+        display: flex; gap: 0.75rem 1rem; align-items: center; flex-wrap: wrap;
+        padding: 0.5rem 1rem; background: #1c1a18; color: #f4f0e8;
     }
-    .top a { color: inherit; margin-left: auto; }
-    .top button { background: transparent; color: inherit; border-color: rgba(255, 255, 255, 0.3); }
+    .top .brand { margin-right: auto; }
+    .top a { color: inherit; }
+    .top button { background: transparent; color: inherit; border-color: rgba(255, 255, 255, 0.3); padding: 0.3rem 0.7rem; }
+    .top .who { display: flex; align-items: center; gap: 0.4rem; color: #b0a99f; font-size: 0.8rem; }
+    .top .who input { width: 10rem; padding: 0.25rem 0.5rem; background: #2c2925; color: #f4f0e8; border-color: rgba(255, 255, 255, 0.2); }
 
-    .admin { display: grid; grid-template-columns: 16rem 1fr; gap: 1.5rem; padding: 1rem; max-width: 80rem; margin: auto; }
-    .list { display: grid; gap: 0.75rem; align-content: start; position: sticky; top: 3.5rem; }
-    .list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-    .list a { display: grid; padding: 0.5rem 0.7rem; border-radius: 6px; color: inherit; text-decoration: none; }
-    .list a:hover, .list a.on { background: var(--card); box-shadow: inset 3px 0 var(--accent); }
-    .list small { color: var(--dim); }
+    /* ── colonna eventi */
+    .admin { display: grid; grid-template-columns: 17rem 1fr; gap: 1.5rem; padding: 1rem; max-width: 84rem; margin: auto; }
+    .side { display: grid; gap: 0.6rem; align-content: start; position: sticky; top: 3.6rem; max-height: calc(100vh - 4.5rem); overflow: auto; padding: 2px; }
+    .side ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+    #list a { display: grid; gap: 0.1rem; padding: 0.5rem 0.7rem; border-radius: 6px; color: inherit; text-decoration: none; }
+    #list a:hover, #list a.on { background: var(--card); box-shadow: inset 3px 0 var(--accent); }
+    #list small { color: var(--dim); }
+    .st { font-weight: 600; }
+    .st[data-st="aperto"] { color: #2e7d32; }
+    .st[data-st="lista-attesa"] { color: #b26a00; }
+    .st[data-st="coming-soon"] { color: #1f5fa8; }
+    .st[data-st="chiuso"] { color: var(--dim); }
+    .st[data-st="bozza"] { color: var(--danger); font-style: italic; }
+    #trash summary { font-size: 0.9rem; cursor: pointer; color: var(--dim); }
+    #trash li { display: flex; gap: 0.5rem; align-items: center; justify-content: space-between; padding: 0.3rem 0.7rem; font-size: 0.9rem; }
+    #trash button { padding: 0.15rem 0.5rem; font-size: 0.8rem; }
 
-    #editor { display: grid; gap: 1.25rem; min-width: 0; }
+    /* ── editor */
+    #editor { display: grid; gap: 1rem; min-width: 0; }
     .bar {
-        display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;
-        position: sticky; top: 2.9rem; z-index: 1; padding-block: 0.5rem; background: var(--bg);
+        display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;
+        position: sticky; top: 2.9rem; z-index: 2; padding-block: 0.5rem; background: var(--bg);
+        border-bottom: 1px solid var(--line);
     }
-    .bar h2 { margin: 0 auto 0 0; font-size: 1.25rem; }
+    .bar-title { margin-right: auto; display: grid; }
+    .bar h2 { margin: 0; font-size: 1.25rem; }
+    .bar small { color: var(--dim); font-size: 0.8rem; }
+    .bar select { width: auto; max-width: 15rem; }
+    #dirty { color: var(--danger); font-size: 0.85rem; font-weight: 600; }
     #msg { margin: 0; min-height: 1.5em; }
+    #msg button { margin-left: 0.5rem; padding: 0.2rem 0.6rem; }
+
+    details.sec { background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+    details.sec > summary { padding: 0.75rem 1rem; font-weight: 600; cursor: pointer; }
+    details.sec[open] > summary { border-bottom: 1px solid var(--line); }
     fieldset {
         display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.9rem;
-        margin: 0; padding: 1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+        margin: 0; padding: 1rem; border: 0;
     }
-    legend { padding: 0 0.4rem; font-weight: 600; }
-    .wide, .rows, fieldset > button, fieldset > .hint { grid-column: 1 / -1; }
+    .wide, .rows, fieldset > button, fieldset > .hint, .font-sample { grid-column: 1 / -1; }
     fieldset > button { justify-self: start; }
+
+    .md-tools { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.4rem; }
+    .md-tools button { padding: 0.25rem 0.6rem; }
+    .md-tools [aria-pressed="true"] { background: var(--accent); color: #fff; }
+    .md-split { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.75rem; }
+    .md-out {
+        padding: 0.5rem 1rem; border: 1px solid var(--line); border-radius: 6px; background: #fff;
+        font: 1.05rem/1.7 "Cormorant Garamond", Georgia, serif; max-height: 32rem; overflow: auto;
+    }
+    .font-sample { margin: 0; font-size: 1.8rem; }
+
     .rows { display: grid; gap: 0.75rem; }
     .row {
         display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 0.6rem;
-        align-items: end; padding: 0.75rem; border: 1px dashed var(--line); border-radius: 8px;
+        align-items: start; padding: 0.75rem; border: 1px dashed var(--line); border-radius: 8px; background: #fff;
     }
-    .row.char { grid-template-columns: 7rem repeat(2, minmax(9rem, 1fr)) auto; }
+    .row.past { opacity: 0.55; }
+    .row.char { grid-template-columns: 8rem repeat(2, minmax(9rem, 1fr)) auto; }
     .row.char .img { grid-row: span 2; }
     .row.char .wide { grid-column: 2 / -1; }
     .row-btns { display: flex; gap: 0.3rem; grid-row: 1; grid-column: -2; }
-    .row-btns button, .img [data-clear] { padding: 0.3rem 0.55rem; font-size: 0.8rem; }
-    .img { display: grid; gap: 0.4rem; align-content: start; }
+    .row-btns button, .img [data-clear] { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+
+    .img { display: grid; gap: 0.35rem; align-content: start; position: relative; border-radius: 8px; }
     .img img { width: 100%; max-width: 16rem; aspect-ratio: 1; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
-    .img .file input { padding: 0.3rem; font-size: 0.8rem; }
+    .img .file {
+        display: grid; place-items: center; text-align: center; min-height: 4rem; padding: 0.5rem;
+        border: 1px dashed var(--line); border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    }
+    .img.has .file { min-height: 0; }
+    .img .file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .img .file:focus-within { outline: 2px solid var(--accent); }
+    .img.drag .file { border-color: var(--accent); background: #efe9df; }
+    .img.busy { opacity: 0.5; pointer-events: none; }
 
     @media (max-width: 760px) {
         .admin { grid-template-columns: 1fr; }
-        .list { position: static; }
+        .side { position: static; max-height: none; }
         .row, .row.char { grid-template-columns: 1fr; }
         .row.char .img, .row.char .wide, .row-btns { grid-row: auto; grid-column: auto; }
-        .bar { top: 5.6rem; }
+        .md-split { grid-auto-flow: row; }
+        .top { position: static; }
+        .bar { top: 0; }
+        .top .who input { width: 8rem; }
     }
 </style>
 </body>

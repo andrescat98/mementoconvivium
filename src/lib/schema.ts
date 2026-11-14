@@ -4,7 +4,8 @@ const opt = z.string().trim().optional();
 // URL immagine: statica (/eventi/…) o caricata da admin (/img/<id>)
 const imgUrl = z.string().regex(/^\/[\w\-./]+$/).optional();
 
-export const STATUS = ["aperto", "lista-attesa", "coming-soon", "chiuso"] as const;
+// "bozza": invisibile al pubblico, visibile in anteprima ai moderatori
+export const STATUS = ["aperto", "lista-attesa", "coming-soon", "chiuso", "bozza"] as const;
 
 export const eventoSchema = z.object({
   title: z.string().trim().min(1),
@@ -46,4 +47,7 @@ export interface Evento {
   id: string;
   data: EventoData;
   body: string;
+  updatedAt?: number; // unix secondi
+  updatedBy?: string;
+  rev?: number; // contatore salvataggi, per rilevare modifiche concorrenti
 }

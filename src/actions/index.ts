@@ -2,15 +2,16 @@ import { ActionError, defineAction, type ActionAPIContext } from "astro:actions"
 import { z } from "astro/zod";
 import { env } from "cloudflare:workers";
 import { checkPassword, isAdmin, login, logout } from "../lib/auth";
-import { deleteEvent, putImage, saveEvent } from "../lib/db";
+import { deleteEvent, getHistory, putImage, saveEvent, StaleError } from "../lib/db";
 import { eventoSchema, slugSchema } from "../lib/schema";
 
 async function guard(ctx: ActionAPIContext) {
-  if (!(await isAdmin(ctx.cookies))) throw new ActionError({ code: "UNAUTHORIZED" });
+  if (!(await isAdmin(ctx.cookies))) throw new ActionError({ code: "UNAUTHORIZED", message: "Sessione scaduta: ricarica la pagina e rientra." });
 }
 const invalidate = (ctx: ActionAPIContext) => ctx.cache.invalidate({ tags: ["eventi"] });
 
 const MAX_IMG = 1024 * 1024;
+const author = z.string().trim().max(40).optional();
 
 export const server = {
   login: defineAction({
@@ -33,28 +34,42 @@ export const server = {
     input: z.object({
       slug: slugSchema,
       originalSlug: slugSchema.optional(),
+      rev: z.number().int().optional(),
+      force: z.boolean().optional(),
+      author,
       data: eventoSchema,
       body: z.string(),
     }),
-    async handler({ slug, originalSlug, data, body }, ctx) {
+    async handler(input, ctx) {
       await guard(ctx);
+      let saved;
       try {
-        await saveEvent(slug, data, body, originalSlug);
+        saved = await saveEvent(input);
       } catch (e) {
-        if (String(e).includes("UNIQUE")) throw new ActionError({ code: "CONFLICT", message: `Esiste già un evento "${slug}".` });
+        if (e instanceof StaleError)
+          throw new ActionError({ code: "PRECONDITION_FAILED", message: "Un altro moderatore ha salvato questo evento dopo che l'hai aperto." });
+        if (String(e).includes("UNIQUE")) throw new ActionError({ code: "CONFLICT", message: `Esiste già un evento con slug "${input.slug}".` });
         throw e;
       }
       await invalidate(ctx);
-      return { slug };
+      return { slug: input.slug, ...saved };
     },
   }),
 
   deleteEvent: defineAction({
+    input: z.object({ slug: slugSchema, author }),
+    async handler({ slug, author }, ctx) {
+      await guard(ctx);
+      await deleteEvent(slug, author);
+      await invalidate(ctx);
+    },
+  }),
+
+  history: defineAction({
     input: z.object({ slug: slugSchema }),
     async handler({ slug }, ctx) {
       await guard(ctx);
-      await deleteEvent(slug);
-      await invalidate(ctx);
+      return getHistory(slug);
     },
   }),
 
