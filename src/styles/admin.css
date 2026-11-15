@@ -247,6 +247,8 @@ fieldset > button { justify-self: start; }
 .media-folders { display: grid; gap: 0.3rem; max-height: 60dvh; overflow: auto; }
 .media-folders button { text-align: left; font-size: 0.85rem; }
 .media-folders button.on { box-shadow: inset 0 0 0 2px var(--accent); }
+.media-dir-tools { display: flex; gap: 0.3rem; padding-left: 1rem; }
+.media-dir-tools button { font-size: 0.78rem; padding: 0.2rem 0.5rem; }
 .media-folder { font-size: 0.8rem; max-width: 100%; }
 @media (max-width: 600px) { .media-body { grid-template-columns: 1fr; } .media-folders { display: flex; flex-wrap: wrap; max-height: none; } }
 .media-grid { max-height: 60dvh; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.6rem; }

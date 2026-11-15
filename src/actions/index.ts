@@ -2,7 +2,7 @@ import { ActionError, defineAction, type ActionAPIContext } from "astro:actions"
 import { z } from "astro/zod";
 import { env } from "cloudflare:workers";
 import { checkPassword, isAdmin, login, logout } from "../lib/auth";
-import { deleteEvent, deleteImage, getHistory, listImages, moveImages, getSettingsHistory, putImage, saveEvent, saveSettings, StaleError } from "../lib/db";
+import { deleteEvent, deleteImage, getHistory, listImages, moveImages, renameFolder, getSettingsHistory, putImage, saveEvent, saveSettings, StaleError } from "../lib/db";
 import { eventoSchema, settingsSchema, slugSchema } from "../lib/schema";
 
 async function guard(ctx: ActionAPIContext) {
@@ -100,6 +100,14 @@ export const server = {
     async handler({ srcs, folder }, ctx) {
       await guard(ctx);
       if (srcs.length || folder) await moveImages(srcs, folder);
+    },
+  }),
+
+  renameFolder: defineAction({
+    input: z.object({ from: z.string().trim().min(1).max(40), to: z.string().trim().max(40) }),
+    async handler({ from, to }, ctx) {
+      await guard(ctx);
+      await renameFolder(from, to);
     },
   }),
 

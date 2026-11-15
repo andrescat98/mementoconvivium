@@ -1306,6 +1306,12 @@ if (form) {
             if (own) b.dataset.own = "1";
             b.textContent = `${own ? "📁 " : ""}${d || "Tutte"} (${d ? mediaItems.filter((m) => inDir(m, d)).length : mediaItems.length})`;
             mediaNav.append(b);
+            if (own && d === mediaDir) {
+                const tools = document.createElement("span");
+                tools.className = "media-dir-tools";
+                tools.innerHTML = '<button type="button" data-renfolder title="Rinomina la cartella">✎ Rinomina</button><button type="button" data-rmfolder title="Elimina la cartella (le foto restano)">🗑 Elimina</button>';
+                mediaNav.append(tools);
+            }
         }
         const shown = mediaItems.filter((m) => !mediaDir || inDir(m, mediaDir));
         mediaGrid.textContent = shown.length ? "" : "Nessuna foto.";
@@ -1374,6 +1380,19 @@ if (form) {
             const name = prompt("Nome della nuova cartella:")?.trim().slice(0, 40);
             if (name && !name.startsWith("folder:")) { await mediaMove([], name); mediaDir = name; mediaRender(); }
             return;
+        }
+        const ren = t.closest("[data-renfolder]"), rm = t.closest("[data-rmfolder]");
+        if (ren || rm) {
+            const from = mediaDir;
+            const to = ren ? prompt("Nuovo nome della cartella:", from)?.trim().slice(0, 40) : "";
+            if (ren && (!to || to === from || to.startsWith("folder:"))) return;
+            if (rm && !confirm(`Eliminare la cartella "${from}"? Le foto restano nella libreria.`)) return;
+            const { error } = await actions.renameFolder({ from, to: to! });
+            if (error) return void say(error.message, true);
+            for (const m of mediaItems) if (m.folder === from) m.folder = to || undefined;
+            mediaFolders = [...new Set(mediaFolders.map((f) => (f === from ? to! : f)).filter(Boolean))].sort();
+            mediaDir = to!;
+            return mediaRender();
         }
         const del = t.closest<HTMLElement>("[data-del]");
         if (del) {

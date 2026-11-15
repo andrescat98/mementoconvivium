@@ -216,6 +216,21 @@ export async function moveImages(srcs: string[], folder: string) {
   );
 }
 
+/** Rinomina una cartella propria; `to` vuoto = elimina la cartella (le foto restano, solo fuori dalla cartella). */
+export async function renameFolder(from: string, to: string) {
+  await db().execute(FOLDERS);
+  await db().batch(
+    to
+      ? [
+          { sql: "UPDATE OR IGNORE media_folders SET src = ? WHERE src = ?", args: [`folder:${to}`, `folder:${from}`] },
+          { sql: "DELETE FROM media_folders WHERE src = ?", args: [`folder:${from}`] },
+          { sql: "UPDATE media_folders SET folder = ? WHERE folder = ?", args: [to, from] },
+        ]
+      : [{ sql: "DELETE FROM media_folders WHERE folder = ?", args: [from] }],
+    "write",
+  );
+}
+
 /** Elimina un'immagine solo se non è usata da eventi o impostazioni correnti. */
 export async function deleteImage(id: string): Promise<boolean> {
   const { rowsAffected } = await db().execute({
