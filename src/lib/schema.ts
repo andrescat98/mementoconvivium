@@ -13,6 +13,7 @@ const img = imgReq.optional();
 // colore del testo, font e grandezza dei titoli, spaziatura, animazione d'entrata, effetto sui titoli.
 // Attributi in look() (format.ts), CSS in styles/global.css.
 export const ANIMS = ["sali", "dissolvenza", "zoom", "sinistra", "destra"] as const;
+export const DECOS = ["nessuno", "linea", "stelle", "fiore", "doppia"] as const; // divisori e ornamenti (vuoto = predefiniti)
 export const FX = ["ombra", "bagliore", "oro", "inciso", "contorno"] as const;
 // forme dell'immagine nel blocco testo (proporzioni; originale = non ritagliata)
 export const IMG_AR = ["quadrata", "orizzontale", "panoramica", "originale"] as const;
@@ -39,6 +40,7 @@ export const bgObj = z.object({
   fs: z.number().min(0.6).max(2).optional(), // grandezza del testo
   anim: z.enum(ANIMS).optional(),
   fx: z.enum(FX).optional(),
+  deco: z.enum(DECOS).optional(),
 });
 const bg = bgObj.optional();
 

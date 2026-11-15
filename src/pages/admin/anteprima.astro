@@ -163,6 +163,20 @@ const cards = [
     [data-ph]:empty::before { content: attr(data-ph); opacity: 0.45; font-style: italic; }
     div[data-ed]:not(.sel) .ed-ph { display: none; }
     img.ed-up { opacity: 0.4; }
+    /* "＋ Foto/Personaggio/Domanda/Data" dentro il blocco e ✕ dei testi facoltativi: solo al passaggio del mouse o a blocco scelto */
+    .ed-add { display: flex; justify-content: center; margin-top: 1rem; visibility: hidden; font: 500 13px/1.2 system-ui, sans-serif; }
+    .ed-add button, .ed-x { font: inherit; border: 1px solid rgb(31 95 168 / 0.5); background: #fff; color: #1f5fa8; cursor: pointer; }
+    .ed-add button { padding: 6px 12px; border-style: dashed; border-radius: 6px; }
+    .ed-add button:hover, .ed-x:hover { background: #1f5fa8; color: #fff; }
+    div[data-ed]:hover .ed-add, div[data-ed].sel .ed-add { visibility: visible; }
+    .ed-x { position: absolute; top: -12px; left: 0; z-index: 30; display: none; padding: 1px 6px; border-radius: 50%; font-size: 12px; }
+    .ed-x:hover, [data-field]:hover + .ed-x { display: block; }
+    [data-field]:empty + .ed-x { display: none !important; }
+    .blocco-head [data-field] { display: inline-block; }
+    .blocco-head .ed-x { position: static; vertical-align: top; margin-left: 4px; }
+    .blocco-head .ed-x:hover, .blocco-head [data-field]:hover + .ed-x { display: inline-block; }
+    .ed-xtab { position: static; margin-left: 12px; border-radius: 6px; padding: 4px 10px; vertical-align: middle; }
+    div[data-ed]:hover .ed-xtab, div[data-ed].sel .ed-xtab { display: inline-block; }
     /* strumenti nell'angolo in alto a destra di blocchi e sezioni */
     .ed-tools {
         position: absolute; top: 8px; right: 8px; z-index: 40; display: none; gap: 4px; align-items: center;
