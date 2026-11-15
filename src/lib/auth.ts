@@ -3,8 +3,9 @@ import { env } from "cloudflare:workers";
 
 // Sessione = "<scadenza>.<hmac(scadenza)>" firmata con ADMIN_PASSWORD:
 // cambiando la password si invalidano tutte le sessioni.
+// Dura 30 giorni e si rinnova a ogni apertura di /admin: si rientra solo dopo 30 giorni senza usarlo.
 const COOKIE = "mc_admin";
-const TTL = 7 * 24 * 3600;
+const TTL = 30 * 24 * 3600;
 const enc = new TextEncoder();
 
 async function hmac(msg: string) {

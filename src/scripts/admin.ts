@@ -29,20 +29,66 @@ if (form) {
     // ── utilità
     const fmtTime = (s: number) =>
         new Date(s * 1000).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
-    const discardOk = () => !dirty || confirm("Ci sono modifiche non salvate. Vuoi scartarle?");
-    function say(text: string, err = false, action?: [string, () => void]) {
+    // cambiando vista le modifiche non salvate restano come bozza locale (vedi sotto): si può sempre uscire
+    const discardOk = () => (flushDraft(), true);
+    function say(text: string, err = false, ...acts: [string, () => void][]) {
         msg.textContent = text;
         msg.classList.toggle("err", err);
-        if (action) msg.append(" ", Object.assign(document.createElement("button"), { type: "button", textContent: action[0], onclick: action[1] }));
+        for (const [t, fn] of acts) msg.append(" ", Object.assign(document.createElement("button"), { type: "button", textContent: t, onclick: fn }));
     }
     const savedAt = () => new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
     function setDirty(v: boolean) {
         dirty = v;
         $<HTMLElement>("#dirty").hidden = !v;
         document.title = (v ? "● " : "") + "Moderatori · Memento Convivium";
-        if (v) queuePrev(), queuePagePrev();
+        if (v) queuePrev(), queuePagePrev(), keepDraft();
     }
-    addEventListener("beforeunload", (e) => dirty && e.preventDefault());
+
+    // ── bozze locali: ogni vista tiene nel browser le modifiche non salvate (evento, pagina, impostazioni, testi).
+    // Chiudendo la pagina o cambiando vista non si perde niente; riaprendo, si sceglie se ripristinarle.
+    const draftKey = () =>
+        ({ editor: `mc_draft:ev:${current?.id ?? ""}`, page: `mc_draft:pg:${pageKey}`, settings: "mc_draft:settings", pages: "mc_draft:testi", empty: "" })[view];
+    const snapshot = (): unknown =>
+        ({ editor: () => collect(), page: () => collectPage(), settings: () => collectSettings(), pages: () => edits, empty: () => undefined })[view]();
+    let draftTimer = 0;
+    let draftOk = true; // false se il browser non lascia salvare (navigazione privata…): allora si avvisa chiudendo
+    function writeDraft(key: string, data: unknown) {
+        try {
+            localStorage.setItem(key, JSON.stringify({ at: Date.now(), data }));
+            draftOk = true;
+        } catch {
+            draftOk = false;
+        }
+    }
+    function keepDraft() {
+        clearTimeout(draftTimer);
+        const key = draftKey();
+        if (key) draftTimer = window.setTimeout(() => dirty && writeDraft(key, snapshot()), 500);
+    }
+    function flushDraft() {
+        clearTimeout(draftTimer);
+        const key = draftKey();
+        if (dirty && key) writeDraft(key, snapshot());
+    }
+    const dropDraft = (key = draftKey()) => { try { if (key) localStorage.removeItem(key); } catch {} };
+    // all'apertura di una vista: c'è una bozza diversa da quel che si vede? si propone di ripristinarla
+    function offerDraft(apply: (d: any) => void) {
+        const key = draftKey();
+        let d: { at: number; data: unknown } | undefined;
+        try { d = JSON.parse(localStorage.getItem(key) ?? "null") ?? undefined; } catch {}
+        if (!d) return;
+        if (JSON.stringify(d.data) === JSON.stringify(snapshot())) return dropDraft(key);
+        say(
+            `Hai modifiche non salvate del ${fmtTime(d.at / 1000)}.`, false,
+            ["Ripristinale", () => { apply(d!.data); setDirty(true); say("Bozza ripristinata: controlla e premi Salva."); }],
+            ["Scartale", () => { dropDraft(key); say(""); }],
+        );
+    }
+    addEventListener("pagehide", flushDraft);
+    addEventListener("beforeunload", (e) => {
+        flushDraft();
+        if (dirty && !draftOk) e.preventDefault();
+    });
 
     // ── nome del moderatore (finisce nella cronologia), ricordato nel browser
     const who = $("#who");
@@ -310,7 +356,8 @@ if (form) {
             if ("styleDel" in b.dataset && !confirm(`Eliminare lo stile "${name}"?`)) return true;
             const stili = [...settings.stili.filter((s: Data) => s.name !== name), ...("styleSave" in b.dataset ? [{ name, style }] : [])];
             // si salvano subito e solo gli stili, senza toccare le altre modifiche in corso
-            const { error } = await actions.saveSettings({ ...settings, stili } as any);
+            const { error } = await actions.saveSettings({ settings: { ...settings, stili }, author: author() } as any);
+            sHist = undefined;
             if (error) return say(error.message, true), true;
             settings.stili = stili;
             const keep = readBg(box);
@@ -679,6 +726,7 @@ if (form) {
         $$<HTMLElement>(".view-link").forEach((a) => a.classList.toggle("on", a.dataset.view === v));
         msg = $<HTMLElement>(".msg", { editor: form!, settings: settingsForm, pages: pagesView, page: pageForm, empty: form! }[v]);
         renderPages();
+        renderHist();
     }
     // indirizzo della vista aperta, per tornarci se si annulla un cambio di vista
     const here = () =>
@@ -742,6 +790,7 @@ if (form) {
         setDirty(!ev && !!o.data);
         queuePrev();
         say(o.note ?? "");
+        if (!o.data) offerDraft((d) => fill(d.data, d.slug));
         if (matchMedia("(max-width: 760px)").matches) form!.scrollIntoView();
         return true;
     }
@@ -763,8 +812,10 @@ if (form) {
         deleted = deleted.filter((v) => v.slug !== saved.id);
         renderTrash();
         delete slugEl.dataset.auto;
+        dropDraft(`mc_draft:ev:${current?.id ?? ""}`);
         setCurrent(saved);
         setDirty(false);
+        dropDraft();
         history.replaceState(null, "", `#${saved.id}`);
         say(`Salvato alle ${savedAt()} ✓`);
     }
@@ -836,23 +887,28 @@ if (form) {
         } else if (row && b && "rm" in b.dataset) row.remove();
         else if (row && b && "up" in b.dataset) row.previousElementSibling?.before(row);
         else if (row && b && "down" in b.dataset) row.nextElementSibling?.after(row);
+        else return;
+        setDirty(true);
     });
     // salva le impostazioni: quelle già salvate + le modifiche della vista (form o testi delle pagine)
     async function saveSettings(changes: Data) {
         say("Salvataggio…");
         const next = { ...settings, ...changes };
-        const { error } = await actions.saveSettings(next as any);
-        if (error) return say(isInputError(error) ? "Controlla i campi: " + Object.keys(error.fields).join(", ") : error.message, true), false;
+        const { error } = await actions.saveSettings({ settings: next, author: author() } as any);
+        if (error) return say(isInputError(error) ? "Controlla i campi: " + Object.keys(error.fields).join(", ").replace(/settings\./g, "") : error.message, true), false;
         settings = next;
         edits = {};
         setDirty(false);
+        dropDraft();
+        sHist = undefined;
+        renderHist();
         say(`Salvato alle ${savedAt()} ✓ (il sito si aggiorna entro un minuto)`);
         return true;
     }
     // menu del form impostazioni ridisegnato da settings.nav (le pagine nuove possono cambiarlo)
-    function renderNav() {
+    function renderNav(nav: Data[] = settings.nav) {
         $("#nav", settingsForm).replaceChildren(
-            ...settings.nav.map((l: Data) => {
+            ...nav.map((l: Data) => {
                 const r = clone("nav");
                 $("[name=label]", r).value = l.label;
                 $("[name=href]", r).value = l.href;
@@ -861,15 +917,25 @@ if (form) {
             }),
         );
     }
-    settingsForm.addEventListener("submit", (e) => {
-        e.preventDefault();
+    const SETTINGS_KEYS = ["email", "phone", "whatsapp", "instagram", "bookingUrl", "heroAction", "heroUrl", "nav"];
+    function collectSettings() {
         const v = (n: string, root: ParentNode = settingsForm) => $(`[name=${n}]`, root).value.trim() || undefined;
-        saveSettings({
+        return {
             email: v("email"), phone: v("phone"), whatsapp: v("whatsapp") ?? "",
             instagram: v("instagram") ?? "", bookingUrl: v("bookingUrl") ?? "",
             heroAction: heroAction.value, heroUrl: v("heroUrl") ?? "",
             nav: $$(".row", $("#nav", settingsForm)).map((r) => ({ label: v("label", r), href: v("href", r) })),
-        });
+        };
+    }
+    function fillSettings(d: Data) {
+        for (const k of SETTINGS_KEYS) if (k !== "nav") $(`[name=${k}]`, settingsForm).value = d[k] ?? "";
+        renderNav(d.nav);
+        syncHero();
+    }
+    settingsForm.addEventListener("input", () => setDirty(true));
+    settingsForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        saveSettings(collectSettings());
     });
 
     // ── testi delle pagine: la pagina vera in un iframe, gli elementi [data-k] diventano modificabili
@@ -962,6 +1028,51 @@ if (form) {
     };
     $<HTMLButtonElement>("#pages-save").onclick = () => saveSettings(edits);
 
+    // ── cronologia delle impostazioni: ogni vista mostra solo le versioni in cui la sua parte cambia
+    let sHist: { id: number; data: Data; author?: string; savedAt: number }[] | undefined;
+    const omit = (d: Data, keys: string[]) => Object.fromEntries(Object.entries(d).filter(([k]) => !keys.includes(k)));
+    const part = (d: Data): unknown =>
+        view === "page" ? (pageKey === "home" ? d.home : d.pagine?.find((p: Data) => p.slug === pageKey))
+        : view === "settings" ? Object.fromEntries(SETTINGS_KEYS.map((k) => [k, d[k]]))
+        : omit(d, [...SETTINGS_KEYS, "home", "pagine", "stili"]); // testi, motto, stili delle sezioni
+    async function renderHist() {
+        const sel = $<HTMLSelectElement>(".hist", { page: pageForm, settings: settingsForm, pages: pagesView }[view as "page"] ?? pageForm);
+        if (!["page", "settings", "pages"].includes(view) || (view === "page" && pageKey === "")) return void (sel.hidden = true);
+        sel.hidden = false;
+        const shown = view;
+        sHist ??= (await actions.settingsHistory()).data ?? [];
+        if (view !== shown) return;
+        let prev = JSON.stringify(part(settings) ?? null);
+        const list = sHist.filter((v) => {
+            const j = JSON.stringify(part(v.data) ?? null);
+            return j !== prev && ((prev = j), true);
+        });
+        sel.replaceChildren(
+            new Option(list.length ? `Cronologia (${list.length})` : "Cronologia: vuota", ""),
+            ...list.map((v) => new Option(`${fmtTime(v.savedAt)}${v.author ? " · " + v.author : ""}`, String(v.id))),
+        );
+    }
+    for (const sel of $$<HTMLSelectElement>("select.hist")) {
+        sel.onchange = () => {
+            const v = sHist?.find((x) => x.id === Number(sel.value));
+            sel.value = "";
+            if (!v) return;
+            const p = part(v.data) as Data | undefined;
+            if (view === "page") {
+                if (!p) return say("In quella versione questa pagina non esisteva.", true);
+                fillPage(pageKey === "home" ? { blocks: p } : { ...p, menu: v.data.nav.some((l: Data) => l.href === `/${pageKey}`) });
+            } else if (view === "settings") fillSettings(v.data);
+            else {
+                // anche i testi tornati all'originale (chiave assente nella versione)
+                const cur = part(settings) as Data;
+                edits = Object.fromEntries([...new Set([...Object.keys(cur), ...Object.keys(p!)])].map((k) => [k, p![k]]));
+                pageFrame.src = pageSel.value;
+            }
+            setDirty(true);
+            say(`Caricata la versione del ${fmtTime(v.savedAt)}: premi Salva per ripristinarla (o riapri la vista per annullare).`);
+        };
+    }
+
     // ── home e pagine nuove: liste di blocchi salvate nelle impostazioni (home, pagine)
     let pageKey: string | undefined; // "home", slug della pagina aperta, "" = nuova
     const pageList = $<HTMLUListElement>("#page-list");
@@ -985,34 +1096,46 @@ if (form) {
         pageKey = key;
         edits = {};
         const home = key === "home";
-        pageForm.reset();
         $<HTMLElement>("#pg-base").hidden = home;
         $<HTMLFieldSetElement>("#pg-base fieldset").disabled = home; // campi obbligatori della pagina: non bloccano il salvataggio della home
         $<HTMLElement>("#pg-del").hidden = home || key === "";
-        $("#pg-title").textContent = home ? "Home" : p?.title ?? "Nuova pagina";
         $("#pg-meta").textContent = home ? "Le sezioni della home, nell'ordine in cui appaiono" : key ? `/${key}` : "Non ancora salvata";
         const openA = $<HTMLAnchorElement>("#pg-open");
         openA.hidden = key === "";
         openA.href = home ? "/" : `/${key}`;
-        const slug = $("[name=pgSlug]", pageForm);
-        if (p) {
-            $("[name=pgTitle]", pageForm).value = p.title;
-            slug.value = p.slug;
-            $<HTMLTextAreaElement>("[name=pgDesc]", pageForm).value = p.description ?? "";
-            $("[name=pgHidden]", pageForm).checked = !!p.hidden;
-            $("[name=pgMenu]", pageForm).checked = inMenu(p.slug);
-            delete slug.dataset.auto;
-        } else if (!home) {
-            slug.dataset.auto = "1";
-            $("[name=pgHidden]", pageForm).checked = true; // si parte da bozza
-        }
-        initBlocks($(".blocks-wrap", pageForm), home ? settings.home : p?.blocks ?? [{ type: "testo" }]);
+        fillPage(home ? { blocks: settings.home } : p ? { ...p, menu: inMenu(p.slug) } : { hidden: true, blocks: [{ type: "testo" }] });
         if (key === "") $<HTMLDetailsElement>("#page-ed .block-ed").open = true;
         show("page");
         setDirty(false);
         say(key === "" ? "Nuova pagina: parte nascosta, togli la spunta quando è pronta." : "");
+        offerDraft(fillPage);
         queuePagePrev();
         if (key === "") $("[name=pgTitle]", pageForm).focus();
+    }
+    // campi della pagina aperta ⇄ { slug, title, description, hidden, menu, blocks } (per la home solo blocks)
+    function fillPage(p: Data) {
+        pageForm.reset();
+        const slug = $("[name=pgSlug]", pageForm);
+        $("[name=pgTitle]", pageForm).value = p.title ?? "";
+        slug.value = p.slug ?? "";
+        $<HTMLTextAreaElement>("[name=pgDesc]", pageForm).value = p.description ?? "";
+        $("[name=pgHidden]", pageForm).checked = !!p.hidden;
+        $("[name=pgMenu]", pageForm).checked = !!p.menu;
+        if (pageKey === "") slug.dataset.auto = "1";
+        else delete slug.dataset.auto;
+        $("#pg-title").textContent = pageKey === "home" ? "Home" : p.title || "Nuova pagina";
+        initBlocks($(".blocks-wrap", pageForm), p.blocks ?? []);
+    }
+    function collectPage() {
+        const blocks = readBlocks($(".blocks-wrap", pageForm));
+        if (pageKey === "home") return { blocks };
+        const v = (n: string) => $(`[name=${n}]`, pageForm).value.trim() || undefined;
+        return {
+            slug: v("pgSlug")!, title: v("pgTitle")!, description: v("pgDesc"),
+            hidden: $("[name=pgHidden]", pageForm).checked || undefined,
+            menu: $("[name=pgMenu]", pageForm).checked || undefined,
+            blocks,
+        };
     }
     pageForm.addEventListener("click", (e) => {
         const b = (e.target as Element).closest("button");
@@ -1035,21 +1158,19 @@ if (form) {
     });
     pageForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const blocks = readBlocks($(".blocks-wrap", pageForm));
-        if (pageKey === "home") return void saveSettings({ home: blocks });
-        const v = (n: string) => $(`[name=${n}]`, pageForm).value.trim() || undefined;
-        const p = { slug: v("pgSlug")!, title: v("pgTitle")!, description: v("pgDesc"), hidden: $("[name=pgHidden]", pageForm).checked || undefined, blocks };
+        if (pageKey === "home") return void saveSettings({ home: collectPage().blocks });
+        const { menu: want, ...p } = collectPage() as Data;
         if (settings.pagine.some((x: Data) => x.slug === p.slug && x.slug !== pageKey)) return say(`C'è già una pagina /${p.slug}: scegli un altro indirizzo.`, true);
         // stessa posizione nell'elenco; il menu segue indirizzo e spunta "Nel menu"
         const pagine = [...settings.pagine];
         const i = pagine.findIndex((x: Data) => x.slug === pageKey);
         i >= 0 ? (pagine[i] = p) : pagine.push(p);
         let nav = settings.nav.map((l: Data) => (pageKey && l.href === `/${pageKey}` ? { ...l, href: `/${p.slug}` } : l));
-        const want = $("[name=pgMenu]", pageForm).checked;
         const has = nav.some((l: Data) => l.href === `/${p.slug}`);
         if (want && !has) nav.splice(Math.max(0, nav.length - 1), 0, { label: p.title, href: `/${p.slug}` }); // prima del bottone finale
         if (!want) nav = nav.filter((l: Data) => l.href !== `/${p.slug}`);
         if (!(await saveSettings({ pagine, nav }))) return;
+        dropDraft(`mc_draft:pg:${pageKey}`); // la bozza di una pagina nuova o rinominata
         renderNav();
         pageKey = p.slug;
         history.replaceState(null, "", `#pagina-${p.slug}`);
@@ -1062,15 +1183,24 @@ if (form) {
     });
     $<HTMLButtonElement>("#pg-del").onclick = async () => {
         const p = settings.pagine.find((x: Data) => x.slug === pageKey);
-        if (!p || !confirm(`Eliminare la pagina "${p.title}"? Non si può annullare.`)) return;
+        if (!p || !confirm(`Eliminare la pagina "${p.title}"?`)) return;
+        const inMenuBefore = settings.nav.find((l: Data) => l.href === `/${p.slug}`);
         const ok = await saveSettings({
             pagine: settings.pagine.filter((x: Data) => x !== p),
             nav: settings.nav.filter((l: Data) => l.href !== `/${p.slug}`),
         });
         if (!ok) return;
         renderNav();
-        show("empty");
-        $("#empty").textContent = `Pagina "${p.title}" eliminata.`;
+        say(`Pagina "${p.title}" eliminata.`, false, [
+            "Annulla",
+            async () => {
+                const back = { pagine: [...settings.pagine, p], nav: inMenuBefore ? [...settings.nav.slice(0, -1), inMenuBefore, ...settings.nav.slice(-1)] : settings.nav };
+                if (await saveSettings(back)) renderNav(), openPage(p.slug), history.replaceState(null, "", `#pagina-${p.slug}`);
+            },
+        ]);
+        pageKey = "";
+        $<HTMLElement>("#pg-del").hidden = true;
+        renderPages();
         history.replaceState(null, "", location.pathname);
     };
     $<HTMLButtonElement>("#new-page").onclick = () => {
@@ -1092,7 +1222,14 @@ if (form) {
             setDirty(false);
             edits = {};
             show(v);
-            if (v === "pages") pageFrame.src = pageSel.value; // ricarica: niente modifiche scartate a schermo
+            say("");
+            if (v === "pages") {
+                pageFrame.src = pageSel.value; // ricarica: niente modifiche scartate a schermo
+                offerDraft((d) => { edits = d; pageFrame.src = pageSel.value; });
+            } else {
+                fillSettings(settings);
+                offerDraft(fillSettings);
+            }
             renderList();
             return;
         }

@@ -35,6 +35,15 @@ CREATE TABLE IF NOT EXISTS settings (
   data TEXT NOT NULL CHECK (json_valid(data))
 );
 
+-- Cronologia delle impostazioni (home, pagine nuove, testi, stili, contatti): ogni salvataggio, ultime 50.
+-- Creata anche al primo salvataggio da saveSettings() in db.ts.
+CREATE TABLE IF NOT EXISTS settings_versions (
+  id       INTEGER PRIMARY KEY,
+  data     TEXT NOT NULL,
+  author   TEXT,
+  saved_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+
 -- Migrazione 2026-11-14 per DB creati prima di updated_by/rev:
 -- ALTER TABLE events ADD COLUMN updated_by TEXT;
 -- ALTER TABLE events ADD COLUMN rev INTEGER NOT NULL DEFAULT 0;

@@ -190,10 +190,39 @@ export function getSettings(): Promise<Settings> {
   return settingsCache.p;
 }
 
-export async function saveSettings(s: Settings) {
-  await db().execute({
-    sql: "INSERT INTO settings (id, data) VALUES (1, ?) ON CONFLICT (id) DO UPDATE SET data = excluded.data",
-    args: [JSON.stringify(s)],
-  });
+const SETTINGS_VERSIONS = `CREATE TABLE IF NOT EXISTS settings_versions (
+  id INTEGER PRIMARY KEY, data TEXT NOT NULL, author TEXT, saved_at INTEGER NOT NULL DEFAULT (unixepoch()))`;
+const KEEP_SETTINGS = 50;
+
+// Salva e aggiunge la versione alla cronologia. ponytail: niente controllo di modifiche concorrenti
+// come per gli eventi (vince l'ultimo salvataggio); la cronologia permette di recuperare.
+export async function saveSettings(s: Settings, author?: string) {
+  const data = JSON.stringify(s);
+  await db().batch(
+    [
+      SETTINGS_VERSIONS, // ponytail: idempotente e costa poco; evita una migrazione manuale su Turso
+      { sql: "INSERT INTO settings (id, data) VALUES (1, ?) ON CONFLICT (id) DO UPDATE SET data = excluded.data", args: [data] },
+      { sql: "INSERT INTO settings_versions (data, author) VALUES (?, ?)", args: [data, author ?? null] },
+      { sql: "DELETE FROM settings_versions WHERE id NOT IN (SELECT id FROM settings_versions ORDER BY id DESC LIMIT ?)", args: [KEEP_SETTINGS] },
+    ],
+    "write",
+  );
   settingsCache = undefined;
+}
+
+export interface SettingsVersion {
+  id: number;
+  data: Settings;
+  author?: string;
+  savedAt: number;
+}
+export async function getSettingsHistory(): Promise<SettingsVersion[]> {
+  await db().execute(SETTINGS_VERSIONS);
+  const { rows } = await db().execute("SELECT * FROM settings_versions ORDER BY id DESC");
+  return rows.map((r) => ({
+    id: Number(r.id),
+    data: { ...DEFAULT_SETTINGS, ...JSON.parse(r.data as string) },
+    author: (r.author as string | null) ?? undefined,
+    savedAt: Number(r.saved_at),
+  }));
 }

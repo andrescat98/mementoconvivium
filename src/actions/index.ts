@@ -2,7 +2,7 @@ import { ActionError, defineAction, type ActionAPIContext } from "astro:actions"
 import { z } from "astro/zod";
 import { env } from "cloudflare:workers";
 import { checkPassword, isAdmin, login, logout } from "../lib/auth";
-import { deleteEvent, getHistory, putImage, saveEvent, saveSettings, StaleError } from "../lib/db";
+import { deleteEvent, getHistory, getSettingsHistory, putImage, saveEvent, saveSettings, StaleError } from "../lib/db";
 import { eventoSchema, settingsSchema, slugSchema } from "../lib/schema";
 
 async function guard(ctx: ActionAPIContext) {
@@ -65,11 +65,18 @@ export const server = {
   }),
 
   saveSettings: defineAction({
-    input: settingsSchema,
-    async handler(s, ctx) {
+    input: z.object({ settings: settingsSchema, author }),
+    async handler({ settings, author }, ctx) {
       await guard(ctx);
-      await saveSettings(s);
+      await saveSettings(settings, author);
       await invalidate(ctx);
+    },
+  }),
+
+  settingsHistory: defineAction({
+    async handler(_, ctx) {
+      await guard(ctx);
+      return getSettingsHistory();
     },
   }),
 

@@ -1,6 +1,6 @@
 ---
 import { actions } from "astro:actions";
-import { isAdmin } from "../lib/auth";
+import { isAdmin, login as renew } from "../lib/auth";
 import { getDeleted, getEvents, getSettings } from "../lib/db";
 import { FONT_GROUPS } from "../lib/fonts";
 import { BLOCK_TEXT, SEZIONI_TEXT, STATUS_TEXT } from "../lib/format";
@@ -11,6 +11,7 @@ const login = Astro.getActionResult(actions.login);
 if ((login && !login.error) || Astro.getActionResult(actions.logout)) return Astro.redirect("/admin");
 
 const authed = await isAdmin(Astro.cookies);
+if (authed) await renew(Astro.cookies); // sessione che scorre: altri 30 giorni da oggi
 const [eventi, deleted, s] = authed ? await Promise.all([getEvents(true), getDeleted(), getSettings()]) : [[], [], undefined];
 // `<` escapato: il JSON finisce dentro un <script>
 const json = JSON.stringify({ eventi, deleted, settings: s }).replace(/</g, "\\u003c");
@@ -97,6 +98,7 @@ const fontsHref =
         <form id="settings" hidden>
             <div class="bar">
                 <div class="bar-title"><h2>Impostazioni sito</h2><small>Contatti, menu e bottone della home: valgono per tutte le pagine</small></div>
+<select class="hist" aria-label="Cronologia versioni" title="Versioni salvate: scegline una per ricaricarla, poi Salva per ripristinarla"></select>
                 <button class="primary">Salva impostazioni</button>
             </div>
             <p class="msg" role="status"></p>
@@ -144,6 +146,7 @@ const fontsHref =
                 <div class="bar-title"><h2>Testi e stili delle pagine</h2><small>Clicca su un testo tratteggiato e scrivi (Invio = a capo; vuoto = testo originale). 🎨 in alto a destra di ogni sezione: sfondo, animazione, effetto titoli.</small></div>
                 <label class="check"><input type="checkbox" id="phone" /> 📱 Telefono</label>
                 <select name="page" aria-label="Pagina">{PAGES.map(([href, label]) => <option value={href}>{label}</option>)}</select>
+<select class="hist" aria-label="Cronologia versioni" title="Versioni salvate: scegline una per ricaricarla, poi Salva per ripristinarla"></select>
                 <button type="button" class="primary" id="pages-save">Salva</button>
             </div>
             <p class="msg" role="status"></p>
@@ -162,6 +165,8 @@ const fontsHref =
             <div class="bar">
                 <div class="bar-title"><h2 id="pg-title">Home</h2><small id="pg-meta"></small></div>
                 <a id="pg-open" target="_blank">Apri ↗</a>
+                <select class="hist" aria-label="Cronologia versioni" title="Versioni salvate: scegline una per ricaricarla, poi Salva per ripristinarla"></select>
+
                 <button type="button" id="pg-del" class="danger">Elimina</button>
                 <button class="primary" title="Ctrl+S">Salva</button>
             </div>

@@ -1,6 +1,6 @@
 # Guida per i moderatori
 
-Indirizzo: **/admin** (es. https://mementoconvivium.pages.dev/admin). La password è la stessa per tutti: chiedila a chi gestisce il sito. Resti collegato per 7 giorni.
+Indirizzo: **/admin** (es. https://mementoconvivium.pages.dev/admin). La password è la stessa per tutti: chiedila a chi gestisce il sito. Resti collegato per 30 giorni dall'ultima volta che apri /admin.
 
 **Prima cosa:** scrivi il tuo nome in alto ("Il tuo nome"). Finisce nella cronologia, così si sa chi ha cambiato cosa. Il browser lo ricorda.
 
@@ -124,7 +124,9 @@ L'evento compare nella timeline "Il viaggio nel tempo" solo se ha un **anno stor
 
 ## Errori e ripensamenti
 
-- **Cronologia**: il menu in alto elenca le versioni precedenti (le ultime 30), con data e nome. Scegline una: viene caricata nel modulo, poi **Salva** per ripristinarla.
+- **Modifiche non salvate**: restano nel browser. Se chiudi la pagina, ti sposti su un'altra vista o il computer si spegne, riaprendo compare *"Hai modifiche non salvate del…"* con **Ripristinale** o **Scartale**. Valgono solo su quel computer e quel browser: per pubblicarle bisogna sempre premere **Salva**.
+- **Cronologia**: il menu in alto elenca le versioni precedenti, con data e nome di chi ha salvato. C'è per gli eventi (ultime 30), per la Home e ogni pagina nuova, per i Testi e stili e per le Impostazioni (le ultime 50 modifiche del sito). Scegline una: viene caricata nel modulo, poi **Salva** per ripristinarla.
+- **Pagina eliminata per sbaglio**: subito dopo compare **Annulla**.
 - **Elimina** sposta l'evento in **Eliminati** (in fondo alla lista a sinistra): **Ripristina** e poi **Salva** per riaverlo.
 - **Due moderatori sullo stesso evento**: se qualcuno ha salvato mentre lo modificavi, al salvataggio compare un avviso. Puoi **Sovrascrivere comunque** (la sua versione resta nella cronologia) oppure ricaricare la pagina.
 - **Backup** scarica tutti gli eventi in un file: fallo ogni tanto, non costa niente.
