@@ -2,7 +2,8 @@
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import { getSettings } from "../lib/db";
-import { googleFontsHref, SITE_FONTS_HREF } from "../lib/format";
+import { googleFontsHref, pageBg, SITE_FONTS_HREF } from "../lib/format";
+import type { Bg } from "../lib/schema";
 import "../styles/global.css";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
     // href di un font Google specifico per la pagina (es. il font del nome personaggio)
     fontHref?: string;
     image?: string; // anteprima social (copertina evento); default /og-image.jpg
+    sfondo?: Bg; // sfondo della pagina; vuoto = quello del sito (settings.sfondo), poi il marmo
 }
 
 const s = await getSettings();
@@ -26,6 +28,7 @@ const {
 // font scelti nello stile delle sezioni del sito e dei blocchi di home e pagine nuove
 const blocks = [...s.home, ...s.pagine.flatMap((p) => p.blocks)];
 const sezFonts = googleFontsHref(...Object.values(s.sezioni).map((b) => b.font), ...blocks.map((b) => b.style?.font));
+const bodyBg = pageBg(Astro.props.sfondo ?? s.sfondo);
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(image ?? "/og-image.jpg", Astro.site);
 ---
@@ -71,7 +74,7 @@ const ogImage = new URL(image ?? "/og-image.jpg", Astro.site);
             <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token: s.analyticsToken })}></script>
         )}
     </head>
-    <body>
+    <body style={bodyBg && `--page-bg:${bodyBg}`}>
         <Header />
         {s.banner.text && (
             <aside class="avviso" data-avviso={s.banner.text}>

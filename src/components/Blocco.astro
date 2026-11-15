@@ -45,6 +45,8 @@ const ricordi =
         : [];
 const conFoto = [...new Map(ricordi.map(({ e }) => [e.id, e.data.title])).entries()];
 const intro = b.body && b.type !== "testo" && b.type !== "bottone";
+// posizione dell'immagine nel blocco testo → classe di evento.css
+const SIDE = { destra: "", sinistra: "img-sx", sopra: "img-su", sotto: "img-giu" };
 ---
 
 {b.type === "sezione" ? (
@@ -65,10 +67,14 @@ const intro = b.body && b.type !== "testo" && b.type !== "bottone";
             {intro && <div class="ev-prose ev-panel-intro" set:html={md(b.body!)} />}
 
             {b.type === "testo" && (
-                <div class={b.image ? `ev-panel-grid${b.side === "sinistra" ? " img-sx" : ""}` : "ev-panel-text"}>
+                <div
+                    class={b.image ? `ev-panel-grid ${SIDE[b.side ?? "destra"]}` : "ev-panel-text"}
+                    data-valign={b.image && b.valign}
+                    style={b.image && b.imgW ? `--img-w:${b.imgW}%` : undefined}
+                >
                     <div class="ev-prose" set:html={md(b.body ?? "")} />
                     {b.image && (
-                        <button type="button" class="ev-figure crop" data-portrait={b.image.src} data-name="">
+                        <button type="button" class="ev-figure crop" data-ar={b.imgAr} data-portrait={b.image.src} data-name="">
                             <img src={b.image.src} alt="" loading="lazy" style={imgStyle(b.image)} />
                         </button>
                     )}

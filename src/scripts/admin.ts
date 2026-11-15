@@ -41,7 +41,7 @@ if (form) {
         dirty = v;
         $<HTMLElement>("#dirty").hidden = !v;
         document.title = (v ? "● " : "") + "Moderatori · Memento Convivium";
-        if (v) queuePrev(), queuePagePrev(), keepDraft();
+        if (v) queueLive(), keepDraft();
     }
 
     // ── bozze locali: ogni vista tiene nel browser le modifiche non salvate (evento, pagina, impostazioni, testi).
@@ -238,10 +238,9 @@ if (form) {
         $<HTMLImageElement>("img", cropPrev).style.cssText = imgStyle({ ...crop, x, y });
         zoomEl.value = String(crop.zoom ?? 1);
         $("output", cropDlg).textContent = `${Number(zoomEl.value).toFixed(2)}×`;
-        // stessa inquadratura dal vivo sulle immagini dell'anteprima vera (copertina, card della timeline)
-        $<HTMLIFrameElement>("iframe", cropView).contentDocument
-            ?.querySelectorAll<HTMLImageElement>(`img[src="${CSS.escape(crop.src)}"]`)
-            .forEach((im) => (im.style.cssText = imgStyle({ ...crop, x, y })));
+        // stessa inquadratura dal vivo sulle immagini delle anteprime vere (a destra e nel dialog)
+        for (const f of $$<HTMLIFrameElement>(".prev iframe"))
+            f.contentDocument?.querySelectorAll<HTMLImageElement>(`img[src="${CSS.escape(crop.src)}"]`).forEach((im) => (im.style.cssText = imgStyle({ ...crop, x, y })));
     }
     function openCrop(box: HTMLElement) {
         const i = getImg(box);
@@ -250,10 +249,16 @@ if (form) {
         crop = { ...i };
         $<HTMLImageElement>("img", cropSrc).src = $<HTMLImageElement>("img", cropPrev).src = i.src;
         cropPrev.dataset.shape = box.dataset.shape;
-        cropView.hidden = !("preview" in box.dataset);
+        // con l'anteprima dal vivo accanto: dialog ancorato a sinistra, si inquadra guardando la pagina vera a destra
+        const docked = !live.hidden && matchMedia("(min-width: 900px)").matches && !box.closest("dialog");
+        cropDlg.classList.toggle("docked", docked);
+        cropView.hidden = docked || !("preview" in box.dataset);
         cropDlg.classList.toggle("with-prev", !cropView.hidden);
         drawCrop();
-        cropDlg.showModal();
+        if (docked) {
+            cropDlg.show();
+            scrollLive(liveDoc()?.querySelector(`img[src="${CSS.escape(i.src)}"]`), true);
+        } else cropDlg.showModal();
         if (!cropView.hidden) renderPrev(cropView).then(drawCrop);
     }
     const pickFocus = (e: PointerEvent) => {
@@ -273,9 +278,11 @@ if (form) {
         setDirty(true);
         cropDlg.close();
     };
+    cropDlg.addEventListener("close", () => queueLive(0)); // Annulla: l'anteprima torna all'inquadratura salvata
 
-    // ── anteprima vera: /admin/anteprima renderizza intestazione e card coi componenti del sito.
-    // L'iframe è largo come una pagina (PREV_W) e viene rimpicciolito per stare nel riquadro.
+    // ── anteprima vera: /admin/anteprima renderizza intestazione, schede, blocchi e card coi componenti del sito.
+    // L'iframe è largo almeno come una pagina (PREV_W) e viene rimpicciolito per stare nel riquadro.
+    // .live (a destra di evento e pagine) ha altezza fissa e scorre dentro; le altre (inquadratura) sono alte quanto il contenuto.
     const PREV_W = 1200;
     async function renderPrev(wrap: HTMLElement, body: unknown = collect()) {
         const frame = $<HTMLIFrameElement>("iframe", wrap);
@@ -286,7 +293,7 @@ if (form) {
         if (wrap.dataset.seq !== seq) return; // nel frattempo è partita un'anteprima più recente
         const doc = frame.contentDocument;
         if (doc?.querySelector("main")) {
-            // già caricata: si sostituisce solo il contenuto, così non lampeggia
+            // già caricata: si sostituisce solo il contenuto, così non lampeggia e resta dov'era
             const n = new DOMParser().parseFromString(html, "text/html");
             for (const l of n.head.querySelectorAll("link"))
                 if (!doc.head.querySelector(`link[href="${CSS.escape(l.getAttribute("href")!)}"]`)) doc.head.append(doc.adoptNode(l));
@@ -297,6 +304,12 @@ if (form) {
     }
     function fitPrev(wrap: HTMLElement) {
         const frame = $<HTMLIFrameElement>("iframe", wrap);
+        if (wrap.classList.contains("live")) {
+            const w = wrap.classList.contains("phone") ? 390 : Math.max(PREV_W, wrap.clientWidth);
+            const k = Math.min(1, wrap.clientWidth / w);
+            frame.style.cssText = `width:${w}px;height:${wrap.clientHeight / k}px;transform:scale(${k})`;
+            return;
+        }
         const main = frame.contentDocument?.querySelector("main");
         if (!main) return;
         const k = Math.min(1, wrap.clientWidth / PREV_W);
@@ -305,21 +318,129 @@ if (form) {
         wrap.style.height = `${h * k}px`;
     }
     addEventListener("resize", () => $$<HTMLElement>(".prev").forEach(fitPrev));
-    const prevSec = $<HTMLDetailsElement>("#prev-sec");
-    let prevTimer = 0;
-    function queuePrev() {
-        clearTimeout(prevTimer);
-        if (prevSec.open && !form!.hidden) prevTimer = window.setTimeout(() => renderPrev($<HTMLElement>(".prev", prevSec)), 500);
+
+    // ── anteprima dal vivo a destra di evento e pagine, e selezione: clic su una parte dell'anteprima → a sinistra
+    // restano solo le sue impostazioni (.sel sul blocco o scheda); aprire o scrivere in un blocco lo evidenzia a destra.
+    const adminEl = $<HTMLElement>(".admin");
+    const live = $<HTMLElement>("#live");
+    const liveWrap = $<HTMLElement>(".prev", live);
+    const liveFrame = $<HTMLIFrameElement>("iframe", liveWrap);
+    const liveDoc = () => liveFrame.contentDocument;
+    let liveTimer = 0;
+    function queueLive(ms = 500) {
+        clearTimeout(liveTimer);
+        if (view === "editor" || view === "page")
+            liveTimer = window.setTimeout(() => renderPrev(liveWrap, view === "editor" ? collect() : { blocks: readBlocks($(".blocks-wrap", pageForm)), sfondo: readBg($(".bg[data-name=sfondo]", pageForm)) }).then(markSel), ms);
     }
-    prevSec.ontoggle = queuePrev;
-    const pagePrevSec = $<HTMLDetailsElement>("#pg-prev-sec");
-    let pagePrevTimer = 0;
-    function queuePagePrev() {
-        clearTimeout(pagePrevTimer);
-        if (pagePrevSec.open && !pageForm.hidden)
-            pagePrevTimer = window.setTimeout(() => renderPrev($<HTMLElement>(".prev", pagePrevSec), { blocks: readBlocks($(".blocks-wrap", pageForm)) }), 500);
+    $("#live-phone").onchange = (e) => {
+        liveWrap.classList.toggle("phone", (e.target as HTMLInputElement).checked);
+        fitPrev(liveWrap);
+    };
+    // porta un elemento dell'anteprima in vista (solo se è fuori dallo schermo)
+    function scrollLive(el: Element | null | undefined, force = false) {
+        const w = liveDoc()?.defaultView;
+        if (!el || !w) return;
+        const r = el.getBoundingClientRect();
+        if (force || r.bottom < 0 || r.top > w.innerHeight) w.scrollTo({ top: r.top + w.scrollY - w.innerHeight / 4, behavior: "smooth" });
     }
-    pagePrevSec.ontoggle = queuePagePrev;
+    let selKey = ""; // parte evidenziata nell'anteprima (vedi data-ed in admin/anteprima.astro)
+    let wantScroll = false;
+    let liveTab = 0; // scheda dell'evento visibile nell'anteprima: segue la parte scelta
+    function markSel() {
+        const doc = liveDoc();
+        if (!doc) return;
+        const t = selKey.match(/^t(\d+)/);
+        if (t) liveTab = Number(t[1]);
+        const panels = doc.querySelectorAll(".ev-panel");
+        if (liveTab >= panels.length) liveTab = 0;
+        panels.forEach((p, i) => p.classList.toggle("on", i === liveTab));
+        doc.querySelectorAll(".ev-tab").forEach((a, i) => a.setAttribute("aria-selected", String(i === liveTab)));
+        doc.querySelectorAll("[data-ed].sel").forEach((e) => e.classList.remove("sel"));
+        const el = selKey ? doc.querySelector(`[data-ed="${selKey}"]`) : null;
+        el?.classList.add("sel");
+        if (el && wantScroll) {
+            wantScroll = false;
+            scrollLive(el.firstElementChild);
+        }
+    }
+    function hl(key: string, scroll = true) {
+        selKey = key;
+        wantScroll = scroll;
+        markSel();
+    }
+    // form ⇄ chiave dell'anteprima: "hero", "cards", "t0", "t0.2" (evento), "2" (pagina)
+    const idx = (x: Element) => [...x.parentElement!.children].indexOf(x);
+    function keyOf(el: HTMLElement) {
+        if (el.dataset.ed) return el.dataset.ed;
+        if (view === "page") return String(idx(el));
+        const tab = el.closest(".tab-ed")!;
+        return el === tab ? `t${idx(tab)}` : `t${idx(tab)}.${idx(el)}`;
+    }
+    function edEl(key: string): HTMLElement | undefined {
+        if (view === "page") return $$<HTMLElement>(".blocks > .block-ed", pageForm)[Number(key)];
+        const m = key.match(/^t(\d+)(?:\.(\d+))?$/);
+        if (!m) return form!.querySelector<HTMLElement>(`[data-ed="${key}"]`) ?? undefined;
+        const tab = $$<HTMLElement>("#tabs > .tab-ed", form!)[Number(m[1])];
+        return m[2] === undefined ? tab : tab && $$<HTMLElement>(":scope > .grid > .blocks-wrap > .blocks > .block-ed", tab)[Number(m[2])];
+    }
+    const unfocus = () => $$(".sel", adminEl).forEach((x) => x.classList.remove("sel"));
+    function pick(key: string) {
+        const el = edEl(key);
+        hl(key, false);
+        if (!el) return;
+        unfocus();
+        // a sinistra resta solo lui (admin.css); intestazione e card: tutte le sezioni del form che le riguardano
+        const sel = el.matches(".block-ed, .tab-ed") ? [el] : $$<HTMLElement>(`[data-ed="${key}"]`, form!);
+        for (const x of sel) {
+            x.classList.add("sel");
+            for (let d: HTMLElement | null = x; d; d = d.parentElement?.closest("details") ?? null) (d as HTMLDetailsElement).open = true;
+        }
+        el.scrollIntoView({ block: "start" });
+    }
+    // "＋" dell'anteprima: nuova scheda, o blocco del tipo scelto in quel punto (data-where/data-at, vedi anteprima.astro)
+    function addFromLive(b: HTMLElement) {
+        let el: HTMLElement;
+        if (b.dataset.add === "tab") {
+            el = addTab(structuredClone(PRESETS.testo), true);
+        } else {
+            const ins = b.closest<HTMLElement>(".ed-ins")!;
+            const where = ins.dataset.where!;
+            const tab = where && $$<HTMLElement>("#tabs > .tab-ed", form!)[Number(where.slice(1))];
+            const list = tab ? $(":scope > .grid > .blocks-wrap > .blocks", tab) : $(".blocks", pageForm);
+            el = newBlock(list, b.dataset.add!, list.children[Number(ins.dataset.at)]);
+        }
+        setDirty(true);
+        pick(keyOf(el));
+        el.querySelector<HTMLInputElement>("[name=tabTitle], [name=bTitle], [name=key]")?.select();
+    }
+    liveFrame.addEventListener("load", () => {
+        liveDoc()?.addEventListener("click", (e) => {
+            const t = e.target as Element;
+            if (!t.closest("summary")) e.preventDefault(); // niente link; le FAQ si aprono
+            const add = t.closest<HTMLElement>("[data-add]");
+            if (add) return addFromLive(add);
+            const k = t.closest<HTMLElement>("[data-ed]")?.dataset.ed;
+            if (k) pick(k);
+        }, true);
+        markSel();
+    });
+    for (const f of [form, pageForm]) {
+        const follow = (t: EventTarget | null) => {
+            const el = (t as Element).closest<HTMLElement>(".block-ed, .tab-ed, [data-ed]");
+            if (el) hl(keyOf(el));
+        };
+        f.addEventListener("focusin", (e) => follow(e.target));
+        // solo i blocchi: aprire schede e sezioni (anche da pick()) non sposta l'evidenziazione
+        f.addEventListener("toggle", (e) => (e.target as HTMLDetailsElement).matches(".block-ed[open]") && follow(e.target), true);
+    }
+    for (const b of $$<HTMLButtonElement>("[data-unfocus]")) {
+        b.onclick = () => {
+            const el = adminEl.querySelector(".sel");
+            unfocus();
+            el?.scrollIntoView({ block: "start" });
+        };
+    }
+    $<HTMLButtonElement>("#menu").onclick = () => adminEl.classList.toggle("nav-open");
 
     // ── stile di una sezione (riquadro .bg): sfondo, testo, titoli, spaziatura, animazione, effetto, stili salvati
     function initBg(box: HTMLElement, b: Data = {}) {
@@ -330,13 +451,18 @@ if (form) {
         $("[name=textOn]", box).checked = !!b.text;
         if (b.text) $("[name=textColor]", box).value = b.text;
         $("[name=bgVeil]", box).value = String(b.veil ?? 0);
-        $("output", box).textContent = `${b.veil ?? 0}%`;
+        $("[name=height]", box).value = String(b.height ?? 0);
+        for (const r of $$("input[type=range]", box)) showRange(r);
         $("[name=dark]", box).checked = !!b.dark;
         $("[name=parallax]", box).checked = !!b.parallax;
-        for (const k of ["font", "size", "pad", "anim", "fx"]) $(`[name=${k}]`, box).value = String(b[k] ?? "");
+        for (const k of ["font", "size", "pad", "vpos", "align", "w", "lh", "fs", "anim", "fx"]) $(`[name=${k}]`, box).value = String(b[k] ?? "");
         $("[name=preset]", box).append(...(settings.stili ?? []).map((s: Data) => new Option(s.name, s.name)));
         initImg($<HTMLElement>(".img", box), b.image);
     }
+    // valore accanto ai cursori: velo in %, altezza in % dello schermo, larghezza immagine in % (0 = automatica)
+    const showRange = (r: HTMLInputElement) =>
+        (r.previousElementSibling!.textContent =
+            r.name === "bgVeil" ? `${r.value}%` : r.value === "0" ? "automatica" : `${r.value}%${r.name === "height" ? " dello schermo" : ""}`);
     function readBg(box: Element) {
         const v = (k: string) => $(`[name=${k}]`, box).value.trim() || undefined;
         const on = (k: string) => $(`[name=${k}]`, box).checked || undefined;
@@ -344,15 +470,17 @@ if (form) {
             color: on("bgOn") && v("bgColor"), image: getImg($(".img", box)),
             veil: Number(v("bgVeil")) || undefined, dark: on("dark"), parallax: on("parallax"),
             text: on("textOn") && v("textColor"), font: v("font"), size: v("size") && Number(v("size")),
-            pad: v("pad"), anim: v("anim"), fx: v("fx"),
+            pad: v("pad"), height: Number(v("height")) || undefined, vpos: v("vpos"),
+            align: v("align"), w: v("w"), lh: v("lh") && Number(v("lh")), fs: v("fs") && Number(v("fs")),
+            anim: v("anim"), fx: v("fx"),
         };
         return Object.values(b).some(Boolean) ? b : undefined;
     }
     // eventi del riquadro stile, sia nell'editor evento sia nel dialog delle sezioni
     function bgInput(t: HTMLInputElement) {
+        if (t.type === "range") showRange(t);
         const box = t.closest<HTMLElement>(".bg");
         if (!box) return;
-        if (t.name === "bgVeil") t.previousElementSibling!.textContent = `${t.value}%`;
         if (t.name === "bgColor") $("[name=bgOn]", box).checked = true;
         if (t.name === "textColor") $("[name=textOn]", box).checked = true;
         if (t.name === "preset" && t.value) initBg(box, settings.stili.find((s: Data) => s.name === t.value)?.style);
@@ -444,6 +572,8 @@ if (form) {
         el.classList.toggle("off", !!b.hidden);
         const set = (n: string, v: unknown) => { const i = el.querySelector<HTMLInputElement>(`[name=${n}]`); if (i) i.value = v == null ? "" : String(v); };
         set("bTitle", b.title); set("bBody", b.body); set("key", b.key ?? "home-hero"); set("side", b.side);
+        set("imgAr", b.imgAr); set("imgW", b.imgW ?? 0); set("valign", b.valign);
+        showRange($("[name=imgW]", el));
         set("label", b.label); set("href", b.href); set("video", b.video); set("show", b.show ?? "prossimi"); set("limit", b.limit);
         initImg($<HTMLElement>(".img[data-name=bImage]", el), b.image);
         b.gallery?.forEach((g: Data) => addRow("shot", $(".shots", el), g));
@@ -451,6 +581,13 @@ if (form) {
         b.faq?.forEach((f: Data) => addRow("faq", $(".faqs", el), f));
         initBg($<HTMLElement>(".bg", el), b.style);
         list.append(el);
+        markBlock(el);
+        return el;
+    }
+    // blocco nuovo, aperto, in fondo alla lista o prima di `before`
+    function newBlock(list: Element, type: string, before?: Element) {
+        const el = addBlock(list, { type, ...(type === "eventi" ? { title: "Prossimi appuntamenti" } : {}) }, true);
+        before?.before(el);
         markBlock(el);
         return el;
     }
@@ -480,6 +617,9 @@ if (form) {
             body: is("sezione") ? undefined : v("bBody"),
             image: is("testo") ? getImg($(".img[data-name=bImage]", el)) : undefined,
             side: is("testo") ? v("side") : undefined,
+            imgAr: is("testo") ? v("imgAr") : undefined,
+            imgW: is("testo") ? Number(v("imgW")) || undefined : undefined,
+            valign: is("testo") ? v("valign") : undefined,
             gallery: is("galleria") ? list(rows(".shots").map((r) => ({ image: getImg($(".img", r)), caption: v("caption", r) })).filter((g) => g.image)) : undefined,
             characters: is("personaggi") ? list(rows(".chars").map((r) => ({ name: v("name", r), role: v("role", r), hint: v("hint", r), portrait: getImg($(".img", r)) }))) : undefined,
             faq: is("faq") ? list(rows(".faqs").map((r) => ({ q: v("q", r), a: v("a", r) }))) : undefined,
@@ -499,8 +639,7 @@ if (form) {
         const blk = b.closest<HTMLElement>(".block-ed");
         const item = b.closest<HTMLElement>(".row, .block-ed, .tab-ed");
         if (b.dataset.add === "block") {
-            const wrap = b.closest(".blocks-wrap")!;
-            const el = addBlock($(":scope > .blocks", wrap), { type: b.dataset.type, ...(b.dataset.type === "eventi" ? { title: "Prossimi appuntamenti" } : {}) }, true);
+            const el = newBlock($(":scope > .blocks", b.closest(".blocks-wrap")!), b.dataset.type!);
             (el.querySelector<HTMLInputElement>("[name=bTitle], [name=key]"))?.focus();
             el.scrollIntoView({ block: "nearest", behavior: "smooth" });
         } else if (b.dataset.add === "char") $("[name=name]", addRow("char", $(".chars", blk!))).focus();
@@ -675,7 +814,7 @@ if (form) {
     // dialog: chiudi con ✕/Annulla o cliccando fuori
     for (const d of [cropDlg, fontDlg]) {
         d.addEventListener("click", (e) => {
-            if (e.target === d || (e.target as Element).closest("[data-close]")) d.close();
+            if ((e.target === d && !d.classList.contains("docked")) || (e.target as Element).closest("[data-close]")) d.close();
         });
     }
 
@@ -727,6 +866,8 @@ if (form) {
                 cover: img("cover"),
                 background: readBg($(".bg[data-name=background]", form!)),
                 heroStyle: readBg($(".bg[data-name=heroStyle]", form!)),
+                heroLayout: val("heroLayout"), coverMode: val("coverMode"),
+                sfondo: readBg($(".bg[data-name=sfondo]", form!)),
                 titleFont: val("titleFont"), characterFont: val("characterFont"),
                 tabs: $$<HTMLElement>("#tabs > .tab-ed", form!).map((t) => ({
                     title: val("tabTitle", t),
@@ -757,6 +898,14 @@ if (form) {
         pageForm.hidden = v !== "page";
         $<HTMLElement>("#empty").hidden = v !== "empty";
         $$<HTMLElement>(".view-link").forEach((a) => a.classList.toggle("on", a.dataset.view === v));
+        // evento e pagine: impostazioni a sinistra, anteprima dal vivo a destra, elenco nel menu ☰
+        const split = v === "editor" || v === "page";
+        adminEl.classList.toggle("split", split);
+        adminEl.classList.remove("nav-open");
+        $<HTMLElement>("#menu").hidden = !split;
+        live.hidden = !split;
+        unfocus();
+        selKey = "";
         msg = $<HTMLElement>(".msg", { editor: form!, settings: settingsForm, pages: pagesView, page: pageForm, empty: form! }[v]);
         renderPages();
         renderHist();
@@ -821,7 +970,7 @@ if (form) {
         show("editor");
         setCurrent(ev);
         setDirty(!ev && !!o.data);
-        queuePrev();
+        queueLive(0);
         say(o.note ?? "");
         if (!o.data) offerDraft((d) => fill(d.data, d.slug));
         if (matchMedia("(max-width: 760px)").matches) form!.scrollIntoView();
@@ -952,7 +1101,7 @@ if (form) {
             }),
         );
     }
-    const SETTINGS_KEYS = ["email", "phone", "whatsapp", "instagram", "bookingUrl", "heroAction", "heroUrl", "nav", "banner", "seo", "analyticsToken"];
+    const SETTINGS_KEYS = ["email", "phone", "whatsapp", "instagram", "bookingUrl", "heroAction", "heroUrl", "nav", "banner", "seo", "analyticsToken", "sfondo"];
     function collectSettings() {
         const v = (n: string, root: ParentNode = settingsForm) => $(`[name=${n}]`, root).value.trim() || undefined;
         return {
@@ -967,6 +1116,7 @@ if (form) {
                     .filter(([, x]) => x.title || x.description || x.image),
             ),
             analyticsToken: v("analyticsToken") ?? "",
+            sfondo: readBg($(".bg[data-name=sfondo]", settingsForm)),
         };
     }
     function fillSettings(d: Data) {
@@ -981,10 +1131,14 @@ if (form) {
             box.replaceChildren();
             initImg(box, x.image);
         }
+        initBg($(".bg[data-name=sfondo]", settingsForm), d.sfondo);
         renderNav(d.nav);
         syncHero();
     }
-    settingsForm.addEventListener("input", () => setDirty(true));
+    settingsForm.addEventListener("input", (e) => {
+        bgInput(e.target as HTMLInputElement);
+        setDirty(true);
+    });
     settingsForm.addEventListener("submit", (e) => {
         e.preventDefault();
         saveSettings(collectSettings());
@@ -1084,9 +1238,9 @@ if (form) {
     let sHist: { id: number; data: Data; author?: string; savedAt: number }[] | undefined;
     const omit = (d: Data, keys: string[]) => Object.fromEntries(Object.entries(d).filter(([k]) => !keys.includes(k)));
     const part = (d: Data): unknown =>
-        view === "page" ? (pageKey === "home" ? d.home : d.pagine?.find((p: Data) => p.slug === pageKey))
+        view === "page" ? (pageKey === "home" ? { blocks: d.home, sfondo: d.sfondoHome } : d.pagine?.find((p: Data) => p.slug === pageKey))
         : view === "settings" ? Object.fromEntries(SETTINGS_KEYS.map((k) => [k, d[k]]))
-        : omit(d, [...SETTINGS_KEYS, "home", "pagine", "stili"]); // testi, motto, stili delle sezioni
+        : omit(d, [...SETTINGS_KEYS, "home", "sfondoHome", "pagine", "stili"]); // testi, motto, stili delle sezioni
     async function renderHist() {
         const sel = $<HTMLSelectElement>(".hist", { page: pageForm, settings: settingsForm, pages: pagesView }[view as "page"] ?? pageForm);
         if (!["page", "settings", "pages"].includes(view) || (view === "page" && pageKey === "")) return void (sel.hidden = true);
@@ -1112,7 +1266,7 @@ if (form) {
             const p = part(v.data) as Data | undefined;
             if (view === "page") {
                 if (!p) return say("In quella versione questa pagina non esisteva.", true);
-                fillPage(pageKey === "home" ? { blocks: p } : { ...p, menu: v.data.nav.some((l: Data) => l.href === `/${pageKey}`) });
+                fillPage(pageKey === "home" ? p : { ...p, menu: v.data.nav.some((l: Data) => l.href === `/${pageKey}`) });
             } else if (view === "settings") fillSettings(v.data);
             else {
                 // anche i testi tornati all'originale (chiave assente nella versione)
@@ -1155,13 +1309,13 @@ if (form) {
         const openA = $<HTMLAnchorElement>("#pg-open");
         openA.hidden = key === "";
         openA.href = home ? "/" : `/${key}`;
-        fillPage(home ? { blocks: settings.home } : p ? { ...p, menu: inMenu(p.slug) } : { hidden: true, blocks: [{ type: "testo" }] });
+        fillPage(home ? { blocks: settings.home, sfondo: settings.sfondoHome } : p ? { ...p, menu: inMenu(p.slug) } : { hidden: true, blocks: [{ type: "testo" }] });
         if (key === "") $<HTMLDetailsElement>("#page-ed .block-ed").open = true;
         show("page");
         setDirty(false);
         say(key === "" ? "Nuova pagina: parte nascosta, togli la spunta quando è pronta." : "");
         offerDraft(fillPage);
-        queuePagePrev();
+        queueLive(0);
         if (key === "") $("[name=pgTitle]", pageForm).focus();
     }
     // campi della pagina aperta ⇄ { slug, title, description, hidden, menu, blocks } (per la home solo blocks)
@@ -1177,16 +1331,19 @@ if (form) {
         else delete slug.dataset.auto;
         $("#pg-title").textContent = pageKey === "home" ? "Home" : p.title || "Nuova pagina";
         initBlocks($(".blocks-wrap", pageForm), p.blocks ?? []);
+        initBg($(".bg[data-name=sfondo]", pageForm), p.sfondo);
     }
     function collectPage() {
         const blocks = readBlocks($(".blocks-wrap", pageForm));
-        if (pageKey === "home") return { blocks };
+        const sfondo = readBg($(".bg[data-name=sfondo]", pageForm));
+        if (pageKey === "home") return { blocks, sfondo };
         const v = (n: string) => $(`[name=${n}]`, pageForm).value.trim() || undefined;
         return {
             slug: v("pgSlug")!, title: v("pgTitle")!, description: v("pgDesc"),
             hidden: $("[name=pgHidden]", pageForm).checked || undefined,
             menu: $("[name=pgMenu]", pageForm).checked || undefined,
             blocks,
+            sfondo,
         };
     }
     pageForm.addEventListener("click", (e) => {
@@ -1210,7 +1367,10 @@ if (form) {
     });
     pageForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        if (pageKey === "home") return void saveSettings({ home: collectPage().blocks });
+        if (pageKey === "home") {
+            const { blocks, sfondo } = collectPage();
+            return void saveSettings({ home: blocks, sfondoHome: sfondo });
+        }
         const { menu: want, ...p } = collectPage() as Data;
         if (settings.pagine.some((x: Data) => x.slug === p.slug && x.slug !== pageKey)) return say(`C'è già una pagina /${p.slug}: scegli un altro indirizzo.`, true);
         // stessa posizione nell'elenco; il menu segue indirizzo e spunta "Nel menu"
@@ -1261,6 +1421,7 @@ if (form) {
     };
 
     const fromHash = () => {
+        adminEl.classList.remove("nav-open");
         const id = decodeURIComponent(location.hash.slice(1));
         if (id.startsWith("pagina-")) {
             const key = id.slice(7);

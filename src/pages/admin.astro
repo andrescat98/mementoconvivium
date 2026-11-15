@@ -4,7 +4,7 @@ import { isAdmin, login as renew } from "../lib/auth";
 import { getDeleted, getEvents, getSettings } from "../lib/db";
 import { FONT_GROUPS } from "../lib/fonts";
 import { BLOCK_TEXT, SEZIONI_TEXT, STATUS_TEXT } from "../lib/format";
-import { ANIMS, BLOCKS, EVENTI_SHOW, FX, HERO_ACTIONS, PADS, SEZIONI, STATUS } from "../lib/schema";
+import { ANIMS, BLOCKS, EVENTI_SHOW, FX, HERO_ACTIONS, HERO_LAYOUTS, IMG_AR, PADS, SEZIONI, STATUS } from "../lib/schema";
 import "../styles/admin.css";
 
 const login = Astro.getActionResult(actions.login);
@@ -26,6 +26,12 @@ const ANIM_TEXT: Record<string, string> = { sali: "Sale dal basso", dissolvenza:
 const FX_TEXT: Record<string, string> = { ombra: "Ombra", bagliore: "Bagliore dorato", oro: "Oro", inciso: "Inciso", contorno: "Solo contorno" };
 const SEO_PAGES = [["/", "Home"], ["/lista-eventi", "Lista eventi"], ["/contatti", "Contatti"], ["/privacy", "Privacy"]];
 const PAD_TEXT: Record<string, string> = { compatta: "Compatta", ariosa: "Ariosa", schermo: "A tutto schermo" };
+const LAYOUT_TEXT: Record<string, string> = { destra: "Testo a sinistra, date a destra", sinistra: "Date a sinistra, testo a destra", sotto: "Date in una fascia sotto il testo", centro: "Tutto centrato" };
+const ALIGNS = [["sinistra", "A sinistra"], ["centro", "Al centro"], ["destra", "A destra"], ["giustificato", "Giustificato"]];
+const FS = [["0.85", "Piccolo"], ["1.15", "Grande"], ["1.35", "Molto grande"]];
+const LH = [["1.3", "Stretta"], ["1.6", "Media"], ["2", "Ariosa"], ["2.4", "Molto ariosa"]];
+const WIDTHS = [["stretta", "Stretta (colonna di lettura)"], ["larga", "Larga"], ["piena", "Tutto lo schermo"]];
+const AR_TEXT: Record<string, string> = { quadrata: "Quadrata", orizzontale: "Orizzontale 3:2", panoramica: "Panoramica 16:9", originale: "Intera, non ritagliata" };
 const SIZES = [["0.8", "Piccoli"], ["1.2", "Grandi"], ["1.45", "Enormi"]];
 const SHOW_TEXT: Record<string, string> = { prossimi: "Prossimi", tutti: "Tutti", passati: "Già fatti" };
 // pagine con testi modificabili (attributo data-k): la pagina evento solo se ce n'è una pubblica
@@ -68,6 +74,7 @@ const fontsHref =
 ) : (
     <>
     <header class="top">
+        <button type="button" id="menu" hidden aria-controls="side">☰ Eventi e pagine</button>
         <strong class="brand">Memento Convivium · Moderatori</strong>
         <span id="dirty" hidden>● Non salvato</span>
         <label class="who">Il tuo nome<input id="who" maxlength="40" placeholder="per la cronologia" autocomplete="nickname" /></label>
@@ -77,7 +84,7 @@ const fontsHref =
     </header>
 
     <main class="admin">
-        <nav class="side">
+        <nav class="side" id="side">
             <button type="button" id="new" class="primary">+ Nuovo evento</button>
             <input id="search" type="search" placeholder="Cerca evento…" aria-label="Cerca evento" />
             <ul id="list"></ul>
@@ -130,6 +137,10 @@ const fontsHref =
                     <label class="wide">Link (facoltativo)<input name="bannerHref" placeholder="/eventi/pirati oppure https://…" /></label>
                     <p class="hint">Compare in basso su ogni pagina; chi lo chiude non lo rivede finché non cambi il testo.</p>
                 </fieldset>
+            </details>
+            <details class="sec">
+                <summary>🖼 Sfondo di tutte le pagine</summary>
+                <div class="bg" data-name="sfondo" data-page data-label="Al posto del marmo su tutto il sito. Home, pagine ed eventi possono averne uno loro. Vuoto = marmo."></div>
             </details>
             <details class="sec">
                 <summary>Google e anteprime social</summary>
@@ -202,6 +213,7 @@ const fontsHref =
                 <button class="primary" title="Ctrl+S">Salva</button>
             </div>
             <p class="msg" role="status"></p>
+            <button type="button" class="unfocus" data-unfocus>← Tutti i blocchi della pagina</button>
             <details open class="sec" id="pg-base">
                 <summary>Pagina</summary>
                 <fieldset>
@@ -212,17 +224,16 @@ const fontsHref =
                     <label class="check"><input type="checkbox" name="pgHidden" /> Nascosta (bozza: la vedono solo i moderatori)</label>
                 </fieldset>
             </details>
+            <details class="sec">
+                <summary>🖼 Sfondo della pagina</summary>
+                <div class="bg" data-name="sfondo" data-page data-label="Al posto del marmo, dietro tutta la pagina. Vuoto = lo sfondo del sito (Impostazioni sito)."></div>
+            </details>
             <details open class="sec">
                 <summary>Blocchi</summary>
                 <div class="blocks-wrap">
                     <div class="blocks"></div>
                     <div class="add-blocks"></div>
                 </div>
-            </details>
-            <details open class="sec" id="pg-prev-sec">
-                <summary>Anteprima</summary>
-                <p class="hint prev-hint">Componenti e stili veri del sito, coi dati non ancora salvati. Si aggiorna mentre scrivi.</p>
-                <div class="prev"><iframe title="Anteprima della pagina"></iframe></div>
             </details>
         </form>
 
@@ -240,8 +251,9 @@ const fontsHref =
                 <button class="primary" title="Ctrl+S">Salva</button>
             </div>
             <p class="msg" role="status"></p>
+            <button type="button" class="unfocus" data-unfocus>← Tutto l'evento</button>
 
-            <details open class="sec">
+            <details open class="sec" data-ed="hero">
                 <summary>Base</summary>
                 <fieldset>
                     <label>Titolo<input name="title" required /></label>
@@ -258,7 +270,7 @@ const fontsHref =
                 </fieldset>
             </details>
 
-            <details open class="sec">
+            <details open class="sec" data-ed="hero">
                 <summary>Aspetto</summary>
                 <fieldset>
                     <div class="img" data-name="cover" data-shape="wide" data-preview data-label="Copertina (intestazione, card della timeline se non ha un'immagine sua, social)"></div>
@@ -272,12 +284,19 @@ const fontsHref =
                         <button type="button" data-font="characterFont">Scegli…</button>
                         <p class="font-sample" data-sample="characterFont"></p>
                     </div>
-                    <details class="bg-wrap wide"><summary>🎨 Stile dell'intestazione</summary><div class="bg" data-name="heroStyle" data-label="Lo sfondo sta sotto la copertina."></div></details>
+                    <label>Disposizione dell'intestazione
+                        <select name="heroLayout">{HERO_LAYOUTS.map((l) => <option value={l === "destra" ? "" : l}>{LAYOUT_TEXT[l]}</option>)}</select>
+                    </label>
+                    <label>Copertina nell'intestazione
+                        <select name="coverMode"><option value="">Sfumata a destra</option><option value="pieno">A tutto sfondo</option></select>
+                    </label>
+                    <details class="bg-wrap wide" open><summary>🎨 Stile e altezza dell'intestazione</summary><div class="bg" data-name="heroStyle" data-label="Lo sfondo sta sotto la copertina."></div></details>
+                    <details class="bg-wrap wide"><summary>🖼 Sfondo della pagina (al posto del marmo)</summary><div class="bg" data-name="sfondo" data-page data-label="Dietro tutta la pagina dell'evento. Vuoto = lo sfondo del sito (Impostazioni sito)."></div></details>
                     <details class="bg-wrap wide"><summary>🎨 Stile predefinito delle schede</summary><div class="bg" data-name="background" data-label="Vale per tutte le schede; ogni scheda può cambiarne una parte."></div></details>
                 </fieldset>
             </details>
 
-            <details open class="sec">
+            <details open class="sec" data-ed="hero">
                 <summary>Date e prezzi</summary>
                 <fieldset>
                     <div id="dates" class="rows"></div>
@@ -314,7 +333,7 @@ const fontsHref =
                 </fieldset>
             </details>
 
-            <details class="sec">
+            <details class="sec" data-ed="cards">
                 <summary>Timeline in home</summary>
                 <fieldset>
                     <label>Anno storico (negativo = a.C.)<input name="historicalYear" type="number" step="1" /></label>
@@ -324,12 +343,16 @@ const fontsHref =
                     <div class="img" data-name="timelineImage" data-shape="wide" data-preview data-label="Immagine della card (vuota = copertina)"></div>
                 </fieldset>
             </details>
-            <details class="sec" id="prev-sec">
-                <summary>Anteprima: intestazione, schede e card</summary>
-                <p class="hint prev-hint">Componenti e stili veri del sito, coi dati non ancora salvati. Si aggiorna mentre scrivi.</p>
-                <div class="prev"><iframe title="Anteprima"></iframe></div>
-            </details>
         </form>
+
+        <!-- ── Anteprima dal vivo di evento e pagine (a destra del form): clic su un blocco = sue impostazioni a sinistra -->
+        <section id="live" hidden>
+            <div class="live-bar">
+                <span class="hint">Anteprima dal vivo, coi dati non salvati: clicca una parte per modificarla</span>
+                <label class="check"><input type="checkbox" id="live-phone" /> 📱 Telefono</label>
+            </div>
+            <div class="prev live"><iframe title="Anteprima dal vivo"></iframe></div>
+        </section>
     </main>
 
     <!-- ── Inquadratura immagine -->
@@ -467,10 +490,15 @@ const fontsHref =
                         <div class="md-out" hidden></div>
                     </div>
                 </div>
-                <div class="img" data-for="testo" data-name="bImage" data-shape="tall" data-label="Immagine accanto al testo"></div>
-                <label data-for="testo">Lato dell'immagine
-                    <select name="side"><option value="">Destra</option><option value="sinistra">Sinistra</option></select>
-                </label>
+                <div class="img" data-for="testo" data-name="bImage" data-shape="tall" data-label="Immagine del testo"></div>
+                <div class="wide img-opts" data-for="testo">
+                    <label>Posizione dell'immagine
+                        <select name="side"><option value="">A destra del testo</option><option value="sinistra">A sinistra del testo</option><option value="sopra">Sopra il testo</option><option value="sotto">Sotto il testo</option></select>
+                    </label>
+                    <label>Forma<select name="imgAr"><option value="">Verticale 4:5</option>{IMG_AR.map((a) => <option value={a}>{AR_TEXT[a]}</option>)}</select></label>
+                    <label class="veil">Larghezza <output></output><input type="range" name="imgW" min="0" max="90" step="5" value="0" /></label>
+                    <label>Allineamento verticale<select name="valign"><option value="">In alto</option><option value="centro">Al centro</option><option value="basso">In basso</option></select></label>
+                </div>
                 <div class="wide" data-for="galleria">
                     <div class="rows shots"></div>
                     <label class="file-btn">+ Aggiungi foto (anche più insieme)<input type="file" accept="image/*" multiple data-multi /></label>
@@ -522,7 +550,7 @@ const fontsHref =
     </template>
     <template id="tpl-bg">
         <span class="hint bg-label"></span>
-        <div class="bg-row">
+        <div class="bg-row bg-sez">
             <label>Stile salvato<select name="preset"><option value="">—</option></select></label>
             <button type="button" data-style-save title="Salva questa combinazione con un nome, per riusarla altrove">Salva come stile…</button>
             <button type="button" data-style-del title="Elimina lo stile salvato scelto">Elimina stile</button>
@@ -532,17 +560,29 @@ const fontsHref =
             <input type="color" name="bgColor" value="#f5f2ec" aria-label="Colore di sfondo" />
             <label class="veil">Velo sull'immagine <output></output><input type="range" name="bgVeil" min="0" max="90" step="5" value="0" /></label>
             <label class="check"><input type="checkbox" name="dark" /> Velo scuro</label>
-            <label class="check"><input type="checkbox" name="parallax" /> Parallasse</label>
+            <label class="check bg-sez"><input type="checkbox" name="parallax" /> Parallasse</label>
         </div>
         <div class="img" data-name="bgImage" data-shape="wide" data-label="Immagine di sfondo"></div>
-        <div class="bg-row">
+        <p class="bg-h bg-sez">Testo</p>
+        <div class="bg-row bg-sez">
             <label class="check"><input type="checkbox" name="textOn" /> Colore del testo</label>
             <input type="color" name="textColor" value="#f4f0e8" aria-label="Colore del testo" />
             <span class="bg-font"><label>Font dei titoli<input name="font" placeholder="predefinito" /></label><button type="button" data-font>Scegli…</button></span>
             <label>Grandezza titoli<select name="size"><option value="">Normale</option>{SIZES.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+        </div>
+        <div class="bg-row bg-sez">
+            <label>Allineamento<select name="align"><option value="">Predefinito</option>{ALIGNS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+            <label>Grandezza del testo<select name="fs"><option value="">Normale</option>{FS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+            <label>Interlinea<select name="lh"><option value="">Normale</option>{LH.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+            <label>Larghezza del contenuto<select name="w"><option value="">Normale</option>{WIDTHS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+        </div>
+        <p class="bg-h bg-sez">Altezza e spazi</p>
+        <div class="bg-row bg-sez">
+            <label class="veil">Altezza minima <output></output><input type="range" name="height" min="0" max="100" step="10" value="0" /></label>
+            <label>Contenuto<select name="vpos"><option value="">Al centro</option><option value="alto">In alto</option><option value="basso">In basso</option></select></label>
             <label>Spaziatura<select name="pad"><option value="">Normale</option>{PADS.map((p) => <option value={p}>{PAD_TEXT[p]}</option>)}</select></label>
         </div>
-        <div class="bg-row">
+        <div class="bg-row bg-sez">
             <label>Animazione d'entrata<select name="anim"><option value="">Nessuna</option>{ANIMS.map((a) => <option value={a}>{ANIM_TEXT[a]}</option>)}</select></label>
             <label>Effetto sui titoli<select name="fx"><option value="">Nessuno</option>{FX.map((f) => <option value={f}>{FX_TEXT[f]}</option>)}</select></label>
         </div>

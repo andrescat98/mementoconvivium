@@ -91,9 +91,12 @@ body::before {
     left: 0;
     width: 100vw;
     height: 100lvh;
-    background:
+    /* --page-bg: sfondo scelto in /admin per il sito, la home, una pagina o un evento (format.ts pageBg) */
+    background: var(
+        --page-bg,
         linear-gradient(rgba(245, 242, 236, 0.5), rgba(245, 242, 236, 0.5)),
-        url("/marble.webp") center / cover no-repeat;
+        url("/marble.webp") center / cover no-repeat
+    );
     pointer-events: none;
     z-index: 0;
 }
@@ -576,6 +579,58 @@ a {
 }
 [data-pad="ariosa"] {
     padding-block: 9rem !important;
+}
+[data-h] {
+    min-height: var(--sez-h);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+[data-h] > .container,
+[data-vpos="alto"] {
+    justify-content: flex-start;
+}
+[data-vpos="basso"] {
+    justify-content: flex-end;
+}
+
+/* Impaginazione: allineamento, larghezza del contenuto, interlinea e grandezza del testo */
+[data-align="sinistra"],
+[data-align="sinistra"] .section-header {
+    text-align: left;
+}
+[data-align="centro"],
+[data-align="centro"] .section-header {
+    text-align: center;
+}
+[data-align="destra"],
+[data-align="destra"] .section-header {
+    text-align: right;
+}
+[data-align="giustificato"] :is(p, li) {
+    text-align: justify;
+}
+[data-w="stretta"] :is(.container, .blocco-inner) {
+    max-width: 760px;
+    margin-inline: auto;
+}
+[data-w="larga"] .container {
+    max-width: 1500px;
+}
+[data-w="piena"] .container {
+    max-width: none;
+}
+:is([data-w="larga"], [data-w="piena"]) :is(.ev-panel-text, .ev-panel-intro, .faq) {
+    max-width: none;
+}
+[data-lh] :is(p, li, .ev-prose) {
+    line-height: var(--sez-lh);
+}
+[data-fs] :is(p, li, .ev-prose) {
+    font-size: calc(1.1rem * var(--sez-fs));
+}
+[data-pad="schermo"] > .container {
+    width: 100%;
 }
 [data-pad="schermo"] {
     min-height: 100svh;

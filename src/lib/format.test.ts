@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bookCta, bookHref, dateLabel, googleFontsHref, imgStyle, look, md, slugify, today, upgradeTab, veil, videoEmbed } from "./format.ts";
+import { bookCta, bookHref, dateLabel, googleFontsHref, imgStyle, look, md, pageBg, slugify, today, upgradeTab, veil, videoEmbed } from "./format.ts";
 
 test("dateLabel", () => {
   assert.equal(dateLabel("2026-06-19"), "Ven 19 Giu 2026");
@@ -43,12 +43,19 @@ test("bookCta: niente bottone se chiuso o con sole date passate", () => {
 });
 
 test("look e veil", () => {
-  assert.deepEqual(look(undefined), { "data-anim": undefined, "data-fx": undefined, "data-pad": undefined, "data-font": undefined, "data-size": undefined, "data-parallax": undefined, style: undefined });
+  assert.deepEqual(look(undefined), { "data-anim": undefined, "data-fx": undefined, "data-pad": undefined, "data-font": undefined, "data-size": undefined, "data-h": undefined, "data-vpos": undefined, "data-align": undefined, "data-w": undefined, "data-lh": undefined, "data-fs": undefined, "data-parallax": undefined, style: undefined });
   const l = look({ anim: "sali", font: "Rye, cursive", size: 1.2, text: "#ffffff", parallax: true });
   assert.equal(l["data-anim"], "sali");
   assert.equal(l["data-font"], "");
   assert.equal(l["data-parallax"], undefined); // parallasse solo con immagine
   assert.match(l.style!, /--cream:#ffffff;.*--sez-font:Rye, cursive;--sez-zoom:1.2$/);
+  const h = look({ height: 60 });
+  assert.equal(h["data-h"], "");
+  assert.equal(h.style, "--sez-h:60svh");
+  assert.equal(look({ lh: 2, fs: 1.2, align: "centro" }).style, "--sez-lh:2;--sez-fs:1.2");
+  assert.equal(pageBg(undefined), undefined);
+  assert.equal(pageBg({ color: "#000000" }), "#000000");
+  assert.equal(pageBg({ image: { src: "/img/1", x: 20, y: 30 }, veil: 40, dark: true, color: "#111111" }), 'linear-gradient(rgb(20 17 14 / 40%),rgb(20 17 14 / 40%)),url("/img/1") 20% 30% / cover no-repeat,#111111');
   assert.equal(veil({ veil: 40, dark: true }), "rgb(20 17 14 / 40%)");
 });
 

@@ -1,5 +1,6 @@
 ---
-// Intestazione della pagina evento: copertina, date, bottone. Usata anche dall'anteprima in /admin.
+// Intestazione della pagina evento: copertina, testo e riquadro con date e bottone (a destra, a sinistra, sotto o al centro: heroLayout).
+// Usata anche dall'anteprima in /admin.
 import Sfondo from "./Sfondo.astro";
 import { dateLabel, imgStyle, look, today, type bookCta } from "../lib/format";
 import type { EventoData } from "../lib/schema";
@@ -10,39 +11,46 @@ interface Props {
 }
 const { d, cta } = Astro.props;
 const oggi = today();
+const prossime = d.dates?.filter((x) => x.dateISO >= oggi) ?? [];
+const passate = d.dates?.filter((x) => x.dateISO < oggi) ?? [];
 ---
 
-<section class="ev-hero" {...look(d.heroStyle)}>
+<section class="ev-hero" data-layout={d.heroLayout} data-cover={d.coverMode} {...look(d.heroStyle)}>
     <Sfondo bg={d.heroStyle} />
     {d.cover && <img class="ev-hero-cover" src={d.cover.src} alt="" style={imgStyle(d.cover)} />}
     <div class="container ev-hero-inner">
         <a href="/lista-eventi" class="ev-back"><span>←</span> Tutti gli eventi</a>
-        <div class="ev-hero-content">
-            <span class="section-label">{d.theme}</span>
-            <h1 class="ev-title">{d.title}</h1>
-            <p class="ev-excerpt">{d.excerpt}</p>
-            {d.dates?.length ? (
-                <div class="ev-date-boxes">
-                    {d.dates.map((x) => (
-                        <div class={`ev-date-box${x.dateISO < oggi ? " ev-date-box-past" : ""}`}>
+        <div class="ev-hero-grid">
+            <div class="ev-hero-content">
+                <span class="section-label">{d.theme}</span>
+                <h1 class="ev-title">{d.title}</h1>
+                <p class="ev-excerpt">{d.excerpt}</p>
+            </div>
+            <aside class="ev-info">
+                {prossime.length ? (
+                    prossime.map((x) => (
+                        <div class="ev-date-box">
                             <div class="ev-date-box-label">{dateLabel(x.dateISO)}</div>
                             {x.location && <div class="ev-date-box-info"><span class="meta-label">Luogo</span>{x.location}</div>}
                             {x.price && <div class="ev-date-box-info"><span class="meta-label">Quota</span>{x.price}</div>}
                         </div>
-                    ))}
-                </div>
-            ) : (
+                    ))
+                ) : (
+                    <div class="ev-date-box">
+                        <div class="ev-date-box-label">{passate.length ? "Nuove date in arrivo" : "Data da annunciare"}</div>
+                        {d.location && <div class="ev-date-box-info"><span class="meta-label">Luogo</span>{d.location}</div>}
+                        {d.price && <div class="ev-date-box-info"><span class="meta-label">Quota</span>{d.price}</div>}
+                    </div>
+                )}
                 <div class="ev-meta-row">
-                    <div class="ev-meta-item"><span class="meta-label">Data</span><span>Da annunciare</span></div>
-                    {d.location && <div class="ev-meta-item"><span class="meta-label">Luogo</span><span>{d.location}</span></div>}
-                    {d.price && <div class="ev-meta-item"><span class="meta-label">Quota</span><span>{d.price}</span></div>}
+                    <div class="ev-meta-item"><span class="meta-label">Durata</span><span>{d.duration}</span></div>
+                    {!!d.includes?.length && <div class="ev-meta-item"><span class="meta-label">Include</span><span>{d.includes.join(" · ")}</span></div>}
                 </div>
-            )}
-            <div class="ev-meta-row">
-                <div class="ev-meta-item"><span class="meta-label">Durata</span><span>{d.duration}</span></div>
-                {!!d.includes?.length && <div class="ev-meta-item"><span class="meta-label">Include</span><span>{d.includes.join(" · ")}</span></div>}
-            </div>
-            {cta && <a href={cta.href} class={`${cta.cls} ev-cta-btn`}>{cta.label}</a>}
+                {!!passate.length && (
+                    <p class="ev-past"><span class="meta-label">Già andato in scena</span> {passate.map((x) => dateLabel(x.dateISO)).join(" · ")}</p>
+                )}
+                {cta && <a href={cta.href} class={`${cta.cls} ev-cta-btn`}>{cta.label}</a>}
+            </aside>
         </div>
     </div>
     <div class="greek-border"></div>

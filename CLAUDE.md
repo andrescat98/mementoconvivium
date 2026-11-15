@@ -10,11 +10,11 @@ Astro 7 SSR su Cloudflare Worker (`@astrojs/cloudflare` 14) + Turso. Italiano in
 - `src/actions/index.ts` — login/logout/saveEvent/deleteEvent/uploadImage; ogni action admin chiama `guard()` e invalida il tag `eventi`
 - `src/pages/admin.astro` — markup UI moderatori; logica in `src/scripts/admin.ts` (vanilla: bozze locali in localStorage `mc_draft:*`, cronologia), stili in `src/styles/admin.css`
 - `src/components/` — `Blocco` (un blocco di qualunque tipo; le sezioni fisse sono `HomeHero`, `ComeFunziona`, `TimelineSection`, `Prenota`), `FotoDialog` (una per pagina), `TimelineCard`, `EventCard`, `EventoHero`, `Sfondo`: usati dalle pagine e da `/admin/anteprima`
-- `src/pages/admin/anteprima.astro` — POST JSON dall'admin (`{slug,data}` evento o `{blocks}` home/pagina) → anteprima coi dati non salvati (iframe in /admin)
+- `src/pages/admin/anteprima.astro` — POST JSON dall'admin (`{slug,data}` evento o `{blocks}` home/pagina) → anteprima coi dati non salvati. In /admin evento e pagine sono divisi: form a sinistra, anteprima dal vivo a destra (`#live`); le parti cliccabili sono `[data-ed]` (`hero`, `cards`, `t0`, `t0.2`, `2`) e il clic lascia nel form solo quel blocco (`.sel`, CSS in admin.css); le schede hanno la barra come sul sito e i "＋" (`.ed-ins`) aggiungono blocchi in quel punto
 - `src/pages/index.astro` (home = `settings.home`), `src/pages/[slug].astro` (pagine nuove = `settings.pagine`)
 - `src/pages/eventi/[slug].astro` — intestazione + schede di blocchi (JS mostra una scheda per `#ancora`)
 - `src/pages/img/[id].ts` — BLOB da Turso; `src/pages/sitemap.xml.ts`
-- `src/layouts/Layout.astro` — SEO delle pagine fisse (`settings.seo`), avviso (`settings.banner`), Cloudflare Web Analytics (`settings.analyticsToken`), animazioni d'entrata
+- `src/layouts/Layout.astro` — sfondo della pagina al posto del marmo (prop `sfondo` ?? `settings.sfondo` → `--page-bg`, `pageBg()`), SEO delle pagine fisse (`settings.seo`), avviso (`settings.banner`), Cloudflare Web Analytics (`settings.analyticsToken`), animazioni d'entrata
 - `src/env.d.ts` — tipi minimi `cloudflare:workers` (i tipi runtime completi confliggono col DOM: usare `npm run types`, non `wrangler types`)
 - `pages/` — progetto Pages = solo proxy (`_worker.js` → service binding `SITE`) + `_routes.json` per servire statici da Pages
 - `db/schema.sql`, `db/seed.sql` — schema e snapshot iniziale (8 eventi)

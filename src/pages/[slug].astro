@@ -15,7 +15,7 @@ const blocks = p.blocks.filter((b) => !b.hidden);
 const eventi = blocks.some((b) => b.type === "eventi" || b.type === "ricordi" || b.type === "sezione") ? await getEvents() : [];
 ---
 
-<Layout title={`${p.title} · Memento Convivium`} description={p.description}>
+<Layout title={`${p.title} · Memento Convivium`} description={p.description} sfondo={p.sfondo}>
     {p.hidden && <p class="ev-preview-banner">Anteprima moderatori · pagina nascosta: non è visibile al pubblico</p>}
     {blocks.map((b) => <Blocco b={b} eventi={eventi} />)}
     <FotoDialog />

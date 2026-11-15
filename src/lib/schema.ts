@@ -14,7 +14,11 @@ const img = imgReq.optional();
 // Attributi in look() (format.ts), CSS in styles/global.css.
 export const ANIMS = ["sali", "dissolvenza", "zoom", "sinistra", "destra"] as const;
 export const FX = ["ombra", "bagliore", "oro", "inciso", "contorno"] as const;
+// forme dell'immagine nel blocco testo (proporzioni; originale = non ritagliata)
+export const IMG_AR = ["quadrata", "orizzontale", "panoramica", "originale"] as const;
 export const PADS = ["compatta", "ariosa", "schermo"] as const;
+// intestazione evento: dove sta il riquadro con date e bottone
+export const HERO_LAYOUTS = ["destra", "sinistra", "sotto", "centro"] as const;
 const hex = z.string().regex(/^#[0-9a-f]{6}$/i);
 export const bgObj = z.object({
   color: hex.optional(),
@@ -26,6 +30,12 @@ export const bgObj = z.object({
   font: z.string().regex(/^[\w\s'",-]+$/).optional(), // es. "Rye, cursive"
   size: z.number().min(0.6).max(1.8).optional(), // scala dei titoli
   pad: z.enum(PADS).optional(),
+  height: z.number().int().min(10).max(100).optional(), // altezza minima, % dello schermo
+  vpos: z.enum(["alto", "basso"]).optional(), // contenuto in una sezione alta (vuoto = al centro)
+  align: z.enum(["sinistra", "centro", "destra", "giustificato"]).optional(), // allineamento del testo
+  w: z.enum(["stretta", "larga", "piena"]).optional(), // larghezza del contenuto
+  lh: z.number().min(1).max(3).optional(), // interlinea
+  fs: z.number().min(0.6).max(2).optional(), // grandezza del testo
   anim: z.enum(ANIMS).optional(),
   fx: z.enum(FX).optional(),
 });
@@ -52,7 +62,10 @@ export const blockSchema = z.object({
   title: opt,
   body: z.string().optional(), // markdown minimo, vedi md()
   image: img, // testo
-  side: z.enum(["destra", "sinistra"]).optional(), // lato dell'immagine nel testo
+  side: z.enum(["destra", "sinistra", "sopra", "sotto"]).optional(), // posizione dell'immagine nel testo
+  imgW: z.number().int().min(10).max(90).optional(), // larghezza dell'immagine, % del blocco
+  imgAr: z.enum(IMG_AR).optional(), // forma dell'immagine (vuoto = verticale 4:5)
+  valign: z.enum(["centro", "basso"]).optional(), // immagine e testo affiancati: allineamento verticale
   gallery: z.array(z.object({ image: imgReq, caption: opt })).optional(), // galleria
   characters: z.array(character).optional(), // personaggi
   faq: z.array(z.object({ q: z.string().trim().min(1), a: z.string().trim().min(1) })).optional(),
@@ -92,6 +105,9 @@ export const eventoSchema = z.object({
   cover: img, // copertina: sfondo dell'intestazione e anteprima sui social
   background: bg, // stile predefinito delle schede (ogni scheda può sovrascriverne i campi)
   heroStyle: bg, // stile dell'intestazione
+  sfondo: bg, // sfondo della pagina dell'evento (vuoto = quello del sito)
+  heroLayout: z.enum(HERO_LAYOUTS).optional(), // vuoto = riquadro a destra
+  coverMode: z.enum(["pieno"]).optional(), // copertina a tutto sfondo invece che sfumata a destra
   tabs: z.array(tab).default([]),
   titleFont: opt, // font-family del titolo e dei titoli delle schede, es. "Rye, cursive"
   characterFont: opt, // font-family del nome nel ritratto fullscreen
@@ -154,6 +170,7 @@ export const pageSchema = z.object({
   description: opt, // Google e anteprime social
   hidden: z.boolean().optional(), // bozza: solo anteprima moderatori
   blocks: z.array(blockSchema).default([]),
+  sfondo: bg, // sfondo della pagina (vuoto = quello del sito)
 });
 export type Pagina = z.infer<typeof pageSchema>;
 const sez = (key: (typeof SEZIONI)[number]): Block => ({ type: "sezione", key });
@@ -174,6 +191,8 @@ export const settingsSchema = z.object({
   tagline: opt, // motto nel footer
   // stile delle sezioni del sito, per chiave data-sez (home-hero, prenota…): /admin → Pagine → 🎨
   sezioni: z.record(z.string().regex(/^[a-z-]+$/), bgObj).default({}),
+  sfondo: bg, // sfondo di tutte le pagine al posto del marmo
+  sfondoHome: bg, // sfondo della home (vuoto = quello del sito)
   stili: z.array(z.object({ name: z.string().trim().min(1).max(40), style: bgObj })).default([]), // stili salvati con nome
   // striscia avvisi su tutte le pagine (vuota = niente)
   banner: z.object({ text: opt, href: opt }).default({}),

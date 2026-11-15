@@ -8,7 +8,7 @@ import { getEvents, getSettings } from "../lib/db";
 const [eventi, s] = await Promise.all([getEvents(), getSettings()]);
 ---
 
-<Layout title="Memento Convivium" description="Cene con Delitto a Tema Storico">
+<Layout title="Memento Convivium" description="Cene con Delitto a Tema Storico" sfondo={s.sfondoHome}>
     {s.home.filter((b) => !b.hidden).map((b) => <Blocco b={b} eventi={eventi} />)}
     <FotoDialog />
 </Layout>

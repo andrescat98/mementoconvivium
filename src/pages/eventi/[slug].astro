@@ -46,6 +46,7 @@ const ids = tabs.map((t, i) => {
     description={excerpt}
     fontHref={googleFontsHref(titleFont, characterFont, evento.data.heroStyle?.font, ...looks.map((l) => l?.font), ...tabs.flatMap((t) => t.blocks.map((b) => b.style?.font)))}
     image={cover?.src}
+    sfondo={evento.data.sfondo}
 >
     {preview && (
         <p class="ev-preview-banner">

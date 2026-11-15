@@ -114,13 +114,28 @@ export function look(b?: Bg) {
     t && `--cream:${t};--white:${t};--gold:${t};--gold-light:${t};--cream-dim:color-mix(in srgb,${t} 75%,transparent)`,
     b?.font && `--sez-font:${b.font}`,
     b?.size && `--sez-zoom:${b.size}`,
+    b?.height && `--sez-h:${b.height}svh`,
+    b?.lh && `--sez-lh:${b.lh}`,
+    b?.fs && `--sez-fs:${b.fs}`,
   ].filter(Boolean);
   const flag = (v?: unknown) => (v ? "" : undefined);
   return {
     "data-anim": b?.anim, "data-fx": b?.fx, "data-pad": b?.pad,
-    "data-font": flag(b?.font), "data-size": flag(b?.size), "data-parallax": flag(b?.parallax && b.image),
+    "data-font": flag(b?.font), "data-size": flag(b?.size), "data-h": flag(b?.height), "data-vpos": b?.vpos, "data-align": b?.align, "data-w": b?.w,
+    "data-lh": flag(b?.lh), "data-fs": flag(b?.fs), "data-parallax": flag(b?.parallax && b.image),
     style: vars.join(";") || undefined,
   };
+}
+
+/** Sfondo di una pagina (colore, immagine inquadrata, velo) come valore di `background`, al posto del marmo (global.css body::before). */
+export function pageBg(b?: Bg) {
+  if (!b?.color && !b?.image) return undefined;
+  const v = b.veil ? veil(b) : undefined;
+  return [
+    v && `linear-gradient(${v},${v})`,
+    b.image && `url("${b.image.src.replace(/["\\]/g, "")}") ${b.image.x ?? 50}% ${b.image.y ?? 50}% / cover no-repeat`,
+    b.color,
+  ].filter(Boolean).join(",");
 }
 
 /** Foglio Google Fonts con i font del sito (Layout e anteprima admin). */
