@@ -3,6 +3,7 @@
 // - evento (POST JSON { slug, data }): la pagina vera (header, intestazione, schede coi pulsanti, Partecipa, footer);
 //   admin.ts sceglie la scheda visibile. Con `cards: true` solo le card di timeline e lista eventi (bottone in /admin)
 // - home o pagina nuova (POST JSON { blocks, sfondo }): header, blocchi, footer, sullo sfondo della pagina
+// - pagina fissa (POST JSON { fissa: "lista-eventi" | "contatti", sfondo }): il suo contenuto vero, senza blocchi
 // I testi del sito ([data-k]) e lo stile delle sezioni fisse ([data-sez]) si modificano qui e finiscono nelle impostazioni.
 // scripts/admin.ts la carica in un iframe e aggiorna dal vivo l'inquadratura delle immagini.
 // Ogni parte modificabile sta in un [data-ed] (display: contents): "hero", "t0" (titolo scheda),
@@ -13,7 +14,9 @@ import Blocco from "../../components/Blocco.astro";
 import Footer from "../../components/Footer.astro";
 import Header from "../../components/Header.astro";
 import PrenotaEvento from "../../components/PrenotaEvento.astro";
+import Contatti from "../../components/Contatti.astro";
 import EventCard from "../../components/EventCard.astro";
+import ListaEventi from "../../components/ListaEventi.astro";
 import Sfondo from "../../components/Sfondo.astro";
 import EventoHero from "../../components/EventoHero.astro";
 import TimelineCard from "../../components/TimelineCard.astro";
@@ -27,12 +30,12 @@ import "../../styles/timeline.css";
 import "../../styles/evento.css";
 
 if (Astro.request.method !== "POST" || !(await isAdmin(Astro.cookies))) return new Response(null, { status: 401 });
-const { slug, data, blocks, sfondo, cards: soloCard } = await Astro.request.json();
+const { slug, data, blocks, sfondo, fissa, cards: soloCard } = await Astro.request.json();
 // campi obbligatori ancora vuoti: segnaposto, così l'anteprima si vede già mentre si scrive
-const r = blocks
-    ? blockSchema.array().safeParse(blocks)
+const r = blocks || fissa
+    ? blockSchema.array().safeParse(blocks ?? [])
     : eventoSchema.safeParse({ title: "Titolo dell'evento", theme: "Tema", duration: "—", excerpt: "Estratto dell'evento…", ...data });
-const evento: Evento | undefined = r.success && !blocks ? { id: slug || "anteprima", data: r.data as Evento["data"] } : undefined;
+const evento: Evento | undefined = r.success && !blocks && !fissa ? { id: slug || "anteprima", data: r.data as Evento["data"] } : undefined;
 const lista: Block[] = r.success && blocks ? (r.data as Block[]) : [];
 const [s, eventi] = await Promise.all([getSettings(), getEvents()]);
 const d = evento?.data;
@@ -67,7 +70,11 @@ const cards = [
 <body style={bodyBg && `--page-bg:${bodyBg}`}>
     {!soloCard && <Header />}
     <main>
-        {evento && soloCard ? (
+        {fissa === "contatti" ? (
+            <Contatti s={s} />
+        ) : fissa === "lista-eventi" ? (
+            <ListaEventi eventi={eventi} s={s} />
+        ) : evento && soloCard ? (
             <div class="prev-cards">
                 {cards.map(([label, w, Card]) => (
                     <figure style={`width:${w}`}>

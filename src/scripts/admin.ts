@@ -10,7 +10,6 @@ const $$ = <T extends Element = HTMLInputElement>(sel: string, root: ParentNode 
 const clone = (id: string) => $<HTMLTemplateElement>(`#tpl-${id}`).content.firstElementChild!.cloneNode(true) as HTMLElement;
 const form = document.querySelector<HTMLFormElement>("#editor");
 const settingsForm = $<HTMLFormElement>("#settings");
-const pagesView = $<HTMLElement>("#pages");
 const pageForm = $<HTMLFormElement>("#page-ed");
 
 if (form) {
@@ -18,7 +17,7 @@ if (form) {
     const eventi = init.eventi;
     let deleted = init.deleted;
     let settings = init.settings; // impostazioni salvate; ogni vista salva le sue modifiche sopra queste
-    let view: "editor" | "settings" | "pages" | "page" | "empty" = "empty";
+    let view: "editor" | "settings" | "page" | "empty" = "empty";
     const oggi = today();
     let current: Evento | undefined; // evento salvato aperto nel form (undefined = nuovo)
     let versions: Version[] = [];
@@ -49,9 +48,9 @@ if (form) {
     // ── bozze locali: ogni vista tiene nel browser le modifiche non salvate (evento, pagina, impostazioni, testi).
     // Chiudendo la pagina o cambiando vista non si perde niente; riaprendo, si sceglie se ripristinarle.
     const draftKey = () =>
-        ({ editor: `mc_draft:ev:${current?.id ?? ""}`, page: `mc_draft:pg:${pageKey}`, settings: "mc_draft:settings", pages: "mc_draft:testi", empty: "" })[view];
+        ({ editor: `mc_draft:ev:${current?.id ?? ""}`, page: `mc_draft:pg:${pageKey}`, settings: "mc_draft:settings", empty: "" })[view];
     const snapshot = (): unknown =>
-        ({ editor: () => collect(), page: () => collectPage(), settings: () => collectSettings(), pages: () => edits, empty: () => undefined })[view]();
+        ({ editor: () => collect(), page: () => collectPage(), settings: () => collectSettings(), empty: () => undefined })[view]();
     let draftTimer = 0;
     let draftOk = true; // false se il browser non lascia salvare (navigazione privata…): allora si avvisa chiudendo
     function writeDraft(key: string, data: unknown) {
@@ -336,7 +335,7 @@ if (form) {
     function queueLive(ms = 500) {
         clearTimeout(liveTimer);
         if (view === "editor" || view === "page")
-            liveTimer = window.setTimeout(() => typing() ? queueLive(800) : renderPrev(liveWrap, view === "editor" ? collect() : { blocks: readBlocks($(".blocks-wrap", pageForm)), sfondo: readBg($(".bg[data-name=sfondo]", pageForm)) }).then(markSel), ms);
+            liveTimer = window.setTimeout(() => typing() ? queueLive(800) : renderPrev(liveWrap, view === "editor" ? collect() : { blocks: readBlocks($(".blocks-wrap", pageForm)), sfondo: readBg($(".bg[data-name=sfondo]", pageForm)), fissa: isFissa() ? pageKey : undefined }).then(markSel), ms);
     }
     $("#live-phone").onchange = (e) => {
         liveWrap.classList.toggle("phone", (e.target as HTMLInputElement).checked);
@@ -1548,7 +1547,6 @@ if (form) {
         view = v;
         form!.hidden = v !== "editor";
         settingsForm.hidden = v !== "settings";
-        pagesView.hidden = v !== "pages";
         pageForm.hidden = v !== "page";
         $<HTMLElement>("#empty").hidden = v !== "empty";
         $<HTMLElement>("#save-top").hidden = v === "empty";
@@ -1561,13 +1559,13 @@ if (form) {
         live.hidden = !split;
         unfocus();
         selKey = "";
-        msg = $<HTMLElement>(".msg", { editor: form!, settings: settingsForm, pages: pagesView, page: pageForm, empty: form! }[v]);
+        msg = $<HTMLElement>(".msg", { editor: form!, settings: settingsForm, page: pageForm, empty: form! }[v]);
         renderPages();
         renderHist();
     }
     // indirizzo della vista aperta, per tornarci se si annulla un cambio di vista
     const here = () =>
-        ({ editor: `#${current?.id ?? ""}`, settings: "#impostazioni", pages: "#pagine", page: pageKey === "" ? location.pathname : `#pagina-${pageKey}`, empty: location.pathname })[view];
+        ({ editor: `#${current?.id ?? ""}`, settings: "#impostazioni", page: pageKey === "" ? location.pathname : `#pagina-${pageKey}`, empty: location.pathname })[view];
 
     // ── evento aperto: intestazione, pulsanti, cronologia
     const histSel = $<HTMLSelectElement>("#history");
@@ -1666,7 +1664,6 @@ if (form) {
             e.preventDefault();
             if (view === "editor") form.requestSubmit();
             else if (view === "settings") settingsForm.requestSubmit();
-            else if (view === "pages") saveSettings(edits);
             else if (view === "page") pageForm.requestSubmit();
         }
     });
@@ -1802,15 +1799,8 @@ if (form) {
         saveSettings(collectSettings());
     });
 
-    // ── testi delle pagine: la pagina vera in un iframe, gli elementi [data-k] diventano modificabili
+    // ── testi delle pagine fisse (data-k) e stile delle sezioni: modificati nell'anteprima, si salvano con la pagina aperta
     let edits: Data = {}; // testi cambiati e non ancora salvati
-    const pageFrame = $<HTMLIFrameElement>(".page-frame", pagesView);
-    const pageSel = $<HTMLSelectElement>("[name=page]", pagesView);
-    const EDIT_CSS = `[data-k]{outline:1px dashed rgb(0 0 0/.45);outline-offset:4px;cursor:text}
-        [data-k]:hover{outline-color:#000}[data-k]:focus{outline:2px solid #1f5fa8;background:rgb(255 255 255/.7)}
-        .sez-btn{position:absolute!important;top:5.5rem;right:1rem;z-index:20!important;font:600 14px system-ui;padding:.45rem .8rem;
-        border:1px solid #000;border-radius:999px;background:#fff;color:#000;cursor:pointer;box-shadow:0 2px 8px rgb(0 0 0/.25)}
-        .sez-btn:hover{background:#000;color:#fff}`;
     const sezDlg = $<HTMLDialogElement>("#sez-dlg");
     const sezBox = $<HTMLElement>(".bg", sezDlg);
     let sezEl: HTMLElement | undefined;
@@ -1860,49 +1850,18 @@ if (form) {
         for (const el of sezEl.ownerDocument.querySelectorAll<HTMLElement>(`[data-sez="${sezEl.dataset.sez}"]`)) paintSez(el, v, true);
         setDirty(true);
     };
-    pageSel.onchange = () => (pageFrame.src = pageSel.value);
-    const phone = $<HTMLInputElement>("#phone");
-    phone.onchange = () => pageFrame.classList.toggle("phone", phone.checked);
-    pageFrame.onload = () => {
-        const doc = pageFrame.contentDocument;
-        if (!doc) return;
-        doc.head.append(Object.assign(doc.createElement("style"), { textContent: EDIT_CSS }));
-        const cur = { ...settings, ...edits };
-        for (const el of doc.querySelectorAll<HTMLElement>("[data-k]")) {
-            // la pagina può arrivare dalla cache: si mostrano i testi aggiornati
-            if (cur[el.dataset.k!] !== undefined) el.textContent = cur[el.dataset.k!];
-            el.contentEditable = "plaintext-only";
-        }
-        for (const el of doc.querySelectorAll<HTMLElement>("[data-sez]")) {
-            paintSez(el, sezioni()[el.dataset.sez!]);
-            const b = Object.assign(doc.createElement("button"), { type: "button", className: "sez-btn", textContent: "🎨 Stile" });
-            b.onclick = () => openSez(el);
-            el.append(b);
-        }
-        // niente link, menu o dialog della pagina mentre si modifica
-        doc.addEventListener("click", (e) => {
-            if ((e.target as Element).closest(".sez-btn")) return;
-            e.stopPropagation();
-            if (!(e.target as Element).closest("[data-k]") || (e.target as Element).closest("a")) e.preventDefault();
-        }, true);
-        doc.addEventListener("input", (e) => {
-            const el = (e.target as Element).closest<HTMLElement>("[data-k]");
-            if (!el) return;
-            edits[el.dataset.k!] = el.textContent!.trim() || undefined;
-            setDirty(true);
-        });
-    };
 
     // ── cronologia delle impostazioni: ogni vista mostra solo le versioni in cui la sua parte cambia
     let sHist: { id: number; data: Data; author?: string; savedAt: number }[] | undefined;
     const omit = (d: Data, keys: string[]) => Object.fromEntries(Object.entries(d).filter(([k]) => !keys.includes(k)));
     const part = (d: Data): unknown =>
-        view === "page" ? (pageKey === "home" ? { blocks: d.home, sfondo: d.sfondoHome } : d.pagine?.find((p: Data) => p.slug === pageKey))
-        : view === "settings" ? Object.fromEntries(SETTINGS_KEYS.map((k) => [k, d[k]]))
-        : omit(d, [...SETTINGS_KEYS, "home", "sfondoHome", "pagine", "stili"]); // testi, motto, stili delle sezioni
+        view !== "page" ? Object.fromEntries(SETTINGS_KEYS.map((k) => [k, d[k]]))
+        : isFissa() ? { sfondo: d.sfondoPagine?.[pageKey!], seo: d.seo?.[`/${pageKey}`], testi: omit(d, [...SETTINGS_KEYS, "home", "sfondoHome", "sfondoPagine", "pagine", "stili"]) } // testi, motto, stili delle sezioni
+        : pageKey === "home" ? { blocks: d.home, sfondo: d.sfondoHome }
+        : d.pagine?.find((p: Data) => p.slug === pageKey);
     async function renderHist() {
-        const sel = $<HTMLSelectElement>(".hist", { page: pageForm, settings: settingsForm, pages: pagesView }[view as "page"] ?? pageForm);
-        if (!["page", "settings", "pages"].includes(view) || (view === "page" && pageKey === "")) return void (sel.hidden = true);
+        const sel = $<HTMLSelectElement>(".hist", view === "settings" ? settingsForm : pageForm);
+        if (!["page", "settings"].includes(view) || (view === "page" && pageKey === "")) return void (sel.hidden = true);
         sel.hidden = false;
         const shown = view;
         sHist ??= (await actions.settingsHistory()).data ?? [];
@@ -1925,14 +1884,13 @@ if (form) {
             const p = part(v.data) as Data | undefined;
             if (view === "page") {
                 if (!p) return say("In quella versione questa pagina non esisteva.", true);
-                fillPage(pageKey === "home" ? p : { ...p, menu: v.data.nav.some((l: Data) => l.href === `/${pageKey}`) });
-            } else if (view === "settings") fillSettings(v.data);
-            else {
-                // anche i testi tornati all'originale (chiave assente nella versione)
-                const cur = part(settings) as Data;
-                edits = Object.fromEntries([...new Set([...Object.keys(cur), ...Object.keys(p!)])].map((k) => [k, p![k]]));
-                pageFrame.src = pageSel.value;
-            }
+                if (isFissa()) {
+                    // anche i testi tornati all'originale (chiave assente nella versione)
+                    const cur = (part(settings) as Data).testi;
+                    edits = Object.fromEntries([...new Set([...Object.keys(cur), ...Object.keys(p.testi)])].map((k) => [k, p.testi[k]]));
+                    fillPage({ sfondo: p.sfondo, seoTitle: p.seo?.title, seoDesc: p.seo?.description });
+                } else fillPage(pageKey === "home" ? p : { ...p, menu: v.data.nav.some((l: Data) => l.href === `/${pageKey}`) });
+            } else fillSettings(v.data);
             setDirty(true);
             say(`Caricata la versione del ${fmtTime(v.savedAt)}: premi Salva per ripristinarla (o riapri la vista per annullare).`);
         };
@@ -1940,10 +1898,13 @@ if (form) {
 
     // ── home e pagine nuove: liste di blocchi salvate nelle impostazioni (home, pagine)
     let pageKey: string | undefined; // "home", slug della pagina aperta, "" = nuova
+    // pagine fisse del sito: testi, stile delle sezioni, sfondo e Google (niente blocchi)
+    const FISSE: Data = { "lista-eventi": "Lista eventi", contatti: "Contatti" };
+    const isFissa = (k = pageKey) => !!k && Object.hasOwn(FISSE, k);
     const pageList = $<HTMLUListElement>("#page-list");
     function renderPages() {
         pageList.replaceChildren(
-            ...[{ slug: "home", title: "🏠 Home" }, ...settings.pagine].map((p: Data) => {
+            ...[{ slug: "home", title: "🏠 Home" }, ...Object.entries(FISSE).map(([slug, title]) => ({ slug, title })), ...settings.pagine].map((p: Data) => {
                 const li = document.createElement("li");
                 const a = Object.assign(document.createElement("a"), { href: `#pagina-${p.slug}`, textContent: p.title });
                 if (p.hidden) a.append(Object.assign(document.createElement("small"), { textContent: " · nascosta" }));
@@ -1957,18 +1918,23 @@ if (form) {
     function openPage(key: string) {
         if (!discardOk()) return history.replaceState(null, "", here());
         const p = settings.pagine.find((x: Data) => x.slug === key);
-        if (key !== "home" && key !== "" && !p) return;
+        if (key !== "home" && key !== "" && !p && !isFissa(key)) return;
         pageKey = key;
         edits = {};
         const home = key === "home";
-        $<HTMLElement>("#pg-base").hidden = home;
-        $<HTMLFieldSetElement>("#pg-base fieldset").disabled = home; // campi obbligatori della pagina: non bloccano il salvataggio della home
-        $<HTMLElement>("#pg-del").hidden = home || key === "";
-        $("#pg-meta").textContent = home ? "Le sezioni della home, nell'ordine in cui appaiono" : key ? `/${key}` : "Non ancora salvata";
+        const fissa = isFissa(key);
+        $<HTMLElement>("#pg-base").hidden = home || fissa;
+        $<HTMLFieldSetElement>("#pg-base fieldset").disabled = home || fissa; // campi obbligatori della pagina: non bloccano il salvataggio della home
+        $<HTMLElement>("#pg-seo").hidden = !fissa;
+        $<HTMLElement>("#pg-blocks").hidden = fissa;
+        $<HTMLElement>("#pg-del").hidden = home || fissa || key === "";
+        $("#pg-meta").textContent = home ? "Le sezioni della home, nell'ordine in cui appaiono" : fissa ? `/${key} · scrivi i testi nell'anteprima, 🎨 per lo stile delle sezioni` : key ? `/${key}` : "Non ancora salvata";
         const openA = $<HTMLAnchorElement>("#pg-open");
         openA.hidden = key === "";
         openA.href = home ? "/" : `/${key}`;
-        fillPage(home ? { blocks: settings.home, sfondo: settings.sfondoHome } : p ? { ...p, menu: inMenu(p.slug) } : { hidden: true, blocks: [{ type: "testo" }] });
+        fillPage(home ? { blocks: settings.home, sfondo: settings.sfondoHome }
+            : fissa ? { sfondo: settings.sfondoPagine?.[key], seoTitle: settings.seo[`/${key}`]?.title, seoDesc: settings.seo[`/${key}`]?.description }
+            : p ? { ...p, menu: inMenu(p.slug) } : { hidden: true, blocks: [{ type: "testo" }] });
         if (key === "") $<HTMLDetailsElement>("#page-ed .block-ed").open = true;
         show("page");
         setDirty(false);
@@ -1986,9 +1952,11 @@ if (form) {
         $<HTMLTextAreaElement>("[name=pgDesc]", pageForm).value = p.description ?? "";
         $("[name=pgHidden]", pageForm).checked = !!p.hidden;
         $("[name=pgMenu]", pageForm).checked = !!p.menu;
+        $("[name=seoTitle]", pageForm).value = p.seoTitle ?? "";
+        $<HTMLTextAreaElement>("[name=seoDesc]", pageForm).value = p.seoDesc ?? "";
         if (pageKey === "") slug.dataset.auto = "1";
         else delete slug.dataset.auto;
-        $("#pg-title").textContent = pageKey === "home" ? "Home" : p.title || "Nuova pagina";
+        $("#pg-title").textContent = pageKey === "home" ? "Home" : isFissa() ? FISSE[pageKey!] : p.title || "Nuova pagina";
         initBlocks($(".blocks-wrap", pageForm), p.blocks ?? []);
         initBg($(".bg[data-name=sfondo]", pageForm), p.sfondo);
     }
@@ -1997,6 +1965,7 @@ if (form) {
         const sfondo = readBg($(".bg[data-name=sfondo]", pageForm));
         if (pageKey === "home") return { blocks, sfondo };
         const v = (n: string) => $(`[name=${n}]`, pageForm).value.trim() || undefined;
+        if (isFissa()) return { sfondo, seoTitle: v("seoTitle"), seoDesc: v("seoDesc") };
         return {
             slug: v("pgSlug")!, title: v("pgTitle")!, description: v("pgDesc"),
             hidden: $("[name=pgHidden]", pageForm).checked || undefined,
@@ -2029,6 +1998,11 @@ if (form) {
         if (pageKey === "home") {
             const { blocks, sfondo } = collectPage();
             return void saveSettings({ ...edits, home: blocks, sfondoHome: sfondo });
+        }
+        if (isFissa()) {
+            const { sfondo, seoTitle: title, seoDesc: description } = collectPage() as Data;
+            const path = `/${pageKey}`;
+            return void saveSettings({ ...edits, sfondoPagine: { ...settings.sfondoPagine, [pageKey!]: sfondo }, seo: { ...settings.seo, [path]: { ...settings.seo[path], title, description } } });
         }
         const { menu: want, ...p } = collectPage() as Data;
         if (settings.pagine.some((x: Data) => x.slug === p.slug && x.slug !== pageKey)) return say(`C'è già una pagina /${p.slug}: scegli un altro indirizzo.`, true);
@@ -2087,21 +2061,15 @@ if (form) {
             if (view !== "page" || pageKey !== key) openPage(key);
             return;
         }
-        const v = ({ impostazioni: "settings", pagine: "pages" } as const)[id];
-        if (v) {
-            if (view === v) return;
+        if (id === "impostazioni") {
+            if (view === "settings") return;
             if (!discardOk()) return history.replaceState(null, "", here());
             setDirty(false);
             edits = {};
-            show(v);
+            show("settings");
             say("");
-            if (v === "pages") {
-                pageFrame.src = pageSel.value; // ricarica: niente modifiche scartate a schermo
-                offerDraft((d) => { edits = d; pageFrame.src = pageSel.value; });
-            } else {
-                fillSettings(settings);
-                offerDraft(fillSettings);
-            }
+            fillSettings(settings);
+            offerDraft(fillSettings);
             renderList();
             return;
         }
