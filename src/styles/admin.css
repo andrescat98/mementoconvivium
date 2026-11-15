@@ -282,13 +282,35 @@ code { font-size: 0.85em; background: #efe9df; padding: 0 0.25rem; border-radius
     display: grid; position: absolute; z-index: 6; inset: 0 auto 0 0; width: min(19rem, 90vw); max-height: none;
     padding: 1rem; background: var(--bg); border-right: 1px solid var(--line); box-shadow: 0 0 2rem rgb(0 0 0 / 0.2);
 }
-.unfocus { justify-self: start; }
-form:not(:has(.sel)) > .unfocus { display: none; }
+/* percorso Evento › Scheda › Blocco: visibile solo quando qualcosa è scelto */
+.crumbs { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; align-items: center; font-size: 0.9rem; }
+.crumbs i { color: var(--dim); font-style: normal; }
+.crumbs button { padding: 0.15rem 0.5rem; border-radius: 999px; }
+.crumbs span { font-weight: 700; padding: 0.15rem 0; }
+form:not(:has(.sel)) > .crumbs { display: none; }
 /* blocco o scheda scelti (.sel): spariscono tutti gli altri rami del form */
-form:has(.sel) > :not(.sel, :has(.sel), .bar, .msg, .unfocus, .cards-btn),
+form:has(.sel) > :not(.sel, :has(.sel), .bar, .msg, .crumbs),
 form :has(.sel) > :not(.sel, :has(.sel)) { display: none !important; }
 form :has(.sel) { padding: 0; border: 0; background: none; } /* contenitori del ramo scelto: senza cornici */
-.block-ed.sel, .tab-ed.sel { border-color: #1f5fa8; border-left-color: #1f5fa8; }
+form:has(.block-ed.sel, .tab-ed.sel) .cards-btn { display: none; }
+.block-ed.sel, .tab-ed.sel { border: 0; background: none; }
+/* il livello scelto non ha titolo da cliccare (c'è il percorso) e il suo stile è già aperto, senza cassetto */
+.block-ed.sel > summary, .tab-ed.sel > summary, .sel .bg-wrap > summary { display: none; }
+.sel .bg-wrap { border: 0; }
+.block-ed.sel .bg-wrap::before, .tab-ed.sel .bg-wrap::before { display: block; padding: 0.4rem 0; border-top: 2px solid var(--line); font-weight: 700; }
+.block-ed.sel .bg-wrap::before { content: "🎨 Stile del blocco"; }
+.tab-ed.sel .bg-wrap::before { content: "🎨 Stile della scheda"; }
+.sel .bg-wrap > .bg, .sel > .grid { padding-inline: 0; }
+.sel .bg-wrap > .bg { border-top: 0; padding: 0; }
+.sel > .grid { grid-template-columns: minmax(0, 1fr); padding: 0.5rem 0; }
+/* scheda scelta: titolo, stile, poi l'elenco dei suoi blocchi (compatti, clic = scegli il blocco) */
+.tab-ed.sel > .grid > .bg-wrap { order: 1; }
+.tab-ed.sel > .grid > .blocks-wrap { order: 2; }
+.tab-ed.sel .block-ed > .grid { display: none; }
+.tab-ed.sel .block-ed:not(.sel) > summary { border-bottom: 0; background: none; }
+/* nessuna scelta: schede e blocchi sono solo elenchi compatti */
+form:not(:has(.sel)) :is(.tab-ed, .block-ed) > .grid { display: none; }
+form:not(:has(.sel)) :is(.tab-ed, .block-ed)[open] > summary { border-bottom: 0; background: none; }
 #live { display: grid; gap: 0.5rem; align-content: start; }
 .live-bar { display: flex; gap: 0.5rem 1rem; align-items: center; flex-wrap: wrap; justify-content: space-between; }
 /* barra di formattazione in alto: sottile, una riga; spenta finché non si clicca un testo */

@@ -353,6 +353,7 @@ if (form) {
     let wantScroll = false;
     let liveTab = 0; // scheda dell'evento visibile nell'anteprima: segue la parte scelta
     function markSel() {
+        crumbs();
         const doc = liveDoc();
         if (!doc) return;
         decorate(doc);
@@ -394,19 +395,54 @@ if (form) {
         const tab = $$<HTMLElement>("#tabs > .tab-ed", form!)[Number(m[1])];
         return m[2] === undefined ? tab : tab && $$<HTMLElement>(":scope > .grid > .blocks-wrap > .blocks > .block-ed", tab)[Number(m[2])];
     }
-    const unfocus = () => $$(".sel", adminEl).forEach((x) => x.classList.remove("sel"));
+    const clearSel = () => $$(".sel", adminEl).forEach((x) => x.classList.remove("sel"));
+    // nulla scelto: torna al livello Evento / Pagina (anche l'evidenziazione a destra)
+    function unfocus() {
+        clearSel();
+        selKey = "";
+        markSel();
+    }
+    // livello sopra: blocco di scheda → scheda; tutto il resto → Evento / Pagina
+    function up() {
+        const m = selKey.match(/^(t\d+)\.\d+$/);
+        if (m) pick(m[1]);
+        else if (selKey) unfocus();
+    }
+    // percorso in cima al form: Evento › Scheda › Blocco, ogni voce risale a quel livello
+    function crumbs() {
+        const f = view === "editor" ? form! : view === "page" ? pageForm : null;
+        const nav = f && f.querySelector<HTMLElement>(":scope > .crumbs");
+        if (!nav) return;
+        const el = f!.querySelector<HTMLElement>(".sel");
+        const root = view === "page" ? $("#pg-title").textContent || "Pagina" : ($<HTMLInputElement>("[name=title]", f!).value || "Evento");
+        const path: [string, (() => void) | null][] = [[root, el ? unfocus : null]];
+        if (el?.matches(".block-ed")) {
+            const tab = el.closest<HTMLElement>(".tab-ed");
+            if (tab) path.push([$<HTMLInputElement>("[name=tabTitle]", tab).value || "Scheda", () => pick(keyOf(tab))]);
+            path.push([$(".block-name", el).textContent!.split(" · ")[el.dataset.type === "sezione" ? 1 : 0] ?? "Blocco", null]);
+        } else if (el?.matches(".tab-ed")) path.push([$<HTMLInputElement>("[name=tabTitle]", el).value || "Scheda", null]);
+        else if (el) path.push([el.dataset.ed === "cards" ? "Card della timeline" : "Intestazione", null]);
+        nav.replaceChildren(...path.flatMap(([t, go], i) => {
+            const c = go ? Object.assign(document.createElement("button"), { type: "button", onclick: go }) : document.createElement("span");
+            c.textContent = t;
+            return i ? [Object.assign(document.createElement("i"), { textContent: "›" }), c] : [c];
+        }));
+    }
     function pick(key: string) {
         const el = edEl(key);
         hl(key, false);
         if (!el) return;
-        unfocus();
+        clearSel();
         // a sinistra resta solo lui (admin.css); intestazione e card: tutte le sezioni del form che le riguardano
         const sel = el.matches(".block-ed, .tab-ed") ? [el] : $$<HTMLElement>(`[data-ed="${key}"]`, form!);
         for (const x of sel) {
             x.classList.add("sel");
             for (let d: HTMLElement | null = x; d; d = d.parentElement?.closest("details") ?? null) (d as HTMLDetailsElement).open = true;
+            // lo stile del livello scelto si vede subito, senza cassetto da aprire (admin.css nasconde il titolo)
+            for (const w of $$<HTMLDetailsElement>(el.matches(".tab-ed") ? ":scope > .grid > .bg-wrap" : ".bg-wrap", x)) w.open = true;
         }
-        el.scrollIntoView({ block: "start" });
+        crumbs();
+        el.closest("form")?.scrollTo({ top: 0 }); // in cima: si vede il percorso
     }
     // "＋" dell'anteprima: nuova scheda, o blocco del tipo scelto in quel punto (data-where/data-at, vedi anteprima.astro)
     function addFromLive(b: HTMLElement) {
@@ -636,6 +672,7 @@ if (form) {
             }
         });
         doc.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") esc();
             if ((e.ctrlKey || e.metaKey) && e.key === "s") {
                 e.preventDefault();
                 dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));
@@ -782,12 +819,24 @@ if (form) {
         // solo i blocchi: aprire schede e sezioni (anche da pick()) non sposta l'evidenziazione
         f.addEventListener("toggle", (e) => (e.target as HTMLDetailsElement).matches(".block-ed[open]") && follow(e.target), true);
     }
-    for (const b of $$<HTMLButtonElement>("[data-unfocus]")) {
-        b.onclick = () => {
-            const el = adminEl.querySelector(".sel");
-            unfocus();
-            el?.scrollIntoView({ block: "start" });
-        };
+    // Esc (nel form o nell'anteprima): un livello su, se non c'è un dialog aperto
+    function esc() {
+        if (document.querySelector("dialog[open]") || (view !== "editor" && view !== "page")) return;
+        (document.activeElement as HTMLElement | null)?.blur?.();
+        liveDoc()?.activeElement instanceof HTMLElement && (liveDoc()!.activeElement as HTMLElement).blur();
+        up();
+    }
+    addEventListener("keydown", (e) => e.key === "Escape" && esc());
+    // elenchi di schede e blocchi: un clic sul nome li sceglie (i bottoni ↑ ↓ ✕ funzionano come prima)
+    for (const f of [form, pageForm]) {
+        f.addEventListener("click", (e) => {
+            const t = e.target as Element;
+            const sm = t.closest("summary");
+            const el = sm?.parentElement;
+            if (!sm || t.closest("button") || !el?.matches(".block-ed, .tab-ed") || el.classList.contains("sel")) return;
+            e.preventDefault();
+            pick(keyOf(el));
+        }, true);
     }
     $<HTMLButtonElement>("#menu").onclick = () => adminEl.classList.toggle("nav-open");
 
@@ -995,14 +1044,16 @@ if (form) {
         const item = b.closest<HTMLElement>(".row, .block-ed, .tab-ed");
         if (b.dataset.add === "block") {
             const el = newBlock($(":scope > .blocks", b.closest(".blocks-wrap")!), b.dataset.type!);
-            (el.querySelector<HTMLInputElement>("[name=bTitle], [name=key]"))?.focus();
-            el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            setDirty(true);
+            pick(keyOf(el));
+            el.querySelector<HTMLInputElement>("[name=bTitle], [name=key]")?.focus();
         } else if (b.dataset.add === "char") $("[name=name]", addRow("char", $(".chars", blk!))).focus();
         else if (b.dataset.add === "faq") $("[name=q]", addRow("faq", $(".faqs", blk!))).focus();
         else if ("hide" in b.dataset && blk) blk.classList.toggle("off");
         else if ("dup" in b.dataset && blk) {
             const copy = addBlock(blk.parentElement!, readBlock(blk), true);
             blk.after(copy);
+            pick(keyOf(copy));
         } else if ("crop" in b.dataset) return openCrop(b.closest<HTMLElement>(".img")!), true;
         else if ("clear" in b.dataset) setImg(b.closest<HTMLElement>(".img")!);
         else if (b.dataset.md) return mdTool(b.dataset.md, b.closest(".md")!), true;
@@ -1053,8 +1104,9 @@ if (form) {
             $("[name=dateISO]", r).focus();
         } else if (b.dataset.add === "tab") {
             const el = addTab(structuredClone(PRESETS[b.dataset.preset!]), true);
+            setDirty(true);
+            pick(keyOf(el));
             $("[name=tabTitle]", el).select();
-            el.scrollIntoView({ block: "nearest" });
         } else if (b.dataset.add === "serata") {
             // parte dall'ultima data già passata, col suo luogo
             const past = $$("#dates > .row", form).map((r) => ({ d: $("[name=dateISO]", r).value, l: $("[name=location]", r).value })).filter((x) => x.d && x.d < oggi).pop();
