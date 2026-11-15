@@ -99,6 +99,7 @@ export async function saveEvent(o: {
         await tx.execute({ sql: "UPDATE event_versions SET slug = ? WHERE slug = ?", args: [o.slug, orig] });
       }
     }
+    await tx.execute(SETTINGS_VERSIONS); // la GC legge settings_versions: potrebbe non esistere ancora
     await tx.execute(GC);
     await tx.commit();
     return { updatedAt: Number(res.rows[0].updated_at), rev: Number(res.rows[0].rev) };
@@ -111,6 +112,7 @@ export async function saveEvent(o: {
 export async function deleteEvent(slug: string, author?: string) {
   await db().batch(
     [
+      SETTINGS_VERSIONS,
       { sql: "INSERT INTO event_versions (slug, data, body, author, deleted) SELECT slug, data, body, ?, 1 FROM events WHERE slug = ?", args: [author ?? null, slug] },
       { sql: "DELETE FROM events WHERE slug = ?", args: [slug] },
       GC,
@@ -154,12 +156,38 @@ export async function getDeleted(): Promise<Version[]> {
   return rows.map(toVersion);
 }
 
-// Elimina le immagini caricate non più usate da eventi né versioni (con 1 giorno di tolleranza
-// per quelle appena caricate e non ancora salvate).
+// Elimina le immagini caricate non più usate da eventi, impostazioni (home, pagine, sfondi, stili…) né versioni
+// (con 1 giorno di tolleranza per quelle appena caricate e non ancora salvate).
 // ponytail: instr() sul JSON scansiona tutto, va benissimo finché le righe sono qualche migliaio.
 const GC = `DELETE FROM images WHERE created_at < unixepoch() - 86400
   AND NOT EXISTS (SELECT 1 FROM events WHERE instr(events.data, '/img/' || images.id))
-  AND NOT EXISTS (SELECT 1 FROM event_versions WHERE instr(event_versions.data, '/img/' || images.id))`;
+  AND NOT EXISTS (SELECT 1 FROM event_versions WHERE instr(event_versions.data, '/img/' || images.id))
+  AND NOT EXISTS (SELECT 1 FROM settings WHERE instr(settings.data, '/img/' || images.id))
+  AND NOT EXISTS (SELECT 1 FROM settings_versions WHERE instr(settings_versions.data, '/img/' || images.id))`;
+
+export interface MediaItem { id: string; mime: string; bytes: number; createdAt: number; used: boolean; inHistory: boolean }
+/** Tutte le immagini; used = in eventi/impostazioni correnti, inHistory = anche (o solo) nelle versioni vecchie. */
+export async function listImages(): Promise<MediaItem[]> {
+  await db().execute(SETTINGS_VERSIONS);
+  const { rows } = await db().execute(`SELECT id, mime, length(data) AS bytes, created_at,
+    (EXISTS (SELECT 1 FROM events WHERE instr(events.data, '/img/' || images.id))
+      OR EXISTS (SELECT 1 FROM settings WHERE instr(settings.data, '/img/' || images.id))) AS used,
+    (EXISTS (SELECT 1 FROM event_versions WHERE instr(event_versions.data, '/img/' || images.id))
+      OR EXISTS (SELECT 1 FROM settings_versions WHERE instr(settings_versions.data, '/img/' || images.id))) AS hist
+    FROM images ORDER BY created_at DESC`);
+  return rows.map((r) => ({ id: r.id as string, mime: r.mime as string, bytes: Number(r.bytes), createdAt: Number(r.created_at), used: !!r.used, inHistory: !!r.hist }));
+}
+
+/** Elimina un'immagine solo se non è usata da eventi o impostazioni correnti. */
+export async function deleteImage(id: string): Promise<boolean> {
+  const { rowsAffected } = await db().execute({
+    sql: `DELETE FROM images WHERE id = ?
+      AND NOT EXISTS (SELECT 1 FROM events WHERE instr(events.data, '/img/' || images.id))
+      AND NOT EXISTS (SELECT 1 FROM settings WHERE instr(settings.data, '/img/' || images.id))`,
+    args: [id],
+  });
+  return rowsAffected > 0;
+}
 
 export async function putImage(bytes: ArrayBuffer, mime: string): Promise<string> {
   const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));

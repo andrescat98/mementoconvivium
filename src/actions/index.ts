@@ -2,7 +2,7 @@ import { ActionError, defineAction, type ActionAPIContext } from "astro:actions"
 import { z } from "astro/zod";
 import { env } from "cloudflare:workers";
 import { checkPassword, isAdmin, login, logout } from "../lib/auth";
-import { deleteEvent, getHistory, getSettingsHistory, putImage, saveEvent, saveSettings, StaleError } from "../lib/db";
+import { deleteEvent, deleteImage, getHistory, listImages, getSettingsHistory, putImage, saveEvent, saveSettings, StaleError } from "../lib/db";
 import { eventoSchema, settingsSchema, slugSchema } from "../lib/schema";
 
 async function guard(ctx: ActionAPIContext) {
@@ -85,6 +85,21 @@ export const server = {
     async handler({ slug }, ctx) {
       await guard(ctx);
       return getHistory(slug);
+    },
+  }),
+
+  listImages: defineAction({
+    async handler(_, ctx) {
+      await guard(ctx);
+      return listImages();
+    },
+  }),
+
+  deleteImage: defineAction({
+    input: z.object({ id: z.string().regex(/^[0-9a-f]{24}$/) }),
+    async handler({ id }, ctx) {
+      await guard(ctx);
+      if (!(await deleteImage(id))) throw new ActionError({ code: "CONFLICT", message: "La foto è in uso: toglila prima da dove è usata." });
     },
   }),
 

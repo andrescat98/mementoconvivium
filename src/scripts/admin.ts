@@ -1175,8 +1175,96 @@ if (form) {
         renderPrev($<HTMLElement>(".prev", cardsDlg), { ...collect(), cards: true });
     };
 
+    // ── libreria foto: sfoglia/elimina da "📁 Libreria foto", oppure sceglie per una casella (una foto) o una galleria (più foto)
+    const mediaDlg = $<HTMLDialogElement>("#media");
+    const mediaGrid = $<HTMLElement>(".media-grid", mediaDlg);
+    const mediaAdd = $<HTMLButtonElement>("[data-pickmulti]", mediaDlg);
+    let mediaPick: ((urls: string[]) => void) | undefined;
+    let mediaMulti = false;
+    let mediaFree = false;
+    let mediaSel = new Set<string>();
+    const mediaPaint = () => {
+        for (const c of $$<HTMLElement>(".media-card", mediaGrid)) {
+            c.hidden = mediaFree && c.dataset.used !== "0";
+            c.classList.toggle("sel", mediaSel.has(c.dataset.id!));
+        }
+        for (const b of $$<HTMLElement>("[data-f]", mediaDlg)) b.classList.toggle("on", (b.dataset.f === "free") === mediaFree);
+        mediaAdd.textContent = mediaSel.size ? `Aggiungi ${mediaSel.size} foto` : "Aggiungi";
+        mediaAdd.disabled = !mediaSel.size;
+    };
+    async function openMedia(pick?: (urls: string[]) => void, multi = false) {
+        mediaPick = pick;
+        mediaMulti = multi;
+        mediaSel = new Set();
+        mediaAdd.hidden = !multi;
+        $(".media-hint", mediaDlg).textContent = pick ? (multi ? "Spunta le foto da aggiungere alla galleria." : "Clicca una foto per usarla.") : "Le foto non usate si possono eliminare; quelle in uso restano.";
+        mediaGrid.textContent = "Caricamento…";
+        mediaDlg.showModal();
+        const { data, error } = await actions.listImages();
+        if (error) return void (mediaGrid.textContent = error.message);
+        mediaGrid.textContent = data.length ? "" : "Nessuna foto caricata.";
+        for (const m of data) {
+            const c = document.createElement("div");
+            c.className = "media-card";
+            c.dataset.id = m.id;
+            c.dataset.used = m.used ? "1" : "0";
+            c.innerHTML = `<button type="button" class="media-pick"><img loading="lazy" alt=""></button><small></small>`;
+            $<HTMLImageElement>("img", c).src = `/img/${m.id}`;
+            $("small", c).textContent = `${kb(m.bytes)} · ${fmtTime(m.createdAt).split(",")[0]}`;
+            if (!m.used) {
+                const del = Object.assign(document.createElement("button"), { type: "button", textContent: "Elimina", className: "media-del" });
+                del.dataset.del = m.id;
+                c.append(Object.assign(document.createElement("span"), { className: "badge", textContent: m.inHistory ? "non usata (solo cronologia)" : "non usata" }), del);
+            }
+            mediaGrid.append(c);
+        }
+        mediaPaint();
+    }
+    mediaDlg.addEventListener("click", async (e) => {
+        const t = e.target as Element;
+        const f = t.closest<HTMLElement>("[data-f]");
+        if (f) { mediaFree = f.dataset.f === "free"; return mediaPaint(); }
+        const del = t.closest<HTMLElement>("[data-del]");
+        if (del) {
+            if (!confirm("Eliminare questa foto per sempre? Non è usata, ma potrebbe comparire in una versione della cronologia.")) return;
+            const { error } = await actions.deleteImage({ id: del.dataset.del! });
+            if (error) return void say(error.message, true);
+            del.closest(".media-card")!.remove();
+            return;
+        }
+        if (t.closest("[data-pickmulti]")) {
+            mediaDlg.close();
+            return mediaPick?.([...mediaSel]);
+        }
+        const card = t.closest<HTMLElement>(".media-pick")?.parentElement;
+        if (!card || !mediaPick) return;
+        if (!mediaMulti) {
+            mediaDlg.close();
+            return mediaPick([`/img/${card.dataset.id}`]);
+        }
+        const u = `/img/${card.dataset.id}`;
+        mediaSel.has(u) ? mediaSel.delete(u) : mediaSel.add(u);
+        mediaPaint();
+    });
+    $<HTMLButtonElement>("#media-open").onclick = () => openMedia();
+    form.addEventListener("click", (e) => {
+        const b = (e.target as Element).closest<HTMLElement>("[data-lib], [data-lib-multi]");
+        if (!b) return;
+        if ("lib" in b.dataset) {
+            const box = b.closest<HTMLElement>(".img")!;
+            openMedia(([src]) => { setImg(box, { src }); setDirty(true); });
+        } else {
+            const blk = b.closest<HTMLElement>(".block-ed, .serata")!;
+            openMedia((urls) => {
+                for (const src of urls) addRow("shot", $(".shots", blk), { image: { src } });
+                if (blk.matches(".block-ed")) markBlock(blk);
+                setDirty(true);
+            }, true);
+        }
+    });
+
     // dialog: chiudi con ✕/Annulla o cliccando fuori
-    for (const d of [cropDlg, fontDlg, cardsDlg]) {
+    for (const d of [cropDlg, fontDlg, cardsDlg, mediaDlg]) {
         d.addEventListener("click", (e) => {
             if ((e.target === d && !d.classList.contains("docked")) || (e.target as Element).closest("[data-close]")) d.close();
         });
