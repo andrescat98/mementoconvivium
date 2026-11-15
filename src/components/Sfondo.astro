@@ -7,7 +7,7 @@ const { bg } = Astro.props as { bg?: Bg };
 ---
 
 {bg && (bg.color || bg.image) && (
-    <div class="sfondo" aria-hidden="true" style={bg.color && `background:${bg.color}`}>
+    <div class="sfondo" aria-hidden="true" style={[bg.color && `background:${bg.color}`, bg.op !== undefined && `opacity:${bg.op / 100}`].filter(Boolean).join(";") || undefined}>
         {bg.image && <img src={bg.image.src} alt="" loading="lazy" style={imgStyle(bg.image)} />}
         {!!bg.veil && <span style={`background:${veil(bg)}`}></span>}
     </div>

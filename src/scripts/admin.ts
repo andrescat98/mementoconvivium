@@ -39,7 +39,9 @@ if (form) {
     const savedAt = () => new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
     function setDirty(v: boolean) {
         dirty = v;
-        $<HTMLElement>("#dirty").hidden = !v;
+        const top = $("#save-top");
+        top.classList.toggle("dirty", v);
+        top.textContent = v ? "● Salva le modifiche" : "💾 Salva";
         document.title = (v ? "● " : "") + "Moderatori · Memento Convivium";
         if (v) queueLive(), keepDraft();
     }
@@ -291,6 +293,7 @@ if (form) {
         const res = await fetch("/admin/anteprima", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
         const html = res.ok ? await res.text() : "<p>Sessione scaduta: ricarica la pagina e rientra.</p>";
         if (wrap.dataset.seq !== seq) return; // nel frattempo è partita un'anteprima più recente
+        if (wrap === liveWrap && typing()) return queueLive(800); // non si toglie il cursore a chi scrive nell'anteprima
         const doc = frame.contentDocument;
         if (doc?.querySelector("main")) {
             // già caricata: si sostituisce solo il contenuto, così non lampeggia e resta dov'era
@@ -327,10 +330,12 @@ if (form) {
     const liveFrame = $<HTMLIFrameElement>("iframe", liveWrap);
     const liveDoc = () => liveFrame.contentDocument;
     let liveTimer = 0;
+    // si sta scrivendo dentro l'anteprima: si ridisegna solo quando si esce dal testo
+    const typing = () => !!liveDoc()?.hasFocus() && !!liveDoc()?.activeElement?.closest("[data-field], [data-k], [data-nav]");
     function queueLive(ms = 500) {
         clearTimeout(liveTimer);
         if (view === "editor" || view === "page")
-            liveTimer = window.setTimeout(() => renderPrev(liveWrap, view === "editor" ? collect() : { blocks: readBlocks($(".blocks-wrap", pageForm)), sfondo: readBg($(".bg[data-name=sfondo]", pageForm)) }).then(markSel), ms);
+            liveTimer = window.setTimeout(() => typing() ? queueLive(800) : renderPrev(liveWrap, view === "editor" ? collect() : { blocks: readBlocks($(".blocks-wrap", pageForm)), sfondo: readBg($(".bg[data-name=sfondo]", pageForm)) }).then(markSel), ms);
     }
     $("#live-phone").onchange = (e) => {
         liveWrap.classList.toggle("phone", (e.target as HTMLInputElement).checked);
@@ -349,6 +354,7 @@ if (form) {
     function markSel() {
         const doc = liveDoc();
         if (!doc) return;
+        decorate(doc);
         const t = selKey.match(/^t(\d+)/);
         if (t) liveTab = Number(t[1]);
         const panels = doc.querySelectorAll(".ev-panel");
@@ -413,15 +419,297 @@ if (form) {
         pick(keyOf(el));
         el.querySelector<HTMLInputElement>("[name=tabTitle], [name=bTitle], [name=key]")?.select();
     }
-    liveFrame.addEventListener("load", () => {
-        liveDoc()?.addEventListener("click", (e) => {
+    // ── modifica diretta nell'anteprima (come in un editor di testo): titoli e testi si scrivono lì,
+    // le foto si trascinano o si incollano nel punto voluto; angolo dei blocchi: sposta, duplica, nascondi, togli, aggiungi;
+    // bordo inferiore delle sezioni: si trascina per l'altezza. Ogni modifica finisce nei campi (nascosti) del form a sinistra.
+    const PAL_ACTS: [string, string, string][] = [["up", "↑", "Sposta su"], ["down", "↓", "Sposta giù"], ["dup", "⧉", "Duplica"], ["hide", "👁", "Nascondi"], ["rm", "✕", "Rimuovi"]];
+    function decorate(doc: Document) {
+        if (!doc.body || doc.body.dataset.dec) return;
+        doc.body.dataset.dec = "1";
+        const ed = (el: HTMLElement | null, field: string, key: string, rich = false, ph = "") => {
+            if (!el) return;
+            Object.assign(el.dataset, { field, key, ph });
+            el.contentEditable = rich ? "true" : "plaintext-only";
+            if (rich && !el.textContent!.trim() && !el.querySelector("img")) el.replaceChildren(); // :empty → segnaposto
+        };
+        const grip = (root: Element | null, key: string) =>
+            root?.insertAdjacentHTML("beforeend", `<div class="ed-grip" data-grip="${key}" contenteditable="false" title="Trascina per cambiare l'altezza"></div>`);
+        for (const w of doc.querySelectorAll<HTMLElement>("div[data-ed]")) {
+            const key = w.dataset.ed!;
+            if (key === "cards") continue;
+            if (key === "hero") {
+                ed(w.querySelector(".ev-title"), "title", key, false, "Titolo");
+                ed(w.querySelector(".section-label"), "theme", key, false, "Tema");
+                ed(w.querySelector(".ev-excerpt"), "excerpt", key, false, "Estratto");
+                grip(w.firstElementChild, key);
+                continue;
+            }
+            if (/^t\d+$/.test(key)) {
+                ed(w.querySelector(".ev-panel-title"), "tabTitle", key, false, "Titolo della scheda");
+                grip(w.closest(".ev-panel"), key);
+                continue;
+            }
+            ed(w.querySelector(".blocco-head :is(h2, h3)"), "bTitle", key, false, "Titolo (facoltativo)");
+            ed(w.querySelector(":is(.ev-panel-grid, .ev-panel-text, .blocco-cta) > .ev-prose, .ev-panel-intro"), "bBody", key, true, "Scrivi qui… (trascina o incolla le foto dove vuoi)");
+            const root = w.firstElementChild as HTMLElement | null;
+            if (!root) continue;
+            if (doc.defaultView!.getComputedStyle(root).position === "static") root.style.position = "relative";
+            const [, where = "", at] = key.match(/^(?:(t\d+)\.)?(\d+)$/)!;
+            const pal = doc.querySelector(`.ed-ins[data-where="${where}"] .ed-pal`)?.outerHTML ?? "";
+            root.insertAdjacentHTML(
+                "beforeend",
+                `<div class="ed-tools" contenteditable="false">${PAL_ACTS.map(([a, t, h]) => `<button type="button" data-act="${a}" title="${h}">${t}</button>`).join("")}` +
+                    `<span class="ed-ins" data-where="${where}" data-at="${Number(at) + 1}"><span class="ed-plus" title="Aggiungi un blocco sotto">＋</span>${pal}</span></div>`,
+            );
+            if (!root.matches(".blocco-sezione, [data-sez]")) grip(root, key);
+        }
+        // testi del sito (Partecipa, footer, sezioni fisse) e stile delle sezioni fisse: come in "Testi e stili delle pagine"
+        const cur = { ...settings, ...edits };
+        for (const el of doc.querySelectorAll<HTMLElement>("[data-k]")) {
+            if (cur[el.dataset.k!] !== undefined) el.textContent = cur[el.dataset.k!];
+            el.contentEditable = "plaintext-only";
+        }
+        for (const el of doc.querySelectorAll<HTMLElement>("[data-sez]")) {
+            if (edits.sezioni) paintSez(el, sezioni()[el.dataset.sez!]);
+            const solo = view === "editor" && el.dataset.sez === "prenota" ? `<button type="button" data-noprenota>Nascondi in questo evento</button>` : "";
+            el.insertAdjacentHTML("beforeend", `<div class="ed-tools" contenteditable="false"><button type="button" data-sezstyle>🎨 Stile della sezione</button>${solo}</div>`);
+        }
+        // voci del menu: il testo si scrive qui; aggiungerle, toglierle e i link in Impostazioni sito
+        const nav: Data[] = edits.nav ?? settings.nav;
+        doc.querySelectorAll<HTMLElement>(".site-header .nav a").forEach((a, i) => {
+            if (nav[i]) a.textContent = nav[i].label;
+            a.dataset.nav = String(i);
+            a.contentEditable = "plaintext-only";
+        });
+        for (const el of doc.querySelectorAll<HTMLElement>(".site-header, .site-footer")) {
+            if (doc.defaultView!.getComputedStyle(el).position === "static") el.style.position = "relative";
+            el.insertAdjacentHTML("beforeend", `<div class="ed-tools" contenteditable="false"><button type="button" data-goto="#impostazioni">⚙ Menu, contatti e link del sito</button></div>`);
+        }
+        doc.body.insertAdjacentHTML(
+            "beforeend",
+            `<div class="ed-fmt" contenteditable="false" hidden><button type="button" data-fmt="bold" title="Grassetto (Ctrl+B)"><b>G</b></button>` +
+                `<button type="button" data-fmt="italic" title="Corsivo (Ctrl+I)"><i>C</i></button><button type="button" data-fmt="link">Link</button>` +
+                `<button type="button" data-fmt="img">🖼 Foto</button></div>`,
+        );
+    }
+    // campo del form che corrisponde a un testo modificabile dell'anteprima
+    const fieldFor = (el: HTMLElement) =>
+        el.dataset.key === "hero"
+            ? form!.querySelector<HTMLInputElement>(`fieldset > label > [name=${el.dataset.field}]`)
+            : edEl(el.dataset.key!)?.querySelector<HTMLInputElement>(`[name=${el.dataset.field}]`);
+    // testo dell'anteprima → markdown di md() (paragrafi, a capo, grassetto, corsivo, link, foto del sito)
+    function htmlToMd(root: Element) {
+        const wrap = (m: string, s: string) => (s.trim() ? s.replace(s.trim(), m + s.trim() + m) : s);
+        const inl = (n: Node): string => {
+            if (n.nodeType === Node.TEXT_NODE) return n.textContent!.replace(/\u00a0/g, " ");
+            if (n.nodeType !== Node.ELEMENT_NODE) return "";
+            const e = n as Element;
+            const k = [...e.childNodes].map(inl).join("");
+            const src = e.getAttribute("src") ?? "";
+            return e.tagName === "BR" ? "\n"
+                : /^(B|STRONG)$/.test(e.tagName) ? wrap("**", k)
+                : /^(I|EM)$/.test(e.tagName) ? wrap("*", k)
+                : e.tagName === "A" ? `[${k}](${e.getAttribute("href")})`
+                : e.tagName === "IMG" ? (src.startsWith("/") ? `![${e.getAttribute("alt") ?? ""}](${src})` : "") // le foto ancora in caricamento no
+                : /^(P|DIV|LI|H\d|BLOCKQUOTE)$/.test(e.tagName) ? `\n\n${k}\n\n`
+                : k;
+        };
+        return inl(root).replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    }
+    function sync(el: HTMLElement) {
+        const f = fieldFor(el);
+        if (!f) return;
+        f.value = el.dataset.field === "bBody" ? htmlToMd(el) : el.textContent!.replace(/\s+/g, " ").trim();
+        f.dispatchEvent(new Event("input", { bubbles: true })); // come se si scrivesse nel form: sporco, bozza, nomi
+    }
+    // foto nel testo: compaiono subito dove sono state lasciate, poi si caricano
+    async function insertImgs(el: HTMLElement, range: Range | null | undefined, files: File[]) {
+        const doc = el.ownerDocument;
+        if (!range || !el.contains(range.startContainer)) {
+            range = doc.createRange();
+            range.selectNodeContents(el);
+            range.collapse(false);
+        }
+        for (const f of files) {
+            const im = Object.assign(doc.createElement("img"), { src: URL.createObjectURL(f), alt: "", className: "ed-up" });
+            range.insertNode(im);
+            range.setStartAfter(im);
+            range.collapse(true);
+            const url = await upload(f, document.createElement("div"));
+            URL.revokeObjectURL(im.src);
+            if (url) {
+                im.src = url;
+                im.removeAttribute("class");
+            } else im.remove();
+        }
+        sync(el);
+    }
+    // foto lasciate fuori da un testo: copertina (intestazione), galleria (si aggiungono), immagine del blocco testo
+    async function dropOn(key: string | undefined, files: File[]) {
+        const el = key ? edEl(key) : undefined;
+        const box =
+            key === "hero" ? $<HTMLElement>(".img[data-name=cover]", form!)
+            : el?.dataset.type === "testo" ? $<HTMLElement>(".img[data-name=bImage]", el)
+            : undefined;
+        if (box) {
+            const url = await upload(files[0], box);
+            if (url) setImg(box, { src: url });
+        } else if (el?.dataset.type === "galleria") {
+            for (const f of files) {
+                const url = await upload(f, el);
+                if (url) addRow("shot", $(".shots", el), { image: { src: url } });
+            }
+            markBlock(el);
+        } else return say("Lascia la foto dentro un testo, una galleria o l'intestazione.", true);
+        setDirty(true);
+    }
+    const caretAt = (doc: Document, x: number, y: number): Range | null => {
+        const p = (doc as any).caretPositionFromPoint?.(x, y);
+        if (!p) return doc.caretRangeFromPoint?.(x, y) ?? null;
+        const r = doc.createRange();
+        r.setStart(p.offsetNode, p.offset);
+        return r;
+    };
+    const images = (l?: FileList | null) => [...(l ?? [])].filter((f) => f.type.startsWith("image/"));
+    // altezza trascinata dal bordo inferiore → "Altezza minima" dello stile di quella parte
+    const bgOf = (key: string) =>
+        key === "hero" ? $<HTMLElement>(".bg[data-name=heroStyle]", form!)
+        : /^t\d+$/.test(key) ? edEl(key)?.querySelector<HTMLElement>(":scope > .grid > .bg-wrap > .bg")
+        : edEl(key)?.querySelector<HTMLElement>(".bg");
+    // ponytail: execCommand è deprecato ma è l'unico modo nativo (con annulla/ripeti) di formattare un contenteditable; se sparisce, serve un editor (es. Tiptap)
+    function wireLive(doc: Document) {
+        const fmt = () => doc.querySelector<HTMLElement>(".ed-fmt");
+        doc.addEventListener("click", (e) => {
             const t = e.target as Element;
             if (!t.closest("summary")) e.preventDefault(); // niente link; le FAQ si aprono
+            const sez = t.closest<HTMLElement>("[data-sezstyle]");
+            if (sez) return openSez(sez.closest<HTMLElement>("[data-sez]")!);
+            if (t.closest("[data-noprenota]")) {
+                $("[name=noPrenota]", form!).checked = true;
+                return setDirty(true);
+            }
+            const go = t.closest<HTMLElement>("[data-goto]");
+            if (go) return void (location.hash = go.dataset.goto!);
+            const f = t.closest<HTMLElement>("[data-fmt]");
+            const act = t.closest<HTMLElement>("[data-act]");
             const add = t.closest<HTMLElement>("[data-add]");
+            if (f) {
+                const el = doc.activeElement?.closest<HTMLElement>("[data-field]");
+                if (f.dataset.fmt === "img") {
+                    const range = doc.getSelection()?.rangeCount ? doc.getSelection()!.getRangeAt(0).cloneRange() : null;
+                    const inp = Object.assign(doc.createElement("input"), { type: "file", accept: "image/*", multiple: true });
+                    inp.onchange = () => el && insertImgs(el, range, images(inp.files));
+                    return inp.click();
+                }
+                if (f.dataset.fmt === "link") {
+                    const url = prompt("Indirizzo del link (https://…)", "https://");
+                    if (url && /^https?:\/\/\S+$/.test(url)) doc.execCommand("createLink", false, url);
+                } else doc.execCommand(f.dataset.fmt!);
+                return el && sync(el);
+            }
+            if (act) {
+                const el = edEl(act.closest<HTMLElement>("div[data-ed]")!.dataset.ed!);
+                el?.querySelector<HTMLButtonElement>(`:scope > summary [data-${act.dataset.act}]`)?.click();
+                const now = act.dataset.act === "dup" ? el?.nextElementSibling : el;
+                if (now?.isConnected) pick(keyOf(now as HTMLElement));
+                else unfocus();
+                return;
+            }
             if (add) return addFromLive(add);
             const k = t.closest<HTMLElement>("[data-ed]")?.dataset.ed;
             if (k) pick(k);
         }, true);
+        doc.addEventListener("mousedown", (e) => {
+            if ((e.target as Element).closest(".ed-fmt")) e.preventDefault(); // la barra non toglie la selezione
+        });
+        doc.addEventListener("input", (e) => {
+            const el = (e.target as Element).closest?.<HTMLElement>("[data-field]");
+            if (el) sync(el);
+            const n = (e.target as Element).closest?.<HTMLElement>("[data-nav]");
+            if (n) {
+                edits.nav = (edits.nav ?? settings.nav).map((l: Data, i: number) => (i === Number(n.dataset.nav) ? { ...l, label: n.textContent!.trim() || l.label } : l));
+                setDirty(true);
+            }
+            const k = (e.target as Element).closest?.<HTMLElement>("[data-k]");
+            if (k) {
+                edits[k.dataset.k!] = k.textContent!.trim() || undefined; // si salva con l'evento o la pagina
+                setDirty(true);
+            }
+        });
+        doc.addEventListener("keydown", (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+                e.preventDefault();
+                dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));
+            }
+            const el = (e.target as Element).closest?.<HTMLElement>("[data-field], [data-nav]");
+            if (e.key === "Enter" && el && el.dataset.field !== "bBody") {
+                e.preventDefault();
+                el.blur();
+            }
+        });
+        doc.addEventListener("focusin", (e) => {
+            const el = (e.target as Element).closest?.<HTMLElement>("[data-field=bBody]");
+            const bar = fmt();
+            if (!bar) return;
+            bar.hidden = !el;
+            if (!el) return;
+            const r = el.getBoundingClientRect();
+            bar.style.cssText = `top:${Math.max(0, r.top + doc.defaultView!.scrollY - 46)}px;left:${r.left}px`;
+        });
+        doc.addEventListener("focusout", () =>
+            setTimeout(() => {
+                const bar = fmt();
+                if (bar && !doc.activeElement?.closest("[data-field=bBody]")) bar.hidden = true;
+            }),
+        );
+        doc.addEventListener("paste", (e) => {
+            const el = (e.target as Element).closest?.<HTMLElement>("[data-field], [data-k], [data-nav]");
+            if (!el) return;
+            e.preventDefault();
+            const files = images(e.clipboardData?.files);
+            if (files.length && el.dataset.field === "bBody") return insertImgs(el, doc.getSelection()?.rangeCount ? doc.getSelection()!.getRangeAt(0) : null, files);
+            doc.execCommand("insertText", false, e.clipboardData?.getData("text/plain") ?? ""); // niente formattazione copiata da Word
+        });
+        doc.addEventListener("dragover", (e) => {
+            if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
+        });
+        doc.addEventListener("drop", (e) => {
+            const files = images(e.dataTransfer?.files);
+            if (!files.length) return;
+            e.preventDefault();
+            const t = e.target as Element;
+            const el = t.closest<HTMLElement>("[data-field=bBody]");
+            if (el) insertImgs(el, caretAt(doc, e.clientX, e.clientY), files);
+            else dropOn(t.closest<HTMLElement>("div[data-ed]")?.dataset.ed ?? t.closest(".ev-panel")?.querySelector<HTMLElement>("div[data-ed]")?.dataset.ed, files);
+        });
+        // altezza: si trascina la maniglia, la sezione cresce dal vivo; al rilascio va nello stile
+        doc.addEventListener("pointerdown", (e) => {
+            const g = (e.target as Element).closest<HTMLElement>("[data-grip]");
+            if (!g) return;
+            e.preventDefault();
+            const sec = g.parentElement!;
+            const win = doc.defaultView!;
+            const top = sec.getBoundingClientRect().top;
+            let h = 0;
+            g.setPointerCapture(e.pointerId);
+            g.onpointermove = (m) => {
+                h = Math.min(100, Math.max(10, Math.round(((m.clientY - top) / win.innerHeight) * 20) * 5));
+                sec.style.minHeight = `${h}svh`;
+                g.dataset.h = `${h}% dello schermo`;
+            };
+            g.onpointerup = () => {
+                g.onpointermove = g.onpointerup = null;
+                const box = bgOf(g.dataset.grip!);
+                const r = box?.querySelector<HTMLInputElement>("[name=height]");
+                if (!r || !h) return;
+                r.value = String(h);
+                r.dispatchEvent(new Event("input", { bubbles: true }));
+            };
+        });
+    }
+    liveFrame.addEventListener("load", () => {
+        const doc = liveDoc();
+        if (doc) wireLive(doc);
         markSel();
     });
     for (const f of [form, pageForm]) {
@@ -452,6 +740,7 @@ if (form) {
         if (b.text) $("[name=textColor]", box).value = b.text;
         $("[name=bgVeil]", box).value = String(b.veil ?? 0);
         $("[name=height]", box).value = String(b.height ?? 0);
+        $("[name=op]", box).value = String(b.op ?? 100);
         for (const r of $$("input[type=range]", box)) showRange(r);
         $("[name=dark]", box).checked = !!b.dark;
         $("[name=parallax]", box).checked = !!b.parallax;
@@ -462,13 +751,13 @@ if (form) {
     // valore accanto ai cursori: velo in %, altezza in % dello schermo, larghezza immagine in % (0 = automatica)
     const showRange = (r: HTMLInputElement) =>
         (r.previousElementSibling!.textContent =
-            r.name === "bgVeil" ? `${r.value}%` : r.value === "0" ? "automatica" : `${r.value}%${r.name === "height" ? " dello schermo" : ""}`);
+            r.name === "bgVeil" || r.name === "op" ? `${r.value}%` : r.value === "0" ? "automatica" : `${r.value}%${r.name === "height" ? " dello schermo" : ""}`);
     function readBg(box: Element) {
         const v = (k: string) => $(`[name=${k}]`, box).value.trim() || undefined;
         const on = (k: string) => $(`[name=${k}]`, box).checked || undefined;
         const b = {
             color: on("bgOn") && v("bgColor"), image: getImg($(".img", box)),
-            veil: Number(v("bgVeil")) || undefined, dark: on("dark"), parallax: on("parallax"),
+            veil: Number(v("bgVeil")) || undefined, op: v("op") === "100" ? undefined : Number(v("op")), dark: on("dark"), parallax: on("parallax"),
             text: on("textOn") && v("textColor"), font: v("font"), size: v("size") && Number(v("size")),
             pad: v("pad"), height: Number(v("height")) || undefined, vpos: v("vpos"),
             align: v("align"), w: v("w"), lh: v("lh") && Number(v("lh")), fs: v("fs") && Number(v("fs")),
@@ -811,8 +1100,15 @@ if (form) {
         if (fam && !BASE_FONTS.includes(fam)) loadFont(`https://fonts.googleapis.com/css2?family=${fam.replace(/ /g, "+")}&display=swap`);
     }
 
+    // ── card dell'evento (timeline in home e lista eventi), coi dati non salvati
+    const cardsDlg = $<HTMLDialogElement>("#cards-dlg");
+    $<HTMLButtonElement>("#cards-btn").onclick = () => {
+        cardsDlg.showModal();
+        renderPrev($<HTMLElement>(".prev", cardsDlg), { ...collect(), cards: true });
+    };
+
     // dialog: chiudi con ✕/Annulla o cliccando fuori
-    for (const d of [cropDlg, fontDlg]) {
+    for (const d of [cropDlg, fontDlg, cardsDlg]) {
         d.addEventListener("click", (e) => {
             if ((e.target === d && !d.classList.contains("docked")) || (e.target as Element).closest("[data-close]")) d.close();
         });
@@ -831,7 +1127,8 @@ if (form) {
         (d.tabs as Data[] | undefined)?.forEach((t) => addTab(t));
         d.serate?.forEach((x: Data) => addSerata(x));
         for (const box of $$<HTMLElement>("fieldset > .img", form!)) initImg(box, d[box.dataset.name!]);
-        for (const box of $$<HTMLElement>("fieldset > .bg-wrap > .bg", form!)) initBg(box, d[box.dataset.name!]);
+        for (const box of $$<HTMLElement>(".sec > .bg, fieldset > .bg-wrap > .bg", form!)) initBg(box, d[box.dataset.name!]);
+        $("[name=noPrenota]", form!).checked = !!d.noPrenota;
         $("#ed-title").textContent = d.title || "Nuovo evento";
         countExcerpt();
         fontSample("titleFont");
@@ -869,6 +1166,7 @@ if (form) {
                 heroLayout: val("heroLayout"), coverMode: val("coverMode"),
                 sfondo: readBg($(".bg[data-name=sfondo]", form!)),
                 titleFont: val("titleFont"), characterFont: val("characterFont"),
+                noPrenota: $("[name=noPrenota]", form!).checked || undefined,
                 tabs: $$<HTMLElement>("#tabs > .tab-ed", form!).map((t) => ({
                     title: val("tabTitle", t),
                     blocks: readBlocks($(".blocks-wrap", t)),
@@ -897,6 +1195,7 @@ if (form) {
         pagesView.hidden = v !== "pages";
         pageForm.hidden = v !== "page";
         $<HTMLElement>("#empty").hidden = v !== "empty";
+        $<HTMLElement>("#save-top").hidden = v === "empty";
         $$<HTMLElement>(".view-link").forEach((a) => a.classList.toggle("on", a.dataset.view === v));
         // evento e pagine: impostazioni a sinistra, anteprima dal vivo a destra, elenco nel menu ☰
         const split = v === "editor" || v === "page";
@@ -999,6 +1298,7 @@ if (form) {
         setDirty(false);
         dropDraft();
         history.replaceState(null, "", `#${saved.id}`);
+        if (Object.keys(edits).length && !(await saveSettings(edits))) return; // testi e stili del sito cambiati nell'anteprima
         say(`Salvato alle ${savedAt()} ✓`);
     }
     form.addEventListener("submit", (e) => {
@@ -1014,6 +1314,8 @@ if (form) {
             else if (view === "page") pageForm.requestSubmit();
         }
     });
+
+    $<HTMLButtonElement>("#save-top").onclick = () => dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));
 
     $<HTMLButtonElement>("#del").onclick = async () => {
         const ev = current;
@@ -1167,6 +1469,7 @@ if (form) {
             d.className = "sfondo";
             d.ariaHidden = "true";
             if (b.color) d.style.background = b.color;
+            if (b.op !== undefined) d.style.opacity = String(b.op / 100);
             if (b.image) d.append(Object.assign(doc.createElement("img"), { src: b.image.src, alt: "", style: imgStyle(b.image) }));
             if (b.veil) d.append(Object.assign(doc.createElement("span"), { style: `background:${veil(b as Bg)}` }));
             el.prepend(d);
@@ -1179,6 +1482,12 @@ if (form) {
             void el.offsetWidth; // riparte la transizione
             requestAnimationFrame(() => el.classList.add("in"));
         } else el.classList.add("in");
+    }
+    function openSez(el: HTMLElement) {
+        sezEl = el;
+        initBg(sezBox, sezioni()[el.dataset.sez!]);
+        sezDlg.returnValue = "";
+        sezDlg.showModal();
     }
     sezDlg.addEventListener("click", (e) => {
         const b = (e.target as Element).closest<HTMLElement>("button[type=button]");
@@ -1211,12 +1520,7 @@ if (form) {
         for (const el of doc.querySelectorAll<HTMLElement>("[data-sez]")) {
             paintSez(el, sezioni()[el.dataset.sez!]);
             const b = Object.assign(doc.createElement("button"), { type: "button", className: "sez-btn", textContent: "🎨 Stile" });
-            b.onclick = () => {
-                sezEl = el;
-                initBg(sezBox, sezioni()[el.dataset.sez!]);
-                sezDlg.returnValue = "";
-                sezDlg.showModal();
-            };
+            b.onclick = () => openSez(el);
             el.append(b);
         }
         // niente link, menu o dialog della pagina mentre si modifica
@@ -1232,7 +1536,6 @@ if (form) {
             setDirty(true);
         });
     };
-    $<HTMLButtonElement>("#pages-save").onclick = () => saveSettings(edits);
 
     // ── cronologia delle impostazioni: ogni vista mostra solo le versioni in cui la sua parte cambia
     let sHist: { id: number; data: Data; author?: string; savedAt: number }[] | undefined;
@@ -1369,7 +1672,7 @@ if (form) {
         e.preventDefault();
         if (pageKey === "home") {
             const { blocks, sfondo } = collectPage();
-            return void saveSettings({ home: blocks, sfondoHome: sfondo });
+            return void saveSettings({ ...edits, home: blocks, sfondoHome: sfondo });
         }
         const { menu: want, ...p } = collectPage() as Data;
         if (settings.pagine.some((x: Data) => x.slug === p.slug && x.slug !== pageKey)) return say(`C'è già una pagina /${p.slug}: scegli un altro indirizzo.`, true);
@@ -1381,7 +1684,7 @@ if (form) {
         const has = nav.some((l: Data) => l.href === `/${p.slug}`);
         if (want && !has) nav.splice(Math.max(0, nav.length - 1), 0, { label: p.title, href: `/${p.slug}` }); // prima del bottone finale
         if (!want) nav = nav.filter((l: Data) => l.href !== `/${p.slug}`);
-        if (!(await saveSettings({ pagine, nav }))) return;
+        if (!(await saveSettings({ ...edits, pagine, nav }))) return;
         dropDraft(`mc_draft:pg:${pageKey}`); // la bozza di una pagina nuova o rinominata
         renderNav();
         pageKey = p.slug;

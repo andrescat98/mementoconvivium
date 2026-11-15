@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bookCta, bookHref, dateLabel, googleFontsHref, imgStyle, look, md, pageBg, slugify, today, upgradeTab, veil, videoEmbed } from "./format.ts";
+import { bookCta, bookHref, dateLabel, googleFontsHref, imgStyle, look, md, pageBg, tabLooks, slugify, today, upgradeTab, veil, videoEmbed } from "./format.ts";
 
 test("dateLabel", () => {
   assert.equal(dateLabel("2026-06-19"), "Ven 19 Giu 2026");
@@ -12,6 +12,8 @@ test("md: paragrafi, enfasi, link, escape", () => {
   assert.equal(md("[x](https://a.it?q=1&r=2)"), '<p><a href="https://a.it?q=1&#38;r=2">x</a></p>');
   assert.equal(md('<script>"'), "<p>&#60;script&#62;&#34;</p>");
   assert.equal(md("[x](javascript:alert(1))"), "<p>[x](javascript:alert(1))</p>");
+  assert.equal(md("a ![b](/img/12) c"), '<p>a <img src="/img/12" alt="b" loading="lazy"> c</p>');
+  assert.equal(md("![x](https://evil.it/a.png)"), '<p>!<a href="https://evil.it/a.png">x</a></p>'); // immagini esterne: mai <img>
 });
 
 test("imgStyle: punto focale, zoom solo se > 1", () => {
@@ -54,6 +56,10 @@ test("look e veil", () => {
   assert.equal(h.style, "--sez-h:60svh");
   assert.equal(look({ lh: 2, fs: 1.2, align: "centro" }).style, "--sez-lh:2;--sez-fs:1.2");
   assert.equal(pageBg(undefined), undefined);
+  assert.equal(pageBg({ color: "#000000", op: 60 }), "linear-gradient(rgb(245 242 236 / 40%),rgb(245 242 236 / 40%)),#000000");
+  const tl = tabLooks({ heroStyle: { color: "#111111", height: 100, image: { src: "/img/1" } }, background: { text: "#ffffff" }, tabs: [{}, { background: { color: "#222222" } }] });
+  assert.deepEqual(tl, [{ color: "#111111", text: "#ffffff" }, { color: "#222222", text: "#ffffff" }]);
+  assert.equal(tabLooks({ tabs: [{}] })[0], undefined);
   assert.equal(pageBg({ color: "#000000" }), "#000000");
   assert.equal(pageBg({ image: { src: "/img/1", x: 20, y: 30 }, veil: 40, dark: true, color: "#111111" }), 'linear-gradient(rgb(20 17 14 / 40%),rgb(20 17 14 / 40%)),url("/img/1") 20% 30% / cover no-repeat,#111111');
   assert.equal(veil({ veil: 40, dark: true }), "rgb(20 17 14 / 40%)");

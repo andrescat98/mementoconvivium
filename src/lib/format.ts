@@ -50,7 +50,7 @@ const esc = (s: string) =>
 
 /**
  * Markdown minimo per il racconto degli eventi: paragrafi, **grassetto**, *corsivo*,
- * [link](https://…). L'HTML in input viene sempre escapato.
+ * [link](https://…), ![foto](/img/…) (solo immagini del sito). L'HTML in input viene sempre escapato.
  * ponytail: niente liste/titoli; se servono, usare `marked`.
  */
 export const md = (src: string) =>
@@ -60,6 +60,7 @@ export const md = (src: string) =>
     .map(
       (p) =>
         `<p>${esc(p.trim())
+          .replace(/!\[([^\]]*)\]\((\/[\w\-./]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
           .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
           .replace(/\*(.+?)\*/g, "<em>$1</em>")
           .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>')
@@ -127,11 +128,26 @@ export function look(b?: Bg) {
   };
 }
 
+/** Stile di ogni scheda evento: parte da quello dell'intestazione (colori, testo, impaginazione; non immagine,
+ * altezza, spazi e animazione), poi lo stile predefinito delle schede, poi quello della scheda. */
+const EREDITA = ["color", "op", "veil", "dark", "text", "font", "size", "align", "w", "lh", "fs", "fx"] as const;
+export function tabLooks(d: { heroStyle?: Bg; background?: Bg; tabs: { background?: Bg }[] }): (Bg | undefined)[] {
+  const base = Object.fromEntries(EREDITA.filter((k) => d.heroStyle?.[k] !== undefined).map((k) => [k, d.heroStyle![k]]));
+  return d.tabs.map((t) => {
+    const l = { ...base, ...d.background, ...t.background } as Bg;
+    return Object.values(l).some((v) => v !== undefined) ? l : undefined;
+  });
+}
+
 /** Sfondo di una pagina (colore, immagine inquadrata, velo) come valore di `background`, al posto del marmo (global.css body::before). */
 export function pageBg(b?: Bg) {
   if (!b?.color && !b?.image) return undefined;
+  // opacità: il colore e l'immagine si schiariscono sul fondo avorio (il velo copre lo stesso)
+  const op = b.op ?? 100;
+  const fade = op < 100 ? `rgb(245 242 236 / ${100 - op}%)` : undefined;
   const v = b.veil ? veil(b) : undefined;
   return [
+    fade && `linear-gradient(${fade},${fade})`,
     v && `linear-gradient(${v},${v})`,
     b.image && `url("${b.image.src.replace(/["\\]/g, "")}") ${b.image.x ?? 50}% ${b.image.y ?? 50}% / cover no-repeat`,
     b.color,

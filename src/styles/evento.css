@@ -278,6 +278,14 @@
         color: var(--cream);
     }
 
+    .ev-prose img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 1.5rem auto;
+        border: 1px solid var(--border);
+    }
+
     .ev-prose p {
         margin-bottom: 1.4rem;
     }

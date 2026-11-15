@@ -1,13 +1,13 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import EventoHero from "../../components/EventoHero.astro";
-import Prenota from "../../components/Prenota.astro";
+import PrenotaEvento from "../../components/PrenotaEvento.astro";
 import Sfondo from "../../components/Sfondo.astro";
 import Blocco from "../../components/Blocco.astro";
 import FotoDialog from "../../components/FotoDialog.astro";
 import { isAdmin } from "../../lib/auth";
 import { getEvent, getEvents, getSettings } from "../../lib/db";
-import { bookCta, googleFontsHref, look, slugify } from "../../lib/format";
+import { bookCta, googleFontsHref, look, slugify, tabLooks } from "../../lib/format";
 import "../../styles/evento.css";
 
 const evento = await getEvent(Astro.params.slug!);
@@ -22,14 +22,14 @@ if (hidden) Astro.cache.set(false);
 if (hidden && !preview) return new Response(null, { status: 404 });
 
 const s = await getSettings();
-const { title, excerpt, status, cover, background, tabs, titleFont, characterFont } = evento.data;
+const { title, excerpt, status, cover, tabs, titleFont, characterFont } = evento.data;
 const cta = bookCta(evento.data, s);
 
 // blocchi "eventi" o sezioni fisse dentro le schede: servono gli altri eventi
 const eventi = tabs.some((t) => t.blocks.some((b) => b.type === "eventi" || b.type === "sezione")) ? await getEvents() : [];
 
 // stile della scheda: campo per campo sopra quello predefinito
-const looks = tabs.map((t) => (background || t.background ? { ...background, ...t.background } : undefined));
+const looks = tabLooks(evento.data);
 
 // ancore uniche per scheda (#la-storia, #personaggi…)
 const seen = new Set<string>();
@@ -79,15 +79,7 @@ const ids = tabs.map((t, i) => {
         )}
     </div>
 
-    <Prenota k="prenotaEventoText" class="ev-final-cta">
-        {cta ? <a href={cta.href} class={`${cta.cls} btn-large`}>{cta.label}</a> : <span />}
-        <div class="prenota-locale" slot="extra">
-            <p class="prenota-locale-text">Sei un locale, un ristorante o un'associazione?</p>
-            <a href={`mailto:${s.email}?subject=${encodeURIComponent(`Portare "${title}" nel mio locale`)}`} class="btn-ghost">
-                Porta questa cena con delitto da te →
-            </a>
-        </div>
-    </Prenota>
+    {!evento.data.noPrenota && <PrenotaEvento title={title} cta={cta} />}
 
     <FotoDialog font={characterFont} />
 </Layout>

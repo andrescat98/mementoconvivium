@@ -1,20 +1,25 @@
 ---
 // Anteprima per /admin coi componenti e il CSS veri, a partire dai dati non ancora salvati:
-// - evento (POST JSON { slug, data }): intestazione, schede coi pulsanti come sul sito (admin.ts sceglie quella visibile), card
-// - home o pagina nuova (POST JSON { blocks, sfondo }): i blocchi, sullo sfondo della pagina
+// - evento (POST JSON { slug, data }): la pagina vera (header, intestazione, schede coi pulsanti, Partecipa, footer);
+//   admin.ts sceglie la scheda visibile. Con `cards: true` solo le card di timeline e lista eventi (bottone in /admin)
+// - home o pagina nuova (POST JSON { blocks, sfondo }): header, blocchi, footer, sullo sfondo della pagina
+// I testi del sito ([data-k]) e lo stile delle sezioni fisse ([data-sez]) si modificano qui e finiscono nelle impostazioni.
 // scripts/admin.ts la carica in un iframe e aggiorna dal vivo l'inquadratura delle immagini.
-// Ogni parte modificabile sta in un [data-ed] (display: contents): "hero", "cards", "t0" (titolo scheda),
+// Ogni parte modificabile sta in un [data-ed] (display: contents): "hero", "t0" (titolo scheda),
 // "t0.2" (blocco 2 della scheda 0), "2" (blocco 2 della pagina). Gli indici contano anche i blocchi nascosti,
 // così coincidono con l'ordine del form: un clic qui apre il blocco giusto in /admin.
 // .ed-ins = "＋" per aggiungere un blocco in quel punto (data-where "t0" o "" per la pagina, data-at = posizione).
 import Blocco from "../../components/Blocco.astro";
+import Footer from "../../components/Footer.astro";
+import Header from "../../components/Header.astro";
+import PrenotaEvento from "../../components/PrenotaEvento.astro";
 import EventCard from "../../components/EventCard.astro";
 import Sfondo from "../../components/Sfondo.astro";
 import EventoHero from "../../components/EventoHero.astro";
 import TimelineCard from "../../components/TimelineCard.astro";
 import { isAdmin } from "../../lib/auth";
 import { getEvents, getSettings } from "../../lib/db";
-import { BLOCK_TEXT, bookCta, googleFontsHref, look, pageBg, SITE_FONTS_HREF } from "../../lib/format";
+import { BLOCK_TEXT, bookCta, googleFontsHref, look, pageBg, SITE_FONTS_HREF, tabLooks } from "../../lib/format";
 import { BLOCKS, bgObj, blockSchema, eventoSchema, type Block, type Evento } from "../../lib/schema";
 import "../../styles/global.css";
 import "../../styles/index.css";
@@ -22,7 +27,7 @@ import "../../styles/timeline.css";
 import "../../styles/evento.css";
 
 if (Astro.request.method !== "POST" || !(await isAdmin(Astro.cookies))) return new Response(null, { status: 401 });
-const { slug, data, blocks, sfondo } = await Astro.request.json();
+const { slug, data, blocks, sfondo, cards: soloCard } = await Astro.request.json();
 // campi obbligatori ancora vuoti: segnaposto, così l'anteprima si vede già mentre si scrive
 const r = blocks
     ? blockSchema.array().safeParse(blocks)
@@ -31,7 +36,7 @@ const evento: Evento | undefined = r.success && !blocks ? { id: slug || "antepri
 const lista: Block[] = r.success && blocks ? (r.data as Block[]) : [];
 const [s, eventi] = await Promise.all([getSettings(), getEvents()]);
 const d = evento?.data;
-const looks = d?.tabs.map((t) => (d.background || t.background ? { ...d.background, ...t.background } : undefined)) ?? [];
+const looks = d ? tabLooks(d) : [];
 const fonts = googleFontsHref(
     d?.titleFont, d?.heroStyle?.font, ...looks.map((l) => l?.font),
     ...[...lista, ...(d?.tabs.flatMap((t) => t.blocks) ?? [])].map((b) => b.style?.font),
@@ -60,8 +65,18 @@ const cards = [
     {fonts && <link rel="stylesheet" href={fonts} />}
 </head>
 <body style={bodyBg && `--page-bg:${bodyBg}`}>
+    {!soloCard && <Header />}
     <main>
-        {evento ? (
+        {evento && soloCard ? (
+            <div class="prev-cards">
+                {cards.map(([label, w, Card]) => (
+                    <figure style={`width:${w}`}>
+                        <figcaption>{label}</figcaption>
+                        <Card evento={evento} />
+                    </figure>
+                ))}
+            </div>
+        ) : evento ? (
             <>
                 <div class="ev-page" style={evento.data.titleFont && `--ev-font:${evento.data.titleFont}`}>
                     <div data-ed="hero"><EventoHero d={evento.data} cta={bookCta(evento.data, s)} /></div>
@@ -83,7 +98,7 @@ const cards = [
                                 {t.blocks.map((b, j) => !b.hidden && (
                                     <>
                                         <Fragment set:html={ins(`t${i}`, j)} />
-                                        <div class="ed" data-ed={`t${i}.${j}`}><Blocco b={b} eventi={eventi} evento={evento} inline /></div>
+                                        <div class="ed" data-ed={`t${i}.${j}`}><Blocco b={b} eventi={eventi} evento={evento} inline edit /></div>
                                     </>
                                 ))}
                                 <Fragment set:html={ins(`t${i}`, t.blocks.length, true)} />
@@ -92,21 +107,14 @@ const cards = [
                     ))}
                     </div>
                 </div>
-                <div data-ed="cards"><div class="prev-cards">
-                    {cards.map(([label, w, Card]) => (
-                        <figure style={`width:${w}`}>
-                            <figcaption>{label}</figcaption>
-                            <Card evento={evento} />
-                        </figure>
-                    ))}
-                </div></div>
+                {!evento.data.noPrenota && <PrenotaEvento title={evento.data.title} cta={bookCta(evento.data, s)} />}
             </>
         ) : r.success ? (
             <>
                 {lista.map((b, i) => !b.hidden && (
                     <>
                         <Fragment set:html={ins("", i)} />
-                        <div data-ed={i}><Blocco b={b} eventi={eventi} /></div>
+                        <div data-ed={i}><Blocco b={b} eventi={eventi} edit /></div>
                     </>
                 ))}
                 <Fragment set:html={ins("", lista.length, true)} />
@@ -115,6 +123,7 @@ const cards = [
             <p class="prev-err">Da correggere per l'anteprima: {r.error?.issues.map((i) => i.path.join(".")).join(", ")}</p>
         )}
     </main>
+    {!soloCard && <Footer />}
 </body>
 </html>
 
@@ -124,7 +133,6 @@ const cards = [
     div[data-ed] > :hover, a[data-ed]:hover { outline: 2px dashed rgb(31 95 168 / 0.55); outline-offset: -2px; }
     div[data-ed].sel > *, a[data-ed].sel { outline: 3px solid #1f5fa8; outline-offset: -3px; }
     .ev-panel-inner > .ed ~ .ed > .blocco { margin-top: 3.5rem; } /* come .blocco + .blocco sul sito */
-    .ev-tabbar { top: 0; } /* niente header nell'anteprima */
     /* "＋" tra i blocchi: un cerchietto; passandoci sopra si apre la scelta del tipo */
     .ed-ins { position: relative; z-index: 30; height: 0; font: 500 13px/1.2 system-ui, sans-serif; }
     .ed-plus {
@@ -148,6 +156,42 @@ const cards = [
     .ed-pal button:hover, .ed-tab-add:hover { border-color: #1f5fa8; color: #1f5fa8; }
     .ed-tab-add { font: 500 13px/1.2 system-ui, sans-serif; align-self: center; }
     main > .ed-ins.end { margin: 0; padding: 2rem; }
+    /* modifica diretta: testi scrivibili, segnaposto, foto in caricamento */
+    [contenteditable]:not([contenteditable="false"]) { cursor: text; outline-offset: 4px; }
+    [contenteditable]:not([contenteditable="false"]):hover { outline: 1px dashed rgb(31 95 168 / 0.6); }
+    [contenteditable]:not([contenteditable="false"]):focus { outline: 2px solid #1f5fa8; background: rgb(255 255 255 / 0.35); }
+    [data-ph]:empty::before { content: attr(data-ph); opacity: 0.45; font-style: italic; }
+    div[data-ed]:not(.sel) .ed-ph { display: none; }
+    img.ed-up { opacity: 0.4; }
+    /* strumenti nell'angolo in alto a destra di blocchi e sezioni */
+    .ed-tools {
+        position: absolute; top: 8px; right: 8px; z-index: 40; display: none; gap: 4px; align-items: center;
+        padding: 4px; background: #fff; border: 1px solid #1f5fa8; border-radius: 8px; box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+        font: 500 13px/1.2 system-ui, sans-serif; color: #1a1a1a; text-align: left; letter-spacing: 0; text-transform: none;
+    }
+    :is(div[data-ed]:hover > *, div[data-ed].sel > *, [data-sez]:hover, .site-header:hover, .site-footer:hover) > .ed-tools { display: flex; }
+    .ed-tools button { font: inherit; min-width: 28px; padding: 5px 8px; border: 1px solid rgb(0 0 0 / 0.15); border-radius: 5px; background: #fff; color: inherit; cursor: pointer; }
+    .ed-tools button:hover { border-color: #1f5fa8; color: #1f5fa8; }
+    .ed-tools .ed-ins { position: relative; height: auto; }
+    .ed-tools .ed-plus { position: static; transform: none; opacity: 1; }
+    .ed-tools .ed-pal { left: auto; right: 0; top: 100%; transform: none; }
+    .site-header .ed-tools { top: 50%; transform: translateY(-50%); }
+    :is([data-sez], .site-footer) > .ed-tools { top: auto; bottom: 12px; } /* in alto finirebbero sotto l'header fisso */
+    /* maniglia in basso: si trascina per l'altezza della sezione */
+    .ed-grip { position: absolute; left: 0; right: 0; bottom: 0; z-index: 35; height: 10px; cursor: ns-resize; }
+    .ed-grip:hover, .ed-grip[data-h] { background: rgb(31 95 168 / 0.35); }
+    .ed-grip[data-h]::after {
+        content: attr(data-h); position: absolute; right: 12px; bottom: 14px; padding: 4px 8px; border-radius: 4px;
+        background: #1f5fa8; color: #fff; font: 600 12px system-ui, sans-serif;
+    }
+    /* barra di formattazione sopra il testo che si sta scrivendo */
+    .ed-fmt {
+        position: absolute; z-index: 50; display: flex; gap: 4px; padding: 4px; background: #1a1a1a; border-radius: 8px;
+        box-shadow: 0 4px 14px rgb(0 0 0 / 0.3); font: 500 13px/1.2 system-ui, sans-serif;
+    }
+    .ed-fmt[hidden] { display: none; }
+    .ed-fmt button { font: inherit; padding: 5px 9px; border: 0; border-radius: 5px; background: transparent; color: #fff; cursor: pointer; }
+    .ed-fmt button:hover { background: #1f5fa8; }
 </style>
 
 <style>

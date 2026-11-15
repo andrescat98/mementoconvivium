@@ -20,8 +20,9 @@ interface Props {
     eventi?: Evento[];
     evento?: Evento; // la pagina evento che contiene il blocco
     inline?: boolean;
+    edit?: boolean; // anteprima di /admin: titolo e introduzione vuoti restano come segnaposto da scrivere (.ed-ph)
 }
-const { b, eventi = [], evento, inline } = Astro.props;
+const { b, eventi = [], evento, inline, edit } = Astro.props;
 const Tag = inline ? "div" : "section";
 const H = inline ? "h3" : "h2";
 
@@ -44,7 +45,7 @@ const ricordi =
               .sort((x, y) => (y.s.dateISO ?? "").localeCompare(x.s.dateISO ?? ""))
         : [];
 const conFoto = [...new Map(ricordi.map(({ e }) => [e.id, e.data.title])).entries()];
-const intro = b.body && b.type !== "testo" && b.type !== "bottone";
+const intro = (b.body || edit) && b.type !== "testo" && b.type !== "bottone";
 // posizione dell'immagine nel blocco testo → classe di evento.css
 const SIDE = { destra: "", sinistra: "img-sx", sopra: "img-su", sotto: "img-giu" };
 ---
@@ -58,13 +59,13 @@ const SIDE = { destra: "", sinistra: "img-sx", sopra: "img-su", sotto: "img-giu"
     <Tag class:list={["blocco", `blocco-${b.type}`, !inline && "section", inline && b.style && "con-stile"]} {...look(b.style)}>
         <Sfondo bg={b.style} />
         <div class={inline ? "blocco-inner" : "container"}>
-            {b.title && (
-                <div class="section-header blocco-head">
+            {(b.title || edit) && (
+                <div class:list={["section-header blocco-head", !b.title && "ed-ph"]}>
                     <H>{b.title}</H>
                     <div class="divider"><span>⬥</span></div>
                 </div>
             )}
-            {intro && <div class="ev-prose ev-panel-intro" set:html={md(b.body!)} />}
+            {intro && <div class:list={["ev-prose ev-panel-intro", !b.body && "ed-ph"]} set:html={md(b.body ?? "")} />}
 
             {b.type === "testo" && (
                 <div
@@ -128,7 +129,7 @@ const SIDE = { destra: "", sinistra: "img-sx", sopra: "img-su", sotto: "img-giu"
 
             {b.type === "bottone" && (
                 <div class="blocco-cta">
-                    {b.body && <div class="ev-prose" set:html={md(b.body)} />}
+                    {(b.body || edit) && <div class="ev-prose" set:html={md(b.body ?? "")} />}
                     {b.href && <a href={b.href} class="btn-primary btn-large">{b.label ?? "Scopri di più"}</a>}
                 </div>
             )}

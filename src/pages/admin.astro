@@ -34,13 +34,8 @@ const WIDTHS = [["stretta", "Stretta (colonna di lettura)"], ["larga", "Larga"],
 const AR_TEXT: Record<string, string> = { quadrata: "Quadrata", orizzontale: "Orizzontale 3:2", panoramica: "Panoramica 16:9", originale: "Intera, non ritagliata" };
 const SIZES = [["0.8", "Piccoli"], ["1.2", "Grandi"], ["1.45", "Enormi"]];
 const SHOW_TEXT: Record<string, string> = { prossimi: "Prossimi", tutti: "Tutti", passati: "Già fatti" };
-// pagine con testi modificabili (attributo data-k): la pagina evento solo se ce n'è una pubblica
-const evPage = eventi.find((e) => e.data.status !== "bozza" && e.data.status !== "coming-soon");
-const PAGES = [
-    ["/", "Home"], ["/lista-eventi", "Lista eventi"], ["/contatti", "Contatti"],
-    ...s?.pagine.map((p) => [`/${p.slug}`, p.title]) ?? [],
-    ...(evPage ? [[`/eventi/${evPage.id}`, `Pagina evento (${evPage.data.title})`]] : []),
-];
+// home, pagine nuove ed eventi si scrivono nel loro editor (anteprima dal vivo): qui solo le pagine fisse
+const PAGES = [["/lista-eventi", "Lista eventi"], ["/contatti", "Contatti"]];
 const HERO_TEXT: Record<string, string> = {
     lista: "Apre l'elenco delle prossime date",
     prossimo: "Porta alla pagina del prossimo evento",
@@ -76,7 +71,7 @@ const fontsHref =
     <header class="top">
         <button type="button" id="menu" hidden aria-controls="side">☰ Eventi e pagine</button>
         <strong class="brand">Memento Convivium · Moderatori</strong>
-        <span id="dirty" hidden>● Non salvato</span>
+        <button type="button" id="save-top" hidden title="Salva (Ctrl+S)">💾 Salva</button>
         <label class="who">Il tuo nome<input id="who" maxlength="40" placeholder="per la cronologia" autocomplete="nickname" /></label>
         <button type="button" id="backup" title="Scarica tutti gli eventi in un file JSON">Backup</button>
         <a href="/" target="_blank">Sito ↗</a>
@@ -96,7 +91,7 @@ const fontsHref =
             <ul id="page-list"></ul>
             <button type="button" id="new-page">+ Nuova pagina</button>
             <p class="side-h">Tutto il sito</p>
-            <a href="#pagine" class="view-link" data-view="pages">✎ Testi e stili delle pagine</a>
+            <a href="#pagine" class="view-link" data-view="pages">✎ Pagine Lista eventi e Contatti</a>
             <a href="#impostazioni" class="view-link" data-view="settings">⚙ Impostazioni sito</a>
         </nav>
 
@@ -107,7 +102,6 @@ const fontsHref =
             <div class="bar">
                 <div class="bar-title"><h2>Impostazioni sito</h2><small>Contatti, menu e bottone della home: valgono per tutte le pagine</small></div>
 <select class="hist" aria-label="Cronologia versioni" title="Versioni salvate: scegline una per ricaricarla, poi Salva per ripristinarla"></select>
-                <button class="primary">Salva impostazioni</button>
             </div>
             <p class="msg" role="status"></p>
             <details open class="sec">
@@ -121,6 +115,26 @@ const fontsHref =
                 </fieldset>
             </details>
             <details open class="sec">
+                <summary>Menu in alto</summary>
+                <fieldset>
+                    <div id="nav" class="rows">
+                        {s.nav.map((l) => (
+                            <div class="row nav">
+                                <label>Testo<input name="label" required value={l.label} /></label>
+                                <label>Link<input name="href" required value={l.href} /></label>
+                                <span class="row-btns"><button type="button" data-up title="Sposta su">↑</button><button type="button" data-down title="Sposta giù">↓</button><button type="button" data-rm title="Rimuovi">✕</button></span>
+                            </div>
+                        ))}
+                    </div>
+                    <button type="button" data-add="nav">+ Aggiungi voce</button>
+                    <p class="hint">L'ultima voce è evidenziata come bottone. Link interni: <code>/lista-eventi</code>, <code>/#prenota</code>, <code>/eventi/pirati</code>.</p>
+                </fieldset>
+            </details>
+            <details class="sec">
+                <summary>🌄 Sfondo di tutte le pagine</summary>
+                <div class="bg" data-name="sfondo" data-page data-label="Al posto del marmo su tutto il sito. Home, pagine ed eventi possono averne uno loro. Vuoto = marmo."></div>
+            </details>
+            <details class="sec">
                 <summary>Bottone della home</summary>
                 <fieldset>
                     <label>Cosa fa
@@ -137,10 +151,6 @@ const fontsHref =
                     <label class="wide">Link (facoltativo)<input name="bannerHref" placeholder="/eventi/pirati oppure https://…" /></label>
                     <p class="hint">Compare in basso su ogni pagina; chi lo chiude non lo rivede finché non cambi il testo.</p>
                 </fieldset>
-            </details>
-            <details class="sec">
-                <summary>🖼 Sfondo di tutte le pagine</summary>
-                <div class="bg" data-name="sfondo" data-page data-label="Al posto del marmo su tutto il sito. Home, pagine ed eventi possono averne uno loro. Vuoto = marmo."></div>
             </details>
             <details class="sec">
                 <summary>Google e anteprime social</summary>
@@ -164,42 +174,18 @@ const fontsHref =
                     <p class="hint">Cloudflare → Analytics &amp; Logs → Web Analytics → Add a site → scegli "manual setup" e copia il valore di <code>token</code>. Le statistiche (visite, pagine, paesi) si vedono lì. Nessun cookie, niente banner.</p>
                 </fieldset>
             </details>
-            <details open class="sec">
-                <summary>Menu in alto</summary>
-                <fieldset>
-                    <div id="nav" class="rows">
-                        {s.nav.map((l) => (
-                            <div class="row nav">
-                                <label>Testo<input name="label" required value={l.label} /></label>
-                                <label>Link<input name="href" required value={l.href} /></label>
-                                <span class="row-btns"><button type="button" data-up title="Sposta su">↑</button><button type="button" data-down title="Sposta giù">↓</button><button type="button" data-rm title="Rimuovi">✕</button></span>
-                            </div>
-                        ))}
-                    </div>
-                    <button type="button" data-add="nav">+ Aggiungi voce</button>
-                    <p class="hint">L'ultima voce è evidenziata come bottone. Link interni: <code>/lista-eventi</code>, <code>/#prenota</code>, <code>/eventi/pirati</code>.</p>
-                </fieldset>
-            </details>
         </form>
 
         <!-- ── Testi delle pagine: la pagina vera in un iframe, testi data-k modificabili al clic -->
         <section id="pages" hidden>
             <div class="bar">
-                <div class="bar-title"><h2>Testi e stili delle pagine</h2><small>Clicca su un testo tratteggiato e scrivi (Invio = a capo; vuoto = testo originale). 🎨 in alto a destra di ogni sezione: sfondo, animazione, effetto titoli.</small></div>
+                <div class="bar-title"><h2>Lista eventi e Contatti</h2><small>Clicca su un testo tratteggiato e scrivi (vuoto = testo originale). 🎨 su ogni sezione per lo stile. Home, pagine ed eventi si modificano dal loro editor.</small></div>
                 <label class="check"><input type="checkbox" id="phone" /> 📱 Telefono</label>
                 <select name="page" aria-label="Pagina">{PAGES.map(([href, label]) => <option value={href}>{label}</option>)}</select>
 <select class="hist" aria-label="Cronologia versioni" title="Versioni salvate: scegline una per ricaricarla, poi Salva per ripristinarla"></select>
-                <button type="button" class="primary" id="pages-save">Salva</button>
             </div>
             <p class="msg" role="status"></p>
             <iframe class="page-frame" title="Pagina da modificare"></iframe>
-            <dialog id="sez-dlg" class="dlg">
-                <form method="dialog">
-                    <h3>Stile della sezione</h3>
-                    <div class="bg"></div>
-                    <p class="row-btns"><button value="ok" class="primary">Applica</button><button value="">Annulla</button></p>
-                </form>
-            </dialog>
         </section>
 
         <!-- ── Home e pagine nuove: liste di blocchi -->
@@ -210,12 +196,11 @@ const fontsHref =
                 <select class="hist" aria-label="Cronologia versioni" title="Versioni salvate: scegline una per ricaricarla, poi Salva per ripristinarla"></select>
 
                 <button type="button" id="pg-del" class="danger">Elimina</button>
-                <button class="primary" title="Ctrl+S">Salva</button>
             </div>
             <p class="msg" role="status"></p>
             <button type="button" class="unfocus" data-unfocus>← Tutti i blocchi della pagina</button>
             <details open class="sec" id="pg-base">
-                <summary>Pagina</summary>
+                <summary>📝 Pagina</summary>
                 <fieldset>
                     <label>Titolo<input name="pgTitle" required /></label>
                     <label>Indirizzo (mementoconvivium…/<b>questo</b>)<input name="pgSlug" required pattern="[a-z0-9][a-z0-9\-]*" placeholder="si compila dal titolo" /></label>
@@ -225,11 +210,11 @@ const fontsHref =
                 </fieldset>
             </details>
             <details class="sec">
-                <summary>🖼 Sfondo della pagina</summary>
+                <summary>🌄 Sfondo della pagina</summary>
                 <div class="bg" data-name="sfondo" data-page data-label="Al posto del marmo, dietro tutta la pagina. Vuoto = lo sfondo del sito (Impostazioni sito)."></div>
             </details>
             <details open class="sec">
-                <summary>Blocchi</summary>
+                <summary>🧱 Blocchi</summary>
                 <div class="blocks-wrap">
                     <div class="blocks"></div>
                     <div class="add-blocks"></div>
@@ -248,13 +233,14 @@ const fontsHref =
                 <select id="history" hidden aria-label="Cronologia versioni"></select>
                 <button type="button" id="dup" hidden>Duplica</button>
                 <button type="button" id="del" class="danger" hidden>Elimina</button>
-                <button class="primary" title="Ctrl+S">Salva</button>
             </div>
             <p class="msg" role="status"></p>
             <button type="button" class="unfocus" data-unfocus>← Tutto l'evento</button>
 
+            <button type="button" id="cards-btn" class="cards-btn">🃏 Come appare nelle card: timeline in home e lista eventi</button>
+
             <details open class="sec" data-ed="hero">
-                <summary>Base</summary>
+                <summary>📝 Evento</summary>
                 <fieldset>
                     <label>Titolo<input name="title" required /></label>
                     <label>Slug (indirizzo /eventi/…)<input name="slug" required pattern="[a-z0-9][a-z0-9\-]*" placeholder="si compila dal titolo" /></label>
@@ -271,33 +257,7 @@ const fontsHref =
             </details>
 
             <details open class="sec" data-ed="hero">
-                <summary>Aspetto</summary>
-                <fieldset>
-                    <div class="img" data-name="cover" data-shape="wide" data-preview data-label="Copertina (intestazione, card della timeline se non ha un'immagine sua, social)"></div>
-                    <div class="font-field">
-                        <label>Font del titolo e delle schede<input name="titleFont" placeholder="predefinito" /></label>
-                        <button type="button" data-font="titleFont">Scegli…</button>
-                        <p class="font-sample" data-sample="titleFont"></p>
-                    </div>
-                    <div class="font-field">
-                        <label>Font del nome nel ritratto a schermo intero<input name="characterFont" placeholder="predefinito" /></label>
-                        <button type="button" data-font="characterFont">Scegli…</button>
-                        <p class="font-sample" data-sample="characterFont"></p>
-                    </div>
-                    <label>Disposizione dell'intestazione
-                        <select name="heroLayout">{HERO_LAYOUTS.map((l) => <option value={l === "destra" ? "" : l}>{LAYOUT_TEXT[l]}</option>)}</select>
-                    </label>
-                    <label>Copertina nell'intestazione
-                        <select name="coverMode"><option value="">Sfumata a destra</option><option value="pieno">A tutto sfondo</option></select>
-                    </label>
-                    <details class="bg-wrap wide" open><summary>🎨 Stile e altezza dell'intestazione</summary><div class="bg" data-name="heroStyle" data-label="Lo sfondo sta sotto la copertina."></div></details>
-                    <details class="bg-wrap wide"><summary>🖼 Sfondo della pagina (al posto del marmo)</summary><div class="bg" data-name="sfondo" data-page data-label="Dietro tutta la pagina dell'evento. Vuoto = lo sfondo del sito (Impostazioni sito)."></div></details>
-                    <details class="bg-wrap wide"><summary>🎨 Stile predefinito delle schede</summary><div class="bg" data-name="background" data-label="Vale per tutte le schede; ogni scheda può cambiarne una parte."></div></details>
-                </fieldset>
-            </details>
-
-            <details open class="sec" data-ed="hero">
-                <summary>Date e prezzi</summary>
+                <summary>📅 Date e prezzi</summary>
                 <fieldset>
                     <div id="dates" class="rows"></div>
                     <button type="button" data-add="date">+ Aggiungi data</button>
@@ -308,8 +268,27 @@ const fontsHref =
                 </fieldset>
             </details>
 
+            <details class="sec" data-ed="hero">
+                <summary>🖼 Intestazione</summary>
+                <fieldset>
+                    <div class="img" data-name="cover" data-shape="wide" data-preview data-label="Copertina (anche card e anteprime social)"></div>
+                    <label>Disposizione
+                        <select name="heroLayout">{HERO_LAYOUTS.map((l) => <option value={l === "destra" ? "" : l}>{LAYOUT_TEXT[l]}</option>)}</select>
+                    </label>
+                    <label>Copertina
+                        <select name="coverMode"><option value="">Sfumata a destra</option><option value="pieno">A tutto sfondo</option></select>
+                    </label>
+                    <div class="font-field">
+                        <label>Font dei titoli (intestazione, schede e pulsanti)<input name="titleFont" placeholder="predefinito" /></label>
+                        <button type="button" data-font="titleFont">Scegli…</button>
+                        <p class="font-sample" data-sample="titleFont"></p>
+                    </div>
+                </fieldset>
+                <div class="bg" data-name="heroStyle" data-label="Stile e altezza dell'intestazione: il colore sta sotto la copertina. Le schede ne ereditano colori, testo e impaginazione."></div>
+            </details>
+
             <details open class="sec">
-                <summary>Schede della pagina</summary>
+                <summary>📑 Schede</summary>
                 <fieldset>
                     <div id="tabs" class="rows"></div>
                     <div class="add-tabs wide">
@@ -320,27 +299,45 @@ const fontsHref =
                         <button type="button" data-add="tab" data-preset="galleria">Galleria</button>
                         <button type="button" data-add="tab" data-preset="testo">Testo libero</button>
                     </div>
-                    <p class="hint">Sulla pagina le schede sono pulsanti in alto: si vede una scheda alla volta. Con una sola scheda i pulsanti non compaiono. Ogni scheda è fatta di blocchi (testo, galleria, video…).</p>
+                    <div class="font-field">
+                        <label>Font del nome nel ritratto a schermo intero<input name="characterFont" placeholder="predefinito" /></label>
+                        <button type="button" data-font="characterFont">Scegli…</button>
+                        <p class="font-sample" data-sample="characterFont"></p>
+                    </div>
+                    <details class="bg-wrap wide"><summary>🎨 Stile di tutte le schede</summary><div class="bg" data-name="background" data-label="Parte dallo stile dell'intestazione; ogni scheda può cambiarne una parte (🎨 nella scheda)."></div></details>
                 </fieldset>
             </details>
 
             <details class="sec">
-                <summary>Foto delle serate passate</summary>
+                <summary>🌄 Sfondo della pagina</summary>
+                <div class="bg" data-name="sfondo" data-page data-label="Al posto del marmo, dietro tutta la pagina dell'evento. Vuoto = lo sfondo del sito (Impostazioni sito → Sfondo di tutte le pagine)."></div>
+            </details>
+
+            <details class="sec">
+                <summary>🏛 Partecipa, menu e piè di pagina</summary>
                 <fieldset>
-                    <div id="serate" class="rows"></div>
-                    <button type="button" data-add="serata">+ Aggiungi serata</button>
-                    <p class="hint">Si vedono con il blocco <b>❖ Foto delle serate</b>: in una scheda di questo evento, oppure in una pagina del sito (es. "Galleria") con le foto di tutti gli eventi e un filtro.</p>
+                    <label class="check wide"><input type="checkbox" name="noPrenota" /> Nascondi il box "Partecipa" in fondo a questo evento</label>
+                    <p class="hint">Sono parti comuni a tutto il sito: i loro testi si scrivono cliccandoli nell'anteprima (🎨 per lo stile) e cambiano ovunque. Voci del menu e contatti: <a href="#impostazioni">⚙ Impostazioni sito</a>.</p>
                 </fieldset>
             </details>
 
             <details class="sec" data-ed="cards">
-                <summary>Timeline in home</summary>
+                <summary>🃏 Card della timeline</summary>
                 <fieldset>
                     <label>Anno storico (negativo = a.C.)<input name="historicalYear" type="number" step="1" /></label>
                     <label>Etichetta anno<input name="yearLabel" placeholder="1697" /></label>
                     <label>Epoca<input name="era" /></label>
                     <label>Luogo storico<input name="place" /></label>
                     <div class="img" data-name="timelineImage" data-shape="wide" data-preview data-label="Immagine della card (vuota = copertina)"></div>
+                </fieldset>
+            </details>
+
+            <details class="sec">
+                <summary>📸 Foto delle serate passate</summary>
+                <fieldset>
+                    <div id="serate" class="rows"></div>
+                    <button type="button" data-add="serata">+ Aggiungi serata</button>
+                    <p class="hint">Si vedono con il blocco <b>❖ Foto delle serate</b>: in una scheda di questo evento, oppure in una pagina del sito (es. "Galleria") con le foto di tutti gli eventi e un filtro.</p>
                 </fieldset>
             </details>
         </form>
@@ -370,6 +367,22 @@ const fontsHref =
         </div>
         <div class="prev" hidden><iframe title="Anteprima sul sito"></iframe></div>
         <div class="dlg-btns"><button type="button" data-close>Annulla</button><button type="button" class="primary" data-ok>Applica</button></div>
+    </dialog>
+
+    <dialog id="sez-dlg" class="dlg">
+                <form method="dialog">
+                    <h3>Stile della sezione</h3>
+                    <div class="bg"></div>
+                    <p class="row-btns"><button value="ok" class="primary">Applica</button><button value="">Annulla</button></p>
+                </form>
+            </dialog>
+
+    <!-- ── Card dell'evento (timeline e lista eventi) coi dati non salvati -->
+    <dialog id="cards-dlg" class="dlg">
+        <h3>Come appare l'evento nelle card</h3>
+        <p class="hint">Timeline in home (computer e telefono) e lista eventi, coi dati non ancora salvati.</p>
+        <div class="prev"><iframe title="Anteprima delle card"></iframe></div>
+        <div class="dlg-btns"><button type="button" data-close>Chiudi</button></div>
     </dialog>
 
     <!-- ── Selettore font Google -->
@@ -475,7 +488,8 @@ const fontsHref =
                 <label class="wide" data-for="sezione">Quale sezione
                     <select name="key">{SEZIONI.map((k) => <option value={k}>{SEZIONI_TEXT[k]}</option>)}</select>
                 </label>
-                <p class="hint wide" data-for="sezione">Testi e stile di questa sezione si cambiano in <a href="#pagine">✎ Testi e stili delle pagine</a> e valgono ovunque compaia.</p>
+                <p class="hint wide" data-for="sezione">Testi e stile si cambiano direttamente nell'anteprima (clic sul testo, 🎨 per lo stile) e valgono ovunque compaia la sezione.</p>
+                <p class="hint wide live-hint" data-for="testo galleria personaggi faq bottone video eventi ricordi">✎ Titolo e testo si scrivono direttamente nell'anteprima a destra; foto: trascinale o incollale dove vuoi.</p>
                 <div class="wide md" data-for="testo galleria personaggi faq bottone video eventi ricordi">
                     <div class="md-tools">
                         <span class="hint md-label">Testo</span>
@@ -555,37 +569,46 @@ const fontsHref =
             <button type="button" data-style-save title="Salva questa combinazione con un nome, per riusarla altrove">Salva come stile…</button>
             <button type="button" data-style-del title="Elimina lo stile salvato scelto">Elimina stile</button>
         </div>
-        <div class="bg-row">
-            <label class="check"><input type="checkbox" name="bgOn" /> Colore di sfondo</label>
-            <input type="color" name="bgColor" value="#f5f2ec" aria-label="Colore di sfondo" />
-            <label class="veil">Velo sull'immagine <output></output><input type="range" name="bgVeil" min="0" max="90" step="5" value="0" /></label>
-            <label class="check"><input type="checkbox" name="dark" /> Velo scuro</label>
-            <label class="check bg-sez"><input type="checkbox" name="parallax" /> Parallasse</label>
-        </div>
-        <div class="img" data-name="bgImage" data-shape="wide" data-label="Immagine di sfondo"></div>
-        <p class="bg-h bg-sez">Testo</p>
-        <div class="bg-row bg-sez">
-            <label class="check"><input type="checkbox" name="textOn" /> Colore del testo</label>
-            <input type="color" name="textColor" value="#f4f0e8" aria-label="Colore del testo" />
-            <span class="bg-font"><label>Font dei titoli<input name="font" placeholder="predefinito" /></label><button type="button" data-font>Scegli…</button></span>
-            <label>Grandezza titoli<select name="size"><option value="">Normale</option>{SIZES.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
-        </div>
-        <div class="bg-row bg-sez">
-            <label>Allineamento<select name="align"><option value="">Predefinito</option>{ALIGNS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
-            <label>Grandezza del testo<select name="fs"><option value="">Normale</option>{FS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
-            <label>Interlinea<select name="lh"><option value="">Normale</option>{LH.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
-            <label>Larghezza del contenuto<select name="w"><option value="">Normale</option>{WIDTHS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
-        </div>
-        <p class="bg-h bg-sez">Altezza e spazi</p>
-        <div class="bg-row bg-sez">
-            <label class="veil">Altezza minima <output></output><input type="range" name="height" min="0" max="100" step="10" value="0" /></label>
-            <label>Contenuto<select name="vpos"><option value="">Al centro</option><option value="alto">In alto</option><option value="basso">In basso</option></select></label>
-            <label>Spaziatura<select name="pad"><option value="">Normale</option>{PADS.map((p) => <option value={p}>{PAD_TEXT[p]}</option>)}</select></label>
-        </div>
-        <div class="bg-row bg-sez">
-            <label>Animazione d'entrata<select name="anim"><option value="">Nessuna</option>{ANIMS.map((a) => <option value={a}>{ANIM_TEXT[a]}</option>)}</select></label>
-            <label>Effetto sui titoli<select name="fx"><option value="">Nessuno</option>{FX.map((f) => <option value={f}>{FX_TEXT[f]}</option>)}</select></label>
-        </div>
+        <details class="bg-grp" open>
+            <summary>Sfondo</summary>
+            <div class="bg-row">
+                <label class="check"><input type="checkbox" name="bgOn" /> Colore</label>
+                <input type="color" name="bgColor" value="#f5f2ec" aria-label="Colore di sfondo" />
+                <label class="veil">Opacità <output></output><input type="range" name="op" min="0" max="100" step="5" value="100" /></label>
+                <label class="veil">Velo sull'immagine <output></output><input type="range" name="bgVeil" min="0" max="90" step="5" value="0" /></label>
+                <label class="check"><input type="checkbox" name="dark" /> Velo scuro</label>
+                <label class="check bg-sez"><input type="checkbox" name="parallax" /> Parallasse</label>
+            </div>
+            <div class="img" data-name="bgImage" data-shape="wide" data-label="Immagine di sfondo"></div>
+        </details>
+        <details class="bg-grp bg-sez">
+            <summary>Testo</summary>
+            <div class="bg-row">
+                <label class="check"><input type="checkbox" name="textOn" /> Colore</label>
+                <input type="color" name="textColor" value="#f4f0e8" aria-label="Colore del testo" />
+                <span class="bg-font"><label>Font dei titoli<input name="font" placeholder="predefinito" /></label><button type="button" data-font>Scegli…</button></span>
+                <label>Grandezza titoli<select name="size"><option value="">Normale</option>{SIZES.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+                <label>Allineamento<select name="align"><option value="">Predefinito</option>{ALIGNS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+                <label>Grandezza testo<select name="fs"><option value="">Normale</option>{FS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+                <label>Interlinea<select name="lh"><option value="">Normale</option>{LH.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+                <label>Larghezza<select name="w"><option value="">Normale</option>{WIDTHS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+            </div>
+        </details>
+        <details class="bg-grp bg-sez">
+            <summary>Altezza e spazi <small>(l'altezza si trascina anche dal bordo in basso, nell'anteprima)</small></summary>
+            <div class="bg-row">
+                <label class="veil">Altezza minima <output></output><input type="range" name="height" min="0" max="100" step="10" value="0" /></label>
+                <label>Contenuto<select name="vpos"><option value="">Al centro</option><option value="alto">In alto</option><option value="basso">In basso</option></select></label>
+                <label>Spaziatura<select name="pad"><option value="">Normale</option>{PADS.map((p) => <option value={p}>{PAD_TEXT[p]}</option>)}</select></label>
+            </div>
+        </details>
+        <details class="bg-grp bg-sez">
+            <summary>Animazione ed effetti</summary>
+            <div class="bg-row">
+                <label>Animazione d'entrata<select name="anim"><option value="">Nessuna</option>{ANIMS.map((a) => <option value={a}>{ANIM_TEXT[a]}</option>)}</select></label>
+                <label>Effetto sui titoli<select name="fx"><option value="">Nessuno</option>{FX.map((f) => <option value={f}>{FX_TEXT[f]}</option>)}</select></label>
+            </div>
+        </details>
     </template>
     <script type="application/json" id="admin-data" set:html={json} />
     </>

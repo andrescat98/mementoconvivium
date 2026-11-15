@@ -1,0 +1,23 @@
+---
+// "Partecipa" in fondo alla pagina evento: bottone di prenotazione e invito ai locali. Usato anche dall'anteprima in /admin.
+import Prenota from "./Prenota.astro";
+import { getSettings } from "../lib/db";
+import type { bookCta } from "../lib/format";
+
+interface Props {
+    title: string;
+    cta?: ReturnType<typeof bookCta>;
+}
+const { title, cta } = Astro.props;
+const s = await getSettings();
+---
+
+<Prenota k="prenotaEventoText" class="ev-final-cta">
+    {cta ? <a href={cta.href} class={`${cta.cls} btn-large`}>{cta.label}</a> : <span />}
+    <div class="prenota-locale" slot="extra">
+        <p class="prenota-locale-text">Sei un locale, un ristorante o un'associazione?</p>
+        <a href={`mailto:${s.email}?subject=${encodeURIComponent(`Portare "${title}" nel mio locale`)}`} class="btn-ghost">
+            Porta questa cena con delitto da te →
+        </a>
+    </div>
+</Prenota>

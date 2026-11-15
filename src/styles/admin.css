@@ -78,7 +78,6 @@ details { scroll-margin-top: 6rem; }
 .bar h2 { margin: 0; font-size: 1.25rem; }
 .bar small { color: var(--dim); font-size: 0.8rem; }
 .bar select { width: auto; max-width: 15rem; }
-#dirty { color: #ff8a80; font-size: 0.85rem; font-weight: 600; }
 .msg { margin: 0; min-height: 1.5em; }
 .msg button { margin-left: 0.5rem; padding: 0.2rem 0.6rem; }
 
@@ -196,7 +195,23 @@ fieldset > button { justify-self: start; }
 .bg-row .veil { flex: 1; min-width: 12rem; }
 .bg-row .veil input { padding: 0; }
 .bg-font { display: flex; gap: 0.35rem; align-items: end; }
-.bg-h { margin: 0.4rem 0 0; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+/* stile in cassetti: Sfondo, Testo, Altezza e spazi, Animazione */
+.bg-grp { border-top: 1px solid var(--line); }
+.bg-grp > summary { padding: 0.45rem 0; cursor: pointer; font: 600 0.8rem/1.3 system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); }
+.bg-grp > summary small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.bg-grp[open] > summary { color: var(--ink); }
+.bg-grp > .bg-row, .bg-grp > .img { margin-bottom: 0.6rem; }
+/* bottoni ben visibili: salva in alto (rosso se c'è da salvare), card dell'evento */
+/* intestazione evento: la copertina è l'immagine e il font sta in "Font dei titoli" (niente doppioni) */
+.bg[data-name="heroStyle"] :is(.img, .bg-font, .veil:has([name=bgVeil]), .check:has([name=dark]), .check:has([name=parallax])) { display: none; }
+#save-top { background: #f4f0e8; color: #1a1a1a; border-color: #f4f0e8; font-weight: 600; }
+#save-top.dirty { background: #c62828; border-color: #c62828; color: #fff; box-shadow: 0 0 0 3px rgb(198 40 40 / 0.35); }
+.cards-btn { padding: 0.7rem 1rem; border: 2px solid #1f5fa8; background: #e8f0fb; color: #1f5fa8; font-weight: 600; text-align: left; }
+.cards-btn:hover { background: #1f5fa8; color: #fff; }
+/* titolo e testo dei blocchi si scrivono nell'anteprima: nel form restano solo come dati */
+.live-hint { display: none; }
+.split .block-ed:not(.off) .live-hint { display: block; }
+.split .block-ed:not(.off) :is(.md, label:has(> [name=bTitle])) { display: none !important; }
 .bg[data-page] .bg-sez { display: none; } /* sfondo della pagina: solo colore, immagine e velo */
 .sec > .bg { margin: 1rem; }
 .img-opts.wide[data-for] { justify-items: stretch; }
@@ -257,7 +272,7 @@ code { font-size: 0.85em; background: #efe9df; padding: 0 0.25rem; border-radius
 .unfocus { justify-self: start; }
 form:not(:has(.sel)) > .unfocus { display: none; }
 /* blocco o scheda scelti (.sel): spariscono tutti gli altri rami del form */
-form:has(.sel) > :not(.sel, :has(.sel), .bar, .msg, .unfocus),
+form:has(.sel) > :not(.sel, :has(.sel), .bar, .msg, .unfocus, .cards-btn),
 form :has(.sel) > :not(.sel, :has(.sel)) { display: none !important; }
 form :has(.sel) { padding: 0; border: 0; background: none; } /* contenitori del ramo scelto: senza cornici */
 .block-ed.sel, .tab-ed.sel { border-color: #1f5fa8; border-left-color: #1f5fa8; }

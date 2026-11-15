@@ -24,6 +24,7 @@ export const bgObj = z.object({
   color: hex.optional(),
   image: img,
   veil: z.number().min(0).max(90).optional(),
+  op: z.number().int().min(0).max(100).optional(), // opacità di colore e immagine di sfondo (vuoto = 100)
   dark: z.boolean().optional(), // velo scuro invece che chiaro
   parallax: z.boolean().optional(),
   text: hex.optional(),
@@ -106,6 +107,7 @@ export const eventoSchema = z.object({
   background: bg, // stile predefinito delle schede (ogni scheda può sovrascriverne i campi)
   heroStyle: bg, // stile dell'intestazione
   sfondo: bg, // sfondo della pagina dell'evento (vuoto = quello del sito)
+  noPrenota: z.boolean().optional(), // niente box "Partecipa" in fondo alla pagina
   heroLayout: z.enum(HERO_LAYOUTS).optional(), // vuoto = riquadro a destra
   coverMode: z.enum(["pieno"]).optional(), // copertina a tutto sfondo invece che sfumata a destra
   tabs: z.array(tab).default([]),
