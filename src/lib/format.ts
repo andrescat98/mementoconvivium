@@ -63,14 +63,18 @@ const inline = (s: string) =>
  * Markdown minimo dei testi (blocchi, schede, FAQ), scritto dall'editor dal vivo di /admin (htmlToMd):
  * paragrafi (riga vuota), "## " titolo di sezione, "### " sottotitolo, elenchi "- " e "1. ", citazioni "> ",
  * linea "---", più il testo in linea sopra. L'HTML in input viene sempre escapato.
+ * Allineamento del singolo paragrafo: prefisso "{centro}", "{destra}", "{sinistra}" o "{giustificato}" (es. "{centro}## Titolo").
  * ponytail: niente elenchi annidati o tabelle; se servono, usare `marked`.
  */
-export const md = (src: string) =>
+const ALIGN: Record<string, string> = { sinistra: "left", centro: "center", destra: "right", giustificato: "justify" };
+export const md = (src: string): string =>
   src
     .trim()
     .split(/\n\s*\n/)
     .map((p) => {
       p = p.trim();
+      const al = p.match(/^\{(sinistra|centro|destra|giustificato)\}\s*/);
+      if (al) return md(p.slice(al[0].length)).replace(/^<(\w+)/, `<$1 style="text-align:${ALIGN[al[1]]}"`);
       const lines = p.split("\n");
       const all = (re: RegExp) => lines.every((l) => re.test(l));
       const items = (re: RegExp) => lines.map((l) => `<li>${inline(l.replace(re, ""))}</li>`).join("");
