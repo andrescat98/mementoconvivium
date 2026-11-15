@@ -1,5 +1,5 @@
 import { z } from "astro/zod";
-import type { Img } from "./format";
+import { upgradeTab, type Img } from "./format";
 
 const opt = z.string().trim().optional();
 // URL immagine: statica (/ritratti/…) o caricata da admin (/img/<id>)
@@ -33,8 +33,6 @@ const bg = bgObj.optional();
 
 // "bozza": invisibile al pubblico, visibile in anteprima ai moderatori
 export const STATUS = ["aperto", "lista-attesa", "coming-soon", "chiuso", "bozza"] as const;
-// Modelli di scheda: testo (+ immagine accanto), galleria di foto, personaggi
-export const TEMPLATES = ["testo", "galleria", "personaggi"] as const;
 
 const character = z.object({
   name: z.string().trim().min(1),
@@ -43,15 +41,39 @@ const character = z.object({
   portrait: img,
 });
 
-const tab = z.object({
-  title: z.string().trim().min(1),
-  template: z.enum(TEMPLATES),
+// ── Blocchi: home, pagine nuove e schede evento sono liste di blocchi (render in components/Blocco.astro).
+// "sezione" = una sezione fissa del sito (stile da /admin → Testi e stili delle pagine).
+export const BLOCKS = ["testo", "galleria", "personaggi", "faq", "bottone", "video", "eventi", "sezione"] as const;
+export const SEZIONI = ["home-hero", "come-funziona", "timeline", "prenota"] as const;
+export const EVENTI_SHOW = ["prossimi", "tutti", "passati"] as const;
+export const blockSchema = z.object({
+  type: z.enum(BLOCKS),
+  hidden: z.boolean().optional(),
+  title: opt,
   body: z.string().optional(), // markdown minimo, vedi md()
   image: img, // testo
+  side: z.enum(["destra", "sinistra"]).optional(), // lato dell'immagine nel testo
   gallery: z.array(z.object({ image: imgReq, caption: opt })).optional(), // galleria
   characters: z.array(character).optional(), // personaggi
-  background: bg,
+  faq: z.array(z.object({ q: z.string().trim().min(1), a: z.string().trim().min(1) })).optional(),
+  label: opt, // bottone
+  href: opt,
+  video: z.string().trim().regex(/^https:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)\//, "link YouTube o Vimeo").optional(),
+  show: z.enum(EVENTI_SHOW).optional(), // eventi
+  limit: z.number().int().min(1).max(24).optional(),
+  key: z.enum(SEZIONI).optional(), // sezione
+  style: bg,
 });
+export type Block = z.infer<typeof blockSchema>;
+
+const tab = z.preprocess(
+  upgradeTab,
+  z.object({
+    title: z.string().trim().min(1),
+    blocks: z.array(blockSchema).default([]),
+    background: bg,
+  }),
+);
 
 export const eventoSchema = z.object({
   title: z.string().trim().min(1),
@@ -120,6 +142,19 @@ export type TestoKey = keyof typeof DEFAULT_TESTI;
 const testo = z.string().trim().min(1).max(2000).optional();
 const testi = Object.fromEntries(Object.keys(DEFAULT_TESTI).map((k) => [k, testo])) as Record<TestoKey, typeof testo>;
 
+// ── Pagine nuove (/chi-siamo…): slug che non si scontra con le pagine fisse del sito
+const RISERVATI = ["admin", "img", "eventi", "lista-eventi", "contatti", "privacy", "ritratti", "fonts", "_actions", "_astro", "_server-islands"];
+export const pageSchema = z.object({
+  slug: slugSchema.refine((s) => !RISERVATI.includes(s), "indirizzo già usato dal sito"),
+  title: z.string().trim().min(1),
+  description: opt, // Google e anteprime social
+  hidden: z.boolean().optional(), // bozza: solo anteprima moderatori
+  blocks: z.array(blockSchema).default([]),
+});
+export type Pagina = z.infer<typeof pageSchema>;
+const sez = (key: (typeof SEZIONI)[number]): Block => ({ type: "sezione", key });
+export const DEFAULT_HOME: Block[] = [sez("home-hero"), sez("come-funziona"), sez("timeline"), sez("prenota")];
+
 // ── Impostazioni del sito: contatti, link, bottone della home, testi delle pagine
 const url = z.union([z.url(), z.literal("").transform(() => undefined)]).optional();
 export const HERO_ACTIONS = ["lista", "prossimo", "link"] as const;
@@ -136,6 +171,8 @@ export const settingsSchema = z.object({
   // stile delle sezioni del sito, per chiave data-sez (home-hero, prenota…): /admin → Pagine → 🎨
   sezioni: z.record(z.string().regex(/^[a-z-]+$/), bgObj).default({}),
   stili: z.array(z.object({ name: z.string().trim().min(1).max(40), style: bgObj })).default([]), // stili salvati con nome
+  home: z.array(blockSchema).default(DEFAULT_HOME),
+  pagine: z.array(pageSchema).default([]),
 
   ...testi,
 });
@@ -154,6 +191,8 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   sezioni: {},
   stili: [],
+  home: DEFAULT_HOME,
+  pagine: [],
   tagline: "\"Omnes vulnerant, ultima necat\" — ogni ora ferisce, l'ultima uccide.",
   ...DEFAULT_TESTI,
 };

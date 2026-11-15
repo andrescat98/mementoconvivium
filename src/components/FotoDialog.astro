@@ -1,0 +1,17 @@
+---
+// Foto e ritratti a schermo intero: si apre cliccando un elemento [data-portrait] (galleria, personaggi, immagine del testo).
+// Una sola volta per pagina.
+const { font } = Astro.props as { font?: string }; // font del nome sotto il ritratto
+---
+
+<dialog id="ev-photo-dialog" class="ev-photo-dialog" style={`--char-font: ${font ?? "var(--font-title)"}`}>
+    <button type="button" class="ev-photo-close" aria-label="Chiudi">✕</button>
+    <div class="ev-photo-card" id="ev-photo-card">
+        <img id="ev-photo-dialog-img" alt="" />
+    </div>
+    <p id="ev-photo-dialog-name" class="ev-photo-name"></p>
+</dialog>
+
+<script>
+    import "../scripts/ev-photo-dialog.ts";
+</script>

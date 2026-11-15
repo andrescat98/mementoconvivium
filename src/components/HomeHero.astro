@@ -1,0 +1,194 @@
+---
+// Intestazione della home: logo, bottone (Impostazioni sito) e dialog dei prossimi eventi. Blocco "sezione" home-hero.
+import Sfondo from "./Sfondo.astro";
+import { getSettings } from "../lib/db";
+import { dateLabel, look, nextDate } from "../lib/format";
+import type { Evento } from "../lib/schema";
+import "../styles/index.css";
+
+const { eventi } = Astro.props as { eventi: Evento[] };
+const s = await getSettings();
+
+// Eventi apribili con almeno una data futura, per il dialog "Partecipa"
+const eventiFuturi = eventi
+    .filter((e) => e.data.status !== "coming-soon")
+    .map((e) => ({ id: e.id, title: e.data.title, theme: e.data.theme, next: nextDate(e.data) }))
+    .filter((e) => e.next)
+    .sort((a, b) => a.next!.localeCompare(b.next!));
+
+// Bottone della home (Impostazioni sito): apre la lista, va al prossimo evento o a un link
+const heroHref =
+    s.heroAction === "prossimo" && eventiFuturi[0] ? `/eventi/${eventiFuturi[0].id}` : s.heroAction === "link" ? s.heroUrl : undefined;
+const Cta = heroHref ? "a" : "button";
+---
+
+<section class="hero" data-sez="home-hero" {...look(s.sezioni["home-hero"])}>
+    <Sfondo bg={s.sezioni["home-hero"]} />
+    <div class="hero-vignette" aria-hidden="true"></div>
+    <div class="hero-content">
+        <div class="hero-logo animate" style="--d:0.2s">
+            <span class="logo-m">M</span>
+            <span class="logo-full">Memento Convivium</span>
+        </div>
+        <Cta type={heroHref ? undefined : "button"} href={heroHref} id="hero-cta-btn" class="hero-cta">
+            <svg
+                width="20px"
+                height="20px"
+                viewBox="0 0 512 512"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <path
+                    fill="currentColor"
+                    d="M43.53 15.75c-15.73 0-28.31 12.583-28.31 28.313 0 14.086 10.092 25.644 23.5 27.906L42.687 68 68.81 41.906l2.626-2.625C69.188 25.86 57.63 15.75 43.53 15.75zm33.72 44.125l-17 17c15.885 39.37 43.45 66.684 78.75 87.406 8.167-8.585 16.65-16.898 25.438-24.936-22.488-35.103-51.535-62.294-87.188-79.47zM322.594 79.03l-51.25 4.314c-79.356 48.134-143.878 108.1-186.72 186.53l-4.31 51.47 44.155-18.656-2.94-34.094-.25-3.063 1.626-2.624c35.94-58.47 79.93-109.41 141.5-141.25l2.406-1.25 2.688.25 34.125 2.906 18.97-44.53zm-62.438 66.376c-10.008 5.886-19.5 12.338-28.562 19.313 46.688 47.93 87.208 108.588 114.72 166.5l11.248 23.717-23.718-11.28c-57.995-27.554-117.918-67.57-165.688-113.907-7.155 9.404-14.028 19.174-20.625 29.28 101.918 94.91 227.05 177.304 347.845 234.69-57.063-120.125-140.038-246.18-235.22-348.314zm-43.03 31.22c-13.37 11.703-25.72 24.58-37.282 38.436 39.36 38.452 88.085 72.83 136.687 98.844-26.054-48.633-60.754-97.847-99.405-137.28z"
+                ></path>
+            </svg>
+            <span data-k="heroLabel">{s.heroLabel}</span>
+        </Cta>
+    </div>
+</section>
+
+<!-- DIALOG PROSSIMI EVENTI -->
+<dialog id="prossimi-dialog" class="prossimi-dialog">
+    <button type="button" class="prossimi-close" aria-label="Chiudi">✕</button>
+    <span class="section-label">Prossimi appuntamenti</span>
+    {
+        eventiFuturi.length > 0 ? (
+            <ul class="prossimi-list">
+                {eventiFuturi.map((e) => (
+                    <li>
+                        <a href={`/eventi/${e.id}`} class="prossimi-item">
+                            <span class="prossimi-theme">{e.theme}</span>
+                            <span class="prossimi-title">{e.title}</span>
+                            <span class="prossimi-date">{dateLabel(e.next!)}</span>
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        ) : (
+            <div class="prossimi-empty">
+                <p>
+                    Al momento non ci sono date in programma, ma nuove
+                    serate sono in arrivo.
+                </p>
+                <p>
+                    Scrivici per sapere quali sono i prossimi piani:
+                </p>
+                <a
+                    href={"mailto:" + s.email}
+                    class="btn-primary"
+                >
+                    Contattaci via email
+                </a>
+                <p class="prossimi-note">
+                    Oppure su <a href={s.instagram}>Instagram</a>
+                </p>
+            </div>
+        )
+    }
+</dialog>
+
+<script>
+    const dlg = document.getElementById("prossimi-dialog");
+    if (dlg instanceof HTMLDialogElement) {
+        document
+            .querySelector("button#hero-cta-btn")
+            ?.addEventListener("click", () => dlg.showModal());
+        dlg.querySelector(".prossimi-close")?.addEventListener("click", () =>
+            dlg.close(),
+        );
+        dlg.addEventListener("click", (e) => {
+            if (e.target === dlg) dlg.close();
+        });
+    }
+</script>
+
+<style>
+    .prossimi-dialog {
+        margin: auto;
+        width: min(92vw, 480px);
+        border: 1px solid var(--gold-dim);
+        background: var(--bg-card);
+        color: var(--cream);
+        padding: 2.5rem 2rem 2rem;
+        text-align: center;
+    }
+
+    .prossimi-dialog::backdrop {
+        background: rgba(0, 0, 0, 0.8);
+    }
+
+    .prossimi-close {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        width: 2rem;
+        height: 2rem;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--cream);
+        cursor: pointer;
+    }
+
+    .prossimi-list {
+        list-style: none;
+        margin-top: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0;
+    }
+
+    .prossimi-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        text-decoration: none;
+        color: var(--cream);
+        transition: border-color 0.3s, background 0.3s;
+    }
+
+    .prossimi-item:hover {
+        border-color: var(--gold);
+        background: var(--bg-2);
+    }
+
+    .prossimi-theme {
+        font-family: var(--font-title);
+        font-size: 0.6rem;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: var(--gold);
+    }
+
+    .prossimi-title {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        color: var(--white);
+    }
+
+    .prossimi-date {
+        font-size: 0.85rem;
+        color: var(--cream-dim);
+    }
+
+    .prossimi-empty {
+        margin-top: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+        line-height: 1.7;
+    }
+
+    .prossimi-note {
+        font-size: 0.85rem;
+        color: var(--gold-dim);
+    }
+
+    .prossimi-note a {
+        color: var(--gold);
+    }
+</style>
+

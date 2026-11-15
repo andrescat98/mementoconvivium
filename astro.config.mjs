@@ -18,5 +18,6 @@ export default defineConfig({
     '/eventi/[slug]': eventi,
     '/contatti': eventi,
     '/privacy': eventi,
+    '/[slug]': eventi, // pagine nuove da /admin
   },
 });

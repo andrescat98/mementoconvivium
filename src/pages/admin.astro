@@ -3,8 +3,8 @@ import { actions } from "astro:actions";
 import { isAdmin } from "../lib/auth";
 import { getDeleted, getEvents, getSettings } from "../lib/db";
 import { FONT_GROUPS } from "../lib/fonts";
-import { STATUS_TEXT } from "../lib/format";
-import { ANIMS, FX, HERO_ACTIONS, PADS, STATUS, TEMPLATES } from "../lib/schema";
+import { BLOCK_TEXT, SEZIONI_TEXT, STATUS_TEXT } from "../lib/format";
+import { ANIMS, BLOCKS, EVENTI_SHOW, FX, HERO_ACTIONS, PADS, SEZIONI, STATUS } from "../lib/schema";
 import "../styles/admin.css";
 
 const login = Astro.getActionResult(actions.login);
@@ -25,10 +25,14 @@ const ANIM_TEXT: Record<string, string> = { sali: "Sale dal basso", dissolvenza:
 const FX_TEXT: Record<string, string> = { ombra: "Ombra", bagliore: "Bagliore dorato", oro: "Oro", inciso: "Inciso", contorno: "Solo contorno" };
 const PAD_TEXT: Record<string, string> = { compatta: "Compatta", ariosa: "Ariosa", schermo: "A tutto schermo" };
 const SIZES = [["0.8", "Piccoli"], ["1.2", "Grandi"], ["1.45", "Enormi"]];
-const TEMPLATE_TEXT: Record<string, string> = { testo: "Testo + immagine", galleria: "Galleria di foto", personaggi: "Personaggi" };
+const SHOW_TEXT: Record<string, string> = { prossimi: "Prossimi", tutti: "Tutti", passati: "Già fatti" };
 // pagine con testi modificabili (attributo data-k): la pagina evento solo se ce n'è una pubblica
 const evPage = eventi.find((e) => e.data.status !== "bozza" && e.data.status !== "coming-soon");
-const PAGES = [["/", "Home"], ["/lista-eventi", "Lista eventi"], ...(evPage ? [[`/eventi/${evPage.id}`, `Pagina evento (${evPage.data.title})`]] : [])];
+const PAGES = [
+    ["/", "Home"], ["/lista-eventi", "Lista eventi"], ["/contatti", "Contatti"],
+    ...s?.pagine.map((p) => [`/${p.slug}`, p.title]) ?? [],
+    ...(evPage ? [[`/eventi/${evPage.id}`, `Pagina evento (${evPage.data.title})`]] : []),
+];
 const HERO_TEXT: Record<string, string> = {
     lista: "Apre l'elenco delle prossime date",
     prossimo: "Porta alla pagina del prossimo evento",
@@ -79,7 +83,11 @@ const fontsHref =
                 <summary>Eliminati (<span></span>)</summary>
                 <ul></ul>
             </details>
-            <a href="#pagine" class="view-link" data-view="pages">✎ Testi delle pagine</a>
+            <p class="side-h">Pagine del sito</p>
+            <ul id="page-list"></ul>
+            <button type="button" id="new-page">+ Nuova pagina</button>
+            <p class="side-h">Tutto il sito</p>
+            <a href="#pagine" class="view-link" data-view="pages">✎ Testi e stili delle pagine</a>
             <a href="#impostazioni" class="view-link" data-view="settings">⚙ Impostazioni sito</a>
         </nav>
 
@@ -133,7 +141,7 @@ const fontsHref =
         <!-- ── Testi delle pagine: la pagina vera in un iframe, testi data-k modificabili al clic -->
         <section id="pages" hidden>
             <div class="bar">
-                <div class="bar-title"><h2>Testi delle pagine</h2><small>Clicca su un testo tratteggiato e scrivi (Invio = a capo; vuoto = testo originale). 🎨 in alto a destra di ogni sezione: sfondo, animazione, effetto titoli.</small></div>
+                <div class="bar-title"><h2>Testi e stili delle pagine</h2><small>Clicca su un testo tratteggiato e scrivi (Invio = a capo; vuoto = testo originale). 🎨 in alto a destra di ogni sezione: sfondo, animazione, effetto titoli.</small></div>
                 <label class="check"><input type="checkbox" id="phone" /> 📱 Telefono</label>
                 <select name="page" aria-label="Pagina">{PAGES.map(([href, label]) => <option value={href}>{label}</option>)}</select>
                 <button type="button" class="primary" id="pages-save">Salva</button>
@@ -148,6 +156,39 @@ const fontsHref =
                 </form>
             </dialog>
         </section>
+
+        <!-- ── Home e pagine nuove: liste di blocchi -->
+        <form id="page-ed" hidden>
+            <div class="bar">
+                <div class="bar-title"><h2 id="pg-title">Home</h2><small id="pg-meta"></small></div>
+                <a id="pg-open" target="_blank">Apri ↗</a>
+                <button type="button" id="pg-del" class="danger">Elimina</button>
+                <button class="primary" title="Ctrl+S">Salva</button>
+            </div>
+            <p class="msg" role="status"></p>
+            <details open class="sec" id="pg-base">
+                <summary>Pagina</summary>
+                <fieldset>
+                    <label>Titolo<input name="pgTitle" required /></label>
+                    <label>Indirizzo (mementoconvivium…/<b>questo</b>)<input name="pgSlug" required pattern="[a-z0-9][a-z0-9\-]*" placeholder="si compila dal titolo" /></label>
+                    <label class="wide">Descrizione per Google e anteprime social (WhatsApp, Facebook)<textarea name="pgDesc" rows="2" maxlength="300"></textarea></label>
+                    <label class="check"><input type="checkbox" name="pgMenu" /> Nel menu in alto</label>
+                    <label class="check"><input type="checkbox" name="pgHidden" /> Nascosta (bozza: la vedono solo i moderatori)</label>
+                </fieldset>
+            </details>
+            <details open class="sec">
+                <summary>Blocchi</summary>
+                <div class="blocks-wrap">
+                    <div class="blocks"></div>
+                    <div class="add-blocks"></div>
+                </div>
+            </details>
+            <details open class="sec" id="pg-prev-sec">
+                <summary>Anteprima</summary>
+                <p class="hint prev-hint">Componenti e stili veri del sito, coi dati non ancora salvati. Si aggiorna mentre scrivi.</p>
+                <div class="prev"><iframe title="Anteprima della pagina"></iframe></div>
+            </details>
+        </form>
 
         <!-- ── Editor evento -->
         <form id="editor" hidden>
@@ -195,8 +236,8 @@ const fontsHref =
                         <button type="button" data-font="characterFont">Scegli…</button>
                         <p class="font-sample" data-sample="characterFont"></p>
                     </div>
-                    <div class="bg wide" data-name="heroStyle" data-label="Stile dell'intestazione (lo sfondo sta sotto la copertina)"></div>
-                    <div class="bg wide" data-name="background" data-label="Stile predefinito delle schede"></div>
+                    <details class="bg-wrap wide"><summary>🎨 Stile dell'intestazione</summary><div class="bg" data-name="heroStyle" data-label="Lo sfondo sta sotto la copertina."></div></details>
+                    <details class="bg-wrap wide"><summary>🎨 Stile predefinito delle schede</summary><div class="bg" data-name="background" data-label="Vale per tutte le schede; ogni scheda può cambiarne una parte."></div></details>
                 </fieldset>
             </details>
 
@@ -224,7 +265,7 @@ const fontsHref =
                         <button type="button" data-add="tab" data-preset="galleria">Galleria</button>
                         <button type="button" data-add="tab" data-preset="testo">Testo libero</button>
                     </div>
-                    <p class="hint">Sulla pagina le schede sono pulsanti in alto: si vede una scheda alla volta. Con una sola scheda i pulsanti non compaiono.</p>
+                    <p class="hint">Sulla pagina le schede sono pulsanti in alto: si vede una scheda alla volta. Con una sola scheda i pulsanti non compaiono. Ogni scheda è fatta di blocchi (testo, galleria, video…).</p>
                 </fieldset>
             </details>
 
@@ -239,7 +280,7 @@ const fontsHref =
                 </fieldset>
             </details>
             <details class="sec" id="prev-sec">
-                <summary>Anteprima: intestazione e card</summary>
+                <summary>Anteprima: intestazione, schede e card</summary>
                 <p class="hint prev-hint">Componenti e stili veri del sito, coi dati non ancora salvati. Si aggiorna mentre scrivi.</p>
                 <div class="prev"><iframe title="Anteprima"></iframe></div>
             </details>
@@ -333,11 +374,41 @@ const fontsHref =
                 </span>
             </summary>
             <div class="grid">
-                <label>Titolo della scheda<input name="tabTitle" required /></label>
-                <label>Modello
-                    <select name="template">{TEMPLATES.map((t) => <option value={t}>{TEMPLATE_TEXT[t]}</option>)}</select>
+                <label class="wide">Titolo della scheda<input name="tabTitle" required /></label>
+                <div class="wide blocks-wrap">
+                    <div class="blocks"></div>
+                    <div class="add-blocks"></div>
+                </div>
+                <details class="bg-wrap wide"><summary>🎨 Stile della scheda</summary><div class="bg" data-label="Quello che lasci vuoto viene dallo stile predefinito delle schede."></div></details>
+            </div>
+        </details>
+    </template>
+    <template id="tpl-add">
+        <span class="hint">Aggiungi blocco:</span>
+        {BLOCKS.map((t) => (
+            <button type="button" data-add="block" data-type={t} title={BLOCK_TEXT[t][2]}><span class="ico">{BLOCK_TEXT[t][0]}</span> {BLOCK_TEXT[t][1]}</button>
+        ))}
+    </template>
+    <template id="tpl-block">
+        <details class="block-ed" open>
+            <summary>
+                <span class="ico block-ico"></span>
+                <span class="block-name"></span>
+                <span class="row-btns">
+                    <button type="button" data-hide title="Nascondi o mostra sul sito">👁</button>
+                    <button type="button" data-dup title="Duplica">⧉</button>
+                    <button type="button" data-up title="Sposta su">↑</button>
+                    <button type="button" data-down title="Sposta giù">↓</button>
+                    <button type="button" data-rm title="Rimuovi blocco">✕</button>
+                </span>
+            </summary>
+            <div class="grid">
+                <label class="wide" data-for="testo galleria personaggi faq bottone video eventi">Titolo (facoltativo)<input name="bTitle" /></label>
+                <label class="wide" data-for="sezione">Quale sezione
+                    <select name="key">{SEZIONI.map((k) => <option value={k}>{SEZIONI_TEXT[k]}</option>)}</select>
                 </label>
-                <div class="wide md">
+                <p class="hint wide" data-for="sezione">Testi e stile di questa sezione si cambiano in <a href="#pagine">✎ Testi e stili delle pagine</a> e valgono ovunque compaia.</p>
+                <div class="wide md" data-for="testo galleria personaggi faq bottone video eventi">
                     <div class="md-tools">
                         <span class="hint md-label">Testo</span>
                         <button type="button" data-md="b" title="Grassetto"><b>G</b></button>
@@ -347,22 +418,42 @@ const fontsHref =
                         <small>Riga vuota = nuovo paragrafo</small>
                     </div>
                     <div class="md-split">
-                        <textarea name="tabBody" rows="8" aria-label="Testo della scheda"></textarea>
+                        <textarea name="bBody" rows="6" aria-label="Testo del blocco"></textarea>
                         <div class="md-out" hidden></div>
                     </div>
                 </div>
-                <div class="img only-testo" data-name="tabImage" data-shape="tall" data-label="Immagine accanto al testo"></div>
-                <div class="wide only-galleria">
+                <div class="img" data-for="testo" data-name="bImage" data-shape="tall" data-label="Immagine accanto al testo"></div>
+                <label data-for="testo">Lato dell'immagine
+                    <select name="side"><option value="">Destra</option><option value="sinistra">Sinistra</option></select>
+                </label>
+                <div class="wide" data-for="galleria">
                     <div class="rows shots"></div>
                     <label class="file-btn">+ Aggiungi foto (anche più insieme)<input type="file" accept="image/*" multiple data-multi /></label>
                 </div>
-                <div class="wide only-personaggi">
+                <div class="wide" data-for="personaggi">
                     <div class="rows chars"></div>
                     <button type="button" data-add="char">+ Aggiungi personaggio</button>
                 </div>
-                <div class="bg wide" data-label="Stile di questa scheda (quello che lasci vuoto viene dallo stile predefinito)"></div>
+                <div class="wide" data-for="faq">
+                    <div class="rows faqs"></div>
+                    <button type="button" data-add="faq">+ Aggiungi domanda</button>
+                </div>
+                <label data-for="bottone">Testo del bottone<input name="label" placeholder="Scopri di più" /></label>
+                <label data-for="bottone">Link<input name="href" placeholder="/lista-eventi oppure https://…" /></label>
+                <label class="wide" data-for="video">Link YouTube o Vimeo<input name="video" type="url" placeholder="https://www.youtube.com/watch?v=…" /></label>
+                <label data-for="eventi">Quali eventi
+                    <select name="show">{EVENTI_SHOW.map((v) => <option value={v}>{SHOW_TEXT[v]}</option>)}</select>
+                </label>
+                <label data-for="eventi">Quanti al massimo<input name="limit" type="number" min="1" max="24" placeholder="tutti" /></label>
+                <details class="bg-wrap wide" data-for="testo galleria personaggi faq bottone video eventi"><summary>🎨 Stile del blocco</summary><div class="bg"></div></details>
             </div>
         </details>
+    </template>
+    <template id="tpl-faq">
+        <div class="row faq-row">
+            <label class="wide">Domanda<input name="q" required /></label>
+            <label class="wide">Risposta<textarea name="a" rows="2" required></textarea></label>
+        </div>
     </template>
     <template id="tpl-img">
         <span class="hint img-label"></span>

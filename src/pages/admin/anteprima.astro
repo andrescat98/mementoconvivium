@@ -1,25 +1,37 @@
 ---
-// Anteprima per /admin: intestazione, card della timeline e card della lista eventi coi componenti
-// e il CSS veri, a partire dai dati non ancora salvati (POST JSON { slug, data }).
+// Anteprima per /admin coi componenti e il CSS veri, a partire dai dati non ancora salvati:
+// - evento (POST JSON { slug, data }): intestazione, card della timeline e della lista eventi, schede una sotto l'altra
+// - home o pagina nuova (POST JSON { blocks }): i blocchi
 // scripts/admin.ts la carica in un iframe e aggiorna dal vivo l'inquadratura delle immagini.
+import Blocco from "../../components/Blocco.astro";
 import EventCard from "../../components/EventCard.astro";
+import Sfondo from "../../components/Sfondo.astro";
 import EventoHero from "../../components/EventoHero.astro";
 import TimelineCard from "../../components/TimelineCard.astro";
 import { isAdmin } from "../../lib/auth";
-import { getSettings } from "../../lib/db";
-import { bookCta, googleFontsHref, SITE_FONTS_HREF } from "../../lib/format";
-import { eventoSchema, type Evento } from "../../lib/schema";
+import { getEvents, getSettings } from "../../lib/db";
+import { bookCta, googleFontsHref, look, SITE_FONTS_HREF } from "../../lib/format";
+import { blockSchema, eventoSchema, type Evento } from "../../lib/schema";
 import "../../styles/global.css";
 import "../../styles/index.css";
 import "../../styles/timeline.css";
 import "../../styles/evento.css";
 
 if (Astro.request.method !== "POST" || !(await isAdmin(Astro.cookies))) return new Response(null, { status: 401 });
-const { slug, data } = await Astro.request.json();
+const { slug, data, blocks } = await Astro.request.json();
 // campi obbligatori ancora vuoti: segnaposto, così l'anteprima si vede già mentre si scrive
-const r = eventoSchema.safeParse({ title: "Titolo dell'evento", theme: "Tema", duration: "—", excerpt: "Estratto dell'evento…", ...data });
-const evento: Evento | undefined = r.success ? { id: slug || "anteprima", data: r.data } : undefined;
-const s = await getSettings();
+const r = blocks
+    ? blockSchema.array().safeParse(blocks)
+    : eventoSchema.safeParse({ title: "Titolo dell'evento", theme: "Tema", duration: "—", excerpt: "Estratto dell'evento…", ...data });
+const evento: Evento | undefined = r.success && !blocks ? { id: slug || "anteprima", data: r.data as Evento["data"] } : undefined;
+const lista = r.success && blocks ? (r.data as typeof blocks).filter((b: { hidden?: boolean }) => !b.hidden) : [];
+const [s, eventi] = await Promise.all([getSettings(), getEvents()]);
+const d = evento?.data;
+const looks = d?.tabs.map((t) => (d.background || t.background ? { ...d.background, ...t.background } : undefined)) ?? [];
+const fonts = googleFontsHref(
+    d?.titleFont, d?.heroStyle?.font, ...looks.map((l) => l?.font),
+    ...[...lista, ...(d?.tabs.flatMap((t) => t.blocks) ?? [])].map((b) => b.style?.font),
+);
 // larghezze reali: colonna della timeline su computer e telefono, metà griglia della lista eventi
 const cards = [
     ["Timeline · computer", "400px", TimelineCard],
@@ -34,7 +46,7 @@ const cards = [
     <meta charset="UTF-8" />
     <meta name="robots" content="noindex, nofollow" />
     <link rel="stylesheet" href={SITE_FONTS_HREF} />
-    {evento && googleFontsHref(evento.data.titleFont, evento.data.heroStyle?.font) && <link rel="stylesheet" href={googleFontsHref(evento.data.titleFont, evento.data.heroStyle?.font)} />}
+    {fonts && <link rel="stylesheet" href={fonts} />}
 </head>
 <body>
     <main>
@@ -42,6 +54,16 @@ const cards = [
             <>
                 <div class="ev-page" style={evento.data.titleFont && `--ev-font:${evento.data.titleFont}`}>
                     <EventoHero d={evento.data} cta={bookCta(evento.data, s)} />
+                    {evento.data.tabs.map((t, i) => (
+                        <section class="ev-panel section" {...look(looks[i])}>
+                            <Sfondo bg={looks[i]} />
+                            <div class="container ev-panel-inner">
+                                <h2 class="ev-panel-title">{t.title}</h2>
+                                <div class="divider"><span>⬥</span></div>
+                                {t.blocks.filter((b) => !b.hidden).map((b) => <Blocco b={b} eventi={eventi} inline />)}
+                            </div>
+                        </section>
+                    ))}
                 </div>
                 <div class="prev-cards">
                     {cards.map(([label, w, Card]) => (
@@ -52,6 +74,8 @@ const cards = [
                     ))}
                 </div>
             </>
+        ) : r.success ? (
+            lista.length ? lista.map((b: any) => <Blocco b={b} eventi={eventi} />) : <p class="prev-err">Nessun blocco visibile: aggiungine uno.</p>
         ) : (
             <p class="prev-err">Da correggere per l'anteprima: {r.error?.issues.map((i) => i.path.join(".")).join(", ")}</p>
         )}

@@ -143,11 +143,36 @@ fieldset > button { justify-self: start; }
 .tab-ed[open] > summary { border-bottom: 1px solid var(--line); }
 .tab-ed .tab-name { margin-right: auto; }
 .tab-ed .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.9rem; padding: 0.9rem; }
-.tab-ed:not([data-tpl="testo"]) .only-testo,
-.tab-ed:not([data-tpl="galleria"]) .only-galleria,
-.tab-ed:not([data-tpl="personaggi"]) .only-personaggi { display: none; }
-.only-galleria, .only-personaggi { display: grid; gap: 0.6rem; justify-items: start; }
-.only-galleria .rows, .only-personaggi .rows { width: 100%; }
+/* ── blocchi (schede evento, home, pagine nuove) */
+.blocks-wrap { display: grid; gap: 0.75rem; padding: 0.9rem; }
+.tab-ed .blocks-wrap { padding: 0; }
+.blocks { display: grid; gap: 0.6rem; }
+.blocks:empty::before { content: "Nessun blocco: aggiungine uno qui sotto."; color: var(--dim); font-size: 0.9rem; }
+.block-ed { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; background: #fff; }
+.block-ed > summary { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; cursor: pointer; font-weight: 600; }
+.block-ed[open] > summary { border-bottom: 1px solid var(--line); background: var(--card); }
+.block-ed .block-name { margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.block-ed .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.9rem; padding: 0.9rem; }
+.block-ed.off { border-left-color: var(--line); }
+.block-ed.off > summary { color: var(--dim); text-decoration: line-through; text-decoration-thickness: 1px; }
+.block-ed.off [data-hide] { background: var(--ink); color: #fff; }
+[data-for].wide:not(label, .md, .bg-wrap, .hint) { display: grid; gap: 0.6rem; justify-items: start; }
+[data-for] > .rows { width: 100%; }
+.ico { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 5px; background: var(--bg); font-size: 0.95rem; flex: none; }
+.add-blocks { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; padding-top: 0.25rem; border-top: 1px dashed var(--line); }
+.add-blocks button { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.65rem 0.3rem 0.3rem; }
+.tab-ed .add-blocks [data-type="sezione"] { display: none; } /* le sezioni del sito non vanno dentro una scheda */
+.row.faq-row { grid-template-columns: 1fr auto; }
+.row.faq-row .wide { grid-column: 1; }
+/* riquadro stile richiudibile */
+.bg-wrap { border: 1px dashed var(--line); border-radius: 8px; }
+.bg-wrap > summary { padding: 0.5rem 0.75rem; cursor: pointer; font-family: inherit; letter-spacing: 0; font-size: 0.95rem; }
+.bg-wrap > .bg { border: 0; border-top: 1px dashed var(--line); border-radius: 0; }
+/* barra laterale: pagine del sito */
+.side-h { margin: 0.75rem 0 0; padding-top: 0.6rem; border-top: 1px solid var(--line); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+#page-list a { display: block; padding: 0.4rem 0.7rem; border-radius: 6px; color: inherit; text-decoration: none; }
+#page-list a:hover, #page-list a.on { background: var(--card); box-shadow: inset 3px 0 var(--accent); }
+#page-list small { color: var(--dim); }
 .add-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
 .file-btn { display: inline-block; padding: 0.45rem 0.9rem; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); cursor: pointer; font-size: 1rem; }
 .file-btn:hover { border-color: var(--ink); }
@@ -187,8 +212,7 @@ fieldset > button { justify-self: start; }
 .font-list button.on { box-shadow: inset 0 0 0 2px var(--accent); }
 .font-list button small { color: var(--dim); font-size: 0.75rem; }
 .font-list button span { font-size: 1.45rem; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.view-link { padding: 0.5rem 0.7rem; border-radius: 6px; color: inherit; text-decoration: none; border-top: 1px solid var(--line); margin-top: 0.5rem; }
-.view-link + .view-link { border-top: 0; margin-top: 0; }
+.view-link { padding: 0.5rem 0.7rem; border-radius: 6px; color: inherit; text-decoration: none; }
 .view-link:hover, .view-link.on { background: var(--card); box-shadow: inset 3px 0 var(--accent); }
 
 /* ── anteprime vere (iframe del sito, rimpicciolito da scripts/admin.ts) e testi delle pagine */

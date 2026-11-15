@@ -1,0 +1,22 @@
+---
+// Pagine create da /admin → Pagine del sito (/chi-siamo…). Le pagine fisse (contatti, lista-eventi…) hanno la precedenza.
+import Layout from "../layouts/Layout.astro";
+import Blocco from "../components/Blocco.astro";
+import FotoDialog from "../components/FotoDialog.astro";
+import { isAdmin } from "../lib/auth";
+import { getEvents, getSettings } from "../lib/db";
+
+const s = await getSettings();
+const p = s.pagine.find((x) => x.slug === Astro.params.slug);
+// bozze: solo anteprima per i moderatori, mai in cache
+if (!p || p.hidden) Astro.cache.set(false);
+if (!p || (p.hidden && !(await isAdmin(Astro.cookies)))) return new Response(null, { status: 404 });
+const blocks = p.blocks.filter((b) => !b.hidden);
+const eventi = blocks.some((b) => b.type === "eventi" || b.type === "sezione") ? await getEvents() : [];
+---
+
+<Layout title={`${p.title} · Memento Convivium`} description={p.description}>
+    {p.hidden && <p class="ev-preview-banner">Anteprima moderatori · pagina nascosta: non è visibile al pubblico</p>}
+    {blocks.map((b) => <Blocco b={b} eventi={eventi} />)}
+    <FotoDialog />
+</Layout>

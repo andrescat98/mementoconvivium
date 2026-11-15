@@ -41,14 +41,25 @@ Senza date la pagina mostra "Da annunciare" con **Luogo generico** e **Quota gen
 
 La pagina dell'evento non è più una pagina lunga: sotto l'intestazione ci sono dei **pulsanti-scheda** (es. *La storia · Gli abiti dell'epoca · Personaggi*) e si vede una scheda alla volta. Un nuovo evento parte con queste tre.
 
-- **Aggiungi scheda**: scegli un modello di partenza (La storia, Gli abiti dell'epoca, Personaggi, Galleria, Testo libero). Titolo e modello si possono cambiare dopo.
+- **Aggiungi scheda**: scegli un punto di partenza (La storia, Gli abiti dell'epoca, Personaggi, Galleria, Testo libero). Il titolo si cambia dopo.
 - Clicca il titolo di una scheda per aprirla o chiuderla; ↑ ↓ cambiano l'ordine dei pulsanti sul sito, ✕ rimuove la scheda.
-- **Modelli**:
-  - *Testo + immagine*: il testo e, se vuoi, una foto accanto.
-  - *Galleria di foto*: un'introduzione facoltativa e le foto, ognuna con didascalia. **+ Aggiungi foto** accetta più foto insieme. Sul sito un clic apre la foto a schermo intero.
-  - *Personaggi*: un'introduzione facoltativa e i personaggi (foto, nome, ruolo, indizio).
-- Se cambi modello a una scheda, al salvataggio restano solo i contenuti del nuovo modello.
+- Ogni scheda è fatta di **blocchi** (vedi sotto): una scheda può avere, per esempio, un testo, poi un video, poi le domande frequenti.
 - Ogni scheda ha un indirizzo suo da condividere: `/eventi/farwest#personaggi`.
+
+## Blocchi
+
+Schede degli eventi, Home e pagine nuove si compongono allo stesso modo: una lista di blocchi. **Aggiungi blocco** in fondo alla lista:
+
+- **Testo**: il testo e, se vuoi, una foto accanto (a destra o a sinistra).
+- **Galleria**: foto con didascalia. **+ Aggiungi foto** accetta più foto insieme. Sul sito un clic apre la foto a schermo intero.
+- **Personaggi**: foto, nome, ruolo e indizio.
+- **Domande frequenti**: domanda e risposta; sul sito la risposta si apre al clic.
+- **Bottone**: un testo facoltativo e un bottone verso un link (`/lista-eventi`, la pagina di un locale…).
+- **Video**: incolla il link di YouTube o Vimeo.
+- **Elenco eventi**: le card degli eventi prossimi, già fatti o tutti, anche solo i primi N.
+- **Sezione del sito** (solo Home e pagine nuove): intestazione della home, Come funziona, Timeline, box Prenota. I loro testi e il loro stile si cambiano in *Testi e stili delle pagine*.
+
+Tutti hanno un **titolo facoltativo**. Nella riga del blocco: 👁 lo nasconde dal sito senza cancellarlo, ⧉ lo duplica, ↑ ↓ lo spostano, ✕ lo rimuove. **🎨 Stile del blocco** apre le opzioni di stile (vedi *Stile*).
 
 **Testo**: scrivi normalmente; una riga vuota crea un nuovo paragrafo. Seleziona del testo e usa **G** (grassetto), **C** (corsivo) o **Link**. **Anteprima** mostra il testo come apparirà sul sito.
 
@@ -62,7 +73,29 @@ Trascina una foto su un riquadro, oppure clicca "sceglila". Viene ridotta e cari
 
 - **Copertina**: la foto nell'intestazione della pagina (sfumata a sinistra, dietro il titolo) e l'anteprima quando si condivide il link su WhatsApp e simili. Se non c'è un'immagine per la timeline, la usa anche la timeline.
 - **Font**: **Scegli…** apre l'elenco dei font, divisi per atmosfera (romani, medievali, Far West…), con l'anteprima del titolo. Va bene anche un altro font di [Google Fonts](https://fonts.google.com): scrivine il nome esatto seguito da uno stile di riserva, es. `Rye, cursive`. Il font del titolo vale anche per i titoli e i pulsanti delle schede.
-- **Sfondo**: colore (spunta "Colore"), immagine e **velo chiaro** sull'immagine per tenere leggibile il testo. Quello in *Aspetto* vale per tutte le schede; ogni scheda può averne uno suo, che prende il posto di quello predefinito.
+- **🎨 Stile dell'intestazione** e **🎨 Stile predefinito delle schede**: vedi *Stile*. Ogni scheda può cambiare solo una parte dello stile predefinito (per esempio solo l'animazione): il resto lo prende da quello predefinito.
+
+## Stile
+
+Lo stesso riquadro vale per schede, blocchi e sezioni del sito:
+
+- **Sfondo**: colore, immagine, **velo** sull'immagine (chiaro, o scuro con la spunta *Velo scuro*) per tenere leggibile il testo, **parallasse** (l'immagine scorre più lenta della pagina).
+- **Colore del testo**: necessario se lo sfondo è scuro.
+- **Font dei titoli**, **grandezza dei titoli**, **spaziatura** (compatta, ariosa, a tutto schermo).
+- **Animazione d'entrata**: il contenuto appare quando arriva sullo schermo. Chi ha attivato "riduci movimento" sul telefono non la vede.
+- **Effetto sui titoli**: ombra, bagliore dorato, oro, inciso, solo contorno.
+- **Stili salvati**: **Salva come stile…** dà un nome alla combinazione (es. "Notte veneziana"); dal menu **Stile salvato** la riapplichi ovunque con un clic. **Elimina stile** toglie quello scelto. Gli stili si salvano subito.
+
+## Home e pagine nuove
+
+A sinistra, in **Pagine del sito**:
+
+- **🏠 Home**: i blocchi della home, nell'ordine in cui appaiono. Si possono spostare, nascondere o aggiungerne altri (un video, le domande frequenti…).
+- **+ Nuova pagina**: titolo, indirizzo (si scrive dal titolo: *Chi siamo* → `/chi-siamo`), descrizione per Google e per le anteprime su WhatsApp, e i blocchi. **Nel menu in alto** aggiunge la pagina al menu, prima del bottone finale. Una pagina nuova parte **nascosta**: la vedete solo voi moderatori, con una striscia rossa; togli la spunta quando è pronta.
+
+Sotto c'è l'**Anteprima** della pagina coi dati non ancora salvati.
+
+
 
 ## Impostazioni sito
 
@@ -75,13 +108,15 @@ Trascina una foto su un riquadro, oppure clicca "sceglila". Viene ridotta e cari
 
 Dopo il salvataggio il sito si aggiorna entro un minuto.
 
-## Testi delle pagine
+## Testi e stili delle pagine
 
-**✎ Testi delle pagine** mostra la pagina vera (Home, Lista eventi, pagina di un evento): i testi con il bordo tratteggiato si modificano cliccandoci sopra. Invio va a capo; un testo svuotato torna all'originale. Poi **Salva testi**. Qui si cambiano anche il testo del bottone della home e il motto nel footer.
+**✎ Testi e stili delle pagine** mostra la pagina vera (Home, Lista eventi, Contatti, pagine nuove, pagina di un evento): i testi con il bordo tratteggiato si modificano cliccandoci sopra. Invio va a capo; un testo svuotato torna all'originale. Qui si cambiano anche il testo del bottone della home e il motto nel footer.
+
+Ogni sezione ha in alto a destra **🎨 Stile**: lo stile cambia subito nella pagina, l'animazione riparte. Il box Prenota ha un solo stile, uguale su tutte le pagine. **📱 Telefono** mostra la pagina larga come uno smartphone. Poi **Salva**.
 
 ## Anteprima dell'evento
 
-In fondo all'evento, **Anteprima: intestazione e card** mostra intestazione, card della timeline e card della lista eventi coi dati non ancora salvati, con gli stessi stili del sito.
+In fondo all'evento, **Anteprima: intestazione, schede e card** mostra intestazione, tutte le schede una sotto l'altra, card della timeline e card della lista eventi coi dati non ancora salvati, con gli stessi stili del sito.
 
 ## Timeline in home
 

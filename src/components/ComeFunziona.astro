@@ -1,0 +1,45 @@
+---
+// "Come funziona": tre passi coi testi di /admin → Pagine. Blocco "sezione" come-funziona.
+import Sfondo from "./Sfondo.astro";
+import { getSettings } from "../lib/db";
+import { look } from "../lib/format";
+import "../styles/index.css";
+
+const s = await getSettings();
+const steps = [
+    ["I", "step1Title", "step1Text"],
+    ["II", "step2Title", "step2Text"],
+    ["III", "step3Title", "step3Text"],
+] as const;
+---
+
+<section class="section come-funziona" id="come-funziona" data-sez="come-funziona" {...look(s.sezioni["come-funziona"])}>
+    <Sfondo bg={s.sezioni["come-funziona"]} />
+    <div class="container">
+        <div class="section-header">
+            <h2 data-k="stepsTitle">{s.stepsTitle}</h2>
+            <div class="divider"><span>⬥</span></div>
+        </div>
+        <div class="steps">
+            {steps.map(([num, t, p], i) => (
+                <>
+                    {i > 0 && (
+                        <div class="step-connector">
+                            <div class="connector-line"></div>
+                            <span class="connector-gem">◆</span>
+                            <div class="connector-line"></div>
+                        </div>
+                    )}
+                    <div class="step">
+                        <div class="step-num">{num}</div>
+                        <div class="step-body">
+                            <h3 data-k={t}>{s[t]}</h3>
+                            <p data-k={p}>{s[p]}</p>
+                        </div>
+                    </div>
+                </>
+            ))}
+        </div>
+    </div>
+</section>
+

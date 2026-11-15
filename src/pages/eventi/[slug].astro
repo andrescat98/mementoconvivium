@@ -3,9 +3,11 @@ import Layout from "../../layouts/Layout.astro";
 import EventoHero from "../../components/EventoHero.astro";
 import Prenota from "../../components/Prenota.astro";
 import Sfondo from "../../components/Sfondo.astro";
+import Blocco from "../../components/Blocco.astro";
+import FotoDialog from "../../components/FotoDialog.astro";
 import { isAdmin } from "../../lib/auth";
-import { getEvent, getSettings } from "../../lib/db";
-import { bookCta, googleFontsHref, imgStyle, look, md, slugify } from "../../lib/format";
+import { getEvent, getEvents, getSettings } from "../../lib/db";
+import { bookCta, googleFontsHref, look, slugify } from "../../lib/format";
 import "../../styles/evento.css";
 
 const evento = await getEvent(Astro.params.slug!);
@@ -23,6 +25,9 @@ const s = await getSettings();
 const { title, excerpt, status, cover, background, tabs, titleFont, characterFont } = evento.data;
 const cta = bookCta(evento.data, s);
 
+// blocchi "eventi" o sezioni fisse dentro le schede: servono gli altri eventi
+const eventi = tabs.some((t) => t.blocks.some((b) => b.type === "eventi" || b.type === "sezione")) ? await getEvents() : [];
+
 // stile della scheda: campo per campo sopra quello predefinito
 const looks = tabs.map((t) => (background || t.background ? { ...background, ...t.background } : undefined));
 
@@ -39,7 +44,7 @@ const ids = tabs.map((t, i) => {
 <Layout
     title={`${title} · Memento Convivium`}
     description={excerpt}
-    fontHref={googleFontsHref(titleFont, characterFont, evento.data.heroStyle?.font, ...looks.map((l) => l?.font))}
+    fontHref={googleFontsHref(titleFont, characterFont, evento.data.heroStyle?.font, ...looks.map((l) => l?.font), ...tabs.flatMap((t) => t.blocks.map((b) => b.style?.font)))}
     image={cover?.src}
 >
     {preview && (
@@ -65,51 +70,7 @@ const ids = tabs.map((t, i) => {
                         <div class="container ev-panel-inner">
                             <h2 class="ev-panel-title">{t.title}</h2>
                             <div class="divider"><span>⬥</span></div>
-                            {t.template === "testo" ? (
-                                <div class={t.image ? "ev-panel-grid" : "ev-panel-text"}>
-                                    <div class="ev-prose" set:html={md(t.body ?? "")} />
-                                    {t.image && (
-                                        <button type="button" class="ev-figure crop" data-portrait={t.image.src} data-name="">
-                                            <img src={t.image.src} alt="" loading="lazy" style={imgStyle(t.image)} />
-                                        </button>
-                                    )}
-                                </div>
-                            ) : (
-                                <>
-                                    {t.body && <div class="ev-prose ev-panel-intro" set:html={md(t.body)} />}
-                                    {t.template === "galleria" ? (
-                                        <div class="ev-gallery">
-                                            {t.gallery?.map((g) => (
-                                                <figure>
-                                                    <button type="button" class="crop" data-portrait={g.image.src} data-name={g.caption ?? ""}>
-                                                        <img src={g.image.src} alt={g.caption ?? ""} loading="lazy" style={imgStyle(g.image)} />
-                                                    </button>
-                                                    {g.caption && <figcaption>{g.caption}</figcaption>}
-                                                </figure>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div class="ev-chars-grid">
-                                            {t.characters?.map((c) => (
-                                                <div class="ev-char-card">
-                                                    {c.portrait ? (
-                                                        <button type="button" class="ev-char-avatar has-portrait" data-portrait={c.portrait.src} data-name={c.name}>
-                                                            <span class="crop"><img src={c.portrait.src} alt={c.name} loading="lazy" style={imgStyle(c.portrait, 0)} /></span>
-                                                            <span class="ev-char-initial">{c.name.charAt(0)}</span>
-                                                        </button>
-                                                    ) : (
-                                                        <span class="ev-char-avatar"><span class="ev-char-initial">{c.name.charAt(0)}</span></span>
-                                                    )}
-                                                    <h4 class="ev-char-name">{c.name}</h4>
-                                                    <p class="ev-char-role">{c.role}</p>
-                                                    <div class="divider"><span>⬥</span></div>
-                                                    <p class="ev-char-hint">"{c.hint}"</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </>
-                            )}
+                            {t.blocks.filter((b) => !b.hidden).map((b) => <Blocco b={b} eventi={eventi} inline />)}
                         </div>
                     </section>
                 ))}
@@ -127,18 +88,10 @@ const ids = tabs.map((t, i) => {
         </div>
     </Prenota>
 
-    <dialog id="ev-photo-dialog" class="ev-photo-dialog" style={`--char-font: ${characterFont ?? "var(--font-title)"}`}>
-        <button type="button" class="ev-photo-close" aria-label="Chiudi">✕</button>
-        <div class="ev-photo-card" id="ev-photo-card">
-            <img id="ev-photo-dialog-img" alt="" />
-        </div>
-        <p id="ev-photo-dialog-name" class="ev-photo-name"></p>
-    </dialog>
+    <FotoDialog font={characterFont} />
 </Layout>
 
 <script>
-    import "../../scripts/ev-photo-dialog.ts";
-
     // Schede: senza JS si vedono tutte una sotto l'altra; con JS una alla volta, scelta dall'ancora (#la-storia)
     const box = document.querySelector<HTMLElement>("[data-tabs]");
     if (box) {

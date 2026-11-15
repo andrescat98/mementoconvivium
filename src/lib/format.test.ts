@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bookCta, bookHref, dateLabel, googleFontsHref, imgStyle, look, md, slugify, today, veil } from "./format.ts";
+import { bookCta, bookHref, dateLabel, googleFontsHref, imgStyle, look, md, slugify, today, upgradeTab, veil, videoEmbed } from "./format.ts";
 
 test("dateLabel", () => {
   assert.equal(dateLabel("2026-06-19"), "Ven 19 Giu 2026");
@@ -50,4 +50,20 @@ test("look e veil", () => {
   assert.equal(l["data-parallax"], undefined); // parallasse solo con immagine
   assert.match(l.style!, /--cream:#ffffff;.*--sez-font:Rye, cursive;--sez-zoom:1.2$/);
   assert.equal(veil({ veil: 40, dark: true }), "rgb(20 17 14 / 40%)");
+});
+
+test("videoEmbed", () => {
+  const id = "dQw4w9WgXcQ";
+  for (const u of [`https://www.youtube.com/watch?v=${id}`, `https://youtu.be/${id}`, `https://youtube.com/watch?t=3&v=${id}`, `https://www.youtube.com/shorts/${id}`])
+    assert.equal(videoEmbed(u), `https://www.youtube-nocookie.com/embed/${id}`);
+  assert.equal(videoEmbed("https://vimeo.com/76979871"), "https://player.vimeo.com/video/76979871");
+  assert.equal(videoEmbed("https://example.com/x"), undefined);
+  assert.equal(videoEmbed(undefined), undefined);
+});
+
+test("upgradeTab", () => {
+  const img = { src: "/img/1" };
+  assert.deepEqual(upgradeTab({ title: "La storia", template: "testo", body: "x", image: img }), { title: "La storia", background: undefined, blocks: [{ type: "testo", body: "x", image: img }] });
+  const nuova = { title: "T", blocks: [] };
+  assert.equal(upgradeTab(nuova), nuova);
 });

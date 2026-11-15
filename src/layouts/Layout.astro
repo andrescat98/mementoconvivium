@@ -20,8 +20,10 @@ const {
     image,
 } = Astro.props;
 
-// font scelti nello stile delle sezioni del sito
-const sezFonts = googleFontsHref(...Object.values((await getSettings()).sezioni).map((b) => b.font));
+// font scelti nello stile delle sezioni del sito e dei blocchi di home e pagine nuove
+const s = await getSettings();
+const blocks = [...s.home, ...s.pagine.flatMap((p) => p.blocks)];
+const sezFonts = googleFontsHref(...Object.values(s.sezioni).map((b) => b.font), ...blocks.map((b) => b.style?.font));
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(image ?? "/og-image.jpg", Astro.site);
 ---

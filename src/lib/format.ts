@@ -18,6 +18,24 @@ export const today = () => new Date().toISOString().slice(0, 10);
 export const nextDate = (d: { dates?: { dateISO: string }[] }) =>
   d.dates?.map((x) => x.dateISO).filter((x) => x >= today()).sort()[0];
 
+/** Tipi di blocco in /admin: icona, nome, descrizione. */
+export const BLOCK_TEXT: Record<string, [string, string, string]> = {
+  testo: ["¶", "Testo", "testo con un'immagine accanto, facoltativa"],
+  galleria: ["▦", "Galleria", "foto con didascalia, si aprono a schermo intero"],
+  personaggi: ["☺", "Personaggi", "ritratti con nome, ruolo e indizio"],
+  faq: ["?", "Domande frequenti", "domande che si aprono al clic"],
+  bottone: ["➜", "Bottone", "invito con testo e link"],
+  video: ["▶", "Video", "YouTube o Vimeo"],
+  eventi: ["✦", "Elenco eventi", "card degli eventi prossimi, passati o tutti"],
+  sezione: ["◆", "Sezione del sito", "intestazione, come funziona, timeline, prenota"],
+};
+export const SEZIONI_TEXT: Record<string, string> = {
+  "home-hero": "Intestazione della home (logo e bottone)",
+  "come-funziona": "Come funziona",
+  timeline: "Timeline degli eventi",
+  prenota: "Box Prenota",
+};
+
 export const STATUS_TEXT: Record<string, string> = {
   aperto: "Aperto",
   "lista-attesa": "Lista d'attesa",
@@ -68,6 +86,21 @@ export function imgStyle(i?: Img, defY = 50) {
   if (!i) return "";
   const x = i.x ?? 50, y = i.y ?? defY, z = i.zoom ?? 1;
   return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%` + (z > 1 ? `;transform:scale(${z})` : "");
+}
+
+/** Vecchia scheda evento a modello unico ({template, body, …}) → scheda con un blocco (schema.ts, db.ts, admin). */
+export function upgradeTab(t: any) {
+  if (!t?.template) return t;
+  const { title, background, template, ...rest } = t;
+  return { title, background, blocks: [{ type: template, ...rest }] };
+}
+
+/** Link YouTube/Vimeo → indirizzo del player da incorporare (youtube-nocookie: niente cookie finché non si preme play). */
+export function videoEmbed(url?: string) {
+  const yt = url?.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([\w-]{11})/);
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
+  const vi = url?.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vi) return `https://player.vimeo.com/video/${vi[1]}`;
 }
 
 /** Colore del velo sull'immagine di sfondo (chiaro o scuro). */

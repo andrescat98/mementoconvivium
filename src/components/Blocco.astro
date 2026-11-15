@@ -1,0 +1,135 @@
+---
+// Un blocco di home, pagine nuove e schede evento (schema.ts blockSchema).
+// inline = dentro una scheda evento: niente <section>, spazio sopra/sotto solo se ha uno sfondo suo.
+// Gallerie, personaggi e immagini aprono il FotoDialog della pagina.
+import ComeFunziona from "./ComeFunziona.astro";
+import EventCard from "./EventCard.astro";
+import HomeHero from "./HomeHero.astro";
+import Prenota from "./Prenota.astro";
+import Sfondo from "./Sfondo.astro";
+import TimelineSection from "./TimelineSection.astro";
+import { imgStyle, look, md, nextDate, videoEmbed } from "../lib/format";
+import type { Block, Evento } from "../lib/schema";
+import "../styles/index.css";
+import "../styles/timeline.css";
+import "../styles/evento.css";
+
+interface Props {
+    b: Block;
+    eventi?: Evento[];
+    inline?: boolean;
+}
+const { b, eventi = [], inline } = Astro.props;
+const Tag = inline ? "div" : "section";
+const H = inline ? "h3" : "h2";
+
+const lista =
+    b.type === "eventi"
+        ? eventi
+              .filter((e) => {
+                  const next = nextDate(e.data);
+                  if (b.show === "passati") return !next && !!e.data.dates?.length;
+                  return b.show === "tutti" || !!next || e.data.status === "coming-soon";
+              })
+              .sort((x, y) => (nextDate(x.data) ?? "9").localeCompare(nextDate(y.data) ?? "9"))
+              .slice(0, b.limit ?? 24)
+        : [];
+const video = b.type === "video" ? videoEmbed(b.video) : undefined;
+const intro = b.body && b.type !== "testo" && b.type !== "bottone";
+---
+
+{b.type === "sezione" ? (
+    b.key === "home-hero" ? <HomeHero eventi={eventi} />
+    : b.key === "come-funziona" ? <ComeFunziona />
+    : b.key === "timeline" ? <TimelineSection events={eventi} />
+    : <Prenota />
+) : (
+    <Tag class:list={["blocco", `blocco-${b.type}`, !inline && "section", inline && b.style && "con-stile"]} {...look(b.style)}>
+        <Sfondo bg={b.style} />
+        <div class={inline ? "blocco-inner" : "container"}>
+            {b.title && (
+                <div class="section-header blocco-head">
+                    <H>{b.title}</H>
+                    <div class="divider"><span>⬥</span></div>
+                </div>
+            )}
+            {intro && <div class="ev-prose ev-panel-intro" set:html={md(b.body!)} />}
+
+            {b.type === "testo" && (
+                <div class={b.image ? `ev-panel-grid${b.side === "sinistra" ? " img-sx" : ""}` : "ev-panel-text"}>
+                    <div class="ev-prose" set:html={md(b.body ?? "")} />
+                    {b.image && (
+                        <button type="button" class="ev-figure crop" data-portrait={b.image.src} data-name="">
+                            <img src={b.image.src} alt="" loading="lazy" style={imgStyle(b.image)} />
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {b.type === "galleria" && (
+                <div class="ev-gallery">
+                    {b.gallery?.map((g) => (
+                        <figure>
+                            <button type="button" class="crop" data-portrait={g.image.src} data-name={g.caption ?? ""}>
+                                <img src={g.image.src} alt={g.caption ?? ""} loading="lazy" style={imgStyle(g.image)} />
+                            </button>
+                            {g.caption && <figcaption>{g.caption}</figcaption>}
+                        </figure>
+                    ))}
+                </div>
+            )}
+
+            {b.type === "personaggi" && (
+                <div class="ev-chars-grid">
+                    {b.characters?.map((c) => (
+                        <div class="ev-char-card">
+                            {c.portrait ? (
+                                <button type="button" class="ev-char-avatar has-portrait" data-portrait={c.portrait.src} data-name={c.name}>
+                                    <span class="crop"><img src={c.portrait.src} alt={c.name} loading="lazy" style={imgStyle(c.portrait, 0)} /></span>
+                                    <span class="ev-char-initial">{c.name.charAt(0)}</span>
+                                </button>
+                            ) : (
+                                <span class="ev-char-avatar"><span class="ev-char-initial">{c.name.charAt(0)}</span></span>
+                            )}
+                            <h4 class="ev-char-name">{c.name}</h4>
+                            <p class="ev-char-role">{c.role}</p>
+                            <div class="divider"><span>⬥</span></div>
+                            <p class="ev-char-hint">"{c.hint}"</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {b.type === "faq" && (
+                <div class="faq">
+                    {b.faq?.map((f) => (
+                        <details>
+                            <summary>{f.q}</summary>
+                            <div class="ev-prose" set:html={md(f.a)} />
+                        </details>
+                    ))}
+                </div>
+            )}
+
+            {b.type === "bottone" && (
+                <div class="blocco-cta">
+                    {b.body && <div class="ev-prose" set:html={md(b.body)} />}
+                    {b.href && <a href={b.href} class="btn-primary btn-large">{b.label ?? "Scopri di più"}</a>}
+                </div>
+            )}
+
+            {video && (
+                <div class="video">
+                    <iframe src={video} title={b.title ?? "Video"} loading="lazy" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen></iframe>
+                </div>
+            )}
+
+            {b.type === "eventi" &&
+                (lista.length ? (
+                    <div class="events-grid">{lista.map((e) => <EventCard evento={e} />)}</div>
+                ) : (
+                    <p class="ev-panel-text blocco-vuoto">Al momento non ci sono eventi da mostrare.</p>
+                ))}
+        </div>
+    </Tag>
+)}

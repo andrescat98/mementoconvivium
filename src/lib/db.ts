@@ -1,5 +1,6 @@
 import { createClient, type Client, type Row } from "@libsql/client/web";
 import { env } from "cloudflare:workers";
+import { upgradeTab } from "./format";
 import { DEFAULT_SETTINGS, type Evento, type EventoData, type Settings } from "./schema";
 
 let client: Client | undefined;
@@ -8,7 +9,8 @@ export const db = () =>
 
 /**
  * Eventi salvati prima delle schede (racconto in `body`, personaggi in `data.characters`):
- * convertiti alla lettura in schede "La storia" + "Personaggi". Si riscrivono al primo salvataggio.
+ * convertiti alla lettura in schede "La storia" + "Personaggi". Le schede a modello unico diventano schede
+ * con un blocco (upgradeTab). Si riscrivono al primo salvataggio.
  */
 function normalize(json: string, body: string): EventoData {
   const d = JSON.parse(json);
@@ -24,6 +26,7 @@ function normalize(json: string, body: string): EventoData {
       });
     delete d.characters;
   }
+  d.tabs = d.tabs.map(upgradeTab);
   return d;
 }
 

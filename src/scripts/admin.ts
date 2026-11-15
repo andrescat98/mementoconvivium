@@ -1,6 +1,6 @@
 // Logica di /admin (vanilla, nessun framework). Markup e <template> in src/pages/admin.astro.
 import { actions, isInputError } from "astro:actions";
-import { BASE_FONTS, dateLabel, googleFontsHref, imgStyle, look, md, nextDate, slugify, STATUS_TEXT, today, veil, type Img } from "../lib/format";
+import { BASE_FONTS, BLOCK_TEXT, dateLabel, upgradeTab, googleFontsHref, imgStyle, look, md, nextDate, slugify, STATUS_TEXT, today, veil, type Img } from "../lib/format";
 import type { Version } from "../lib/db";
 import type { Bg, Evento } from "../lib/schema";
 
@@ -11,13 +11,14 @@ const clone = (id: string) => $<HTMLTemplateElement>(`#tpl-${id}`).content.first
 const form = document.querySelector<HTMLFormElement>("#editor");
 const settingsForm = $<HTMLFormElement>("#settings");
 const pagesView = $<HTMLElement>("#pages");
+const pageForm = $<HTMLFormElement>("#page-ed");
 
 if (form) {
     const init = JSON.parse($("#admin-data").textContent!) as { eventi: Evento[]; deleted: Version[]; settings: Data };
     const eventi = init.eventi;
     let deleted = init.deleted;
     let settings = init.settings; // impostazioni salvate; ogni vista salva le sue modifiche sopra queste
-    let view: "editor" | "settings" | "pages" | "empty" = "empty";
+    let view: "editor" | "settings" | "pages" | "page" | "empty" = "empty";
     const oggi = today();
     let current: Evento | undefined; // evento salvato aperto nel form (undefined = nuovo)
     let versions: Version[] = [];
@@ -39,7 +40,7 @@ if (form) {
         dirty = v;
         $<HTMLElement>("#dirty").hidden = !v;
         document.title = (v ? "● " : "") + "Moderatori · Memento Convivium";
-        if (v) queuePrev();
+        if (v) queuePrev(), queuePagePrev();
     }
     addEventListener("beforeunload", (e) => dirty && e.preventDefault());
 
@@ -217,11 +218,11 @@ if (form) {
     // ── anteprima vera: /admin/anteprima renderizza intestazione e card coi componenti del sito.
     // L'iframe è largo come una pagina (PREV_W) e viene rimpicciolito per stare nel riquadro.
     const PREV_W = 1200;
-    async function renderPrev(wrap: HTMLElement) {
+    async function renderPrev(wrap: HTMLElement, body: unknown = collect()) {
         const frame = $<HTMLIFrameElement>("iframe", wrap);
         const seq = String(Number(wrap.dataset.seq ?? 0) + 1);
         wrap.dataset.seq = seq;
-        const res = await fetch("/admin/anteprima", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(collect()) });
+        const res = await fetch("/admin/anteprima", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
         const html = res.ok ? await res.text() : "<p>Sessione scaduta: ricarica la pagina e rientra.</p>";
         if (wrap.dataset.seq !== seq) return; // nel frattempo è partita un'anteprima più recente
         const doc = frame.contentDocument;
@@ -252,6 +253,14 @@ if (form) {
         if (prevSec.open && !form!.hidden) prevTimer = window.setTimeout(() => renderPrev($<HTMLElement>(".prev", prevSec)), 500);
     }
     prevSec.ontoggle = queuePrev;
+    const pagePrevSec = $<HTMLDetailsElement>("#pg-prev-sec");
+    let pagePrevTimer = 0;
+    function queuePagePrev() {
+        clearTimeout(pagePrevTimer);
+        if (pagePrevSec.open && !pageForm.hidden)
+            pagePrevTimer = window.setTimeout(() => renderPrev($<HTMLElement>(".prev", pagePrevSec), { blocks: readBlocks($(".blocks-wrap", pageForm)) }), 500);
+    }
+    pagePrevSec.ontoggle = queuePagePrev;
 
     // ── stile di una sezione (riquadro .bg): sfondo, testo, titoli, spaziatura, animazione, effetto, stili salvati
     function initBg(box: HTMLElement, b: Data = {}) {
@@ -313,7 +322,7 @@ if (form) {
     }
 
     // ── righe ripetibili (date, personaggi, foto della galleria)
-    function addRow(kind: "date" | "char" | "shot", into: Element, v: Data = {}) {
+    function addRow(kind: "date" | "char" | "shot" | "faq", into: Element, v: Data = {}) {
         const row = clone(kind);
         row.querySelectorAll<HTMLInputElement>("label > [name]").forEach((el) => (el.value = v[el.name] ?? ""));
         row.querySelectorAll<HTMLElement>(".img").forEach((b) => initImg(b, kind === "shot" ? v.image : v[b.dataset.name!]));
@@ -328,83 +337,170 @@ if (form) {
         $("[data-dl]", row).textContent = iso ? dateLabel(iso) + (iso < oggi ? " · passata" : "") : "";
     }
 
-    // ── schede
+    // ── schede: titolo, blocchi, stile
     const PRESETS: Record<string, Data> = {
-        storia: { title: "La storia", template: "testo" },
-        abiti: { title: "Gli abiti dell'epoca", template: "galleria" },
-        personaggi: { title: "Personaggi", template: "personaggi", body: "Ogni ospite riceverà la propria scheda via email.\nQuesti sono i volti che troverai al banchetto." },
-        galleria: { title: "Galleria", template: "galleria" },
-        testo: { title: "Nuova scheda", template: "testo" },
+        storia: { title: "La storia", blocks: [{ type: "testo" }] },
+        abiti: { title: "Gli abiti dell'epoca", blocks: [{ type: "galleria" }] },
+        personaggi: { title: "Personaggi", blocks: [{ type: "personaggi", body: "Ogni ospite riceverà la propria scheda via email.\nQuesti sono i volti che troverai al banchetto." }] },
+        galleria: { title: "Galleria", blocks: [{ type: "galleria" }] },
+        testo: { title: "Nuova scheda", blocks: [{ type: "testo" }] },
     };
     function addTab(t: Data, open = false) {
         const el = clone("tab") as HTMLDetailsElement;
         el.open = open;
         $("[name=tabTitle]", el).value = t.title ?? "";
-        $("[name=template]", el).value = t.template ?? "testo";
-        $<HTMLTextAreaElement>("[name=tabBody]", el).value = t.body ?? "";
-        initImg($<HTMLElement>(".only-testo", el), t.image);
-        t.gallery?.forEach((g: Data) => addRow("shot", $(".shots", el), g));
-        t.characters?.forEach((c: Data) => addRow("char", $(".chars", el), c));
-        initBg($<HTMLElement>(".bg", el), t.background);
+        initBlocks($<HTMLElement>(".blocks-wrap", el), upgradeTab(t).blocks ?? []);
+        initBg($<HTMLElement>(":scope > .grid > .bg-wrap > .bg", el), t.background);
         $("#tabs", form!).append(el);
         markTab(el);
         return el;
     }
     function markTab(el: Element) {
-        const tpl = $<HTMLSelectElement>("[name=template]", el);
-        el.setAttribute("data-tpl", tpl.value);
-        const n = tpl.value === "galleria" ? $$(".shots > .row", el).length : tpl.value === "personaggi" ? $$(".chars > .row", el).length : 0;
-        $(".tab-name", el).textContent =
-            ($("[name=tabTitle]", el).value || "Senza titolo") + " · " + tpl.selectedOptions[0].text + (n ? ` (${n})` : "");
-        $(".md-label", el).textContent = tpl.value === "testo" ? "Testo" : "Introduzione (facoltativa)";
+        const blocks = $$<HTMLElement>(".block-ed", el);
+        const kinds = [...new Set(blocks.map((b) => BLOCK_TEXT[b.dataset.type!][1].toLowerCase()))].join(", ");
+        $(".tab-name", el).textContent = ($("[name=tabTitle]", el).value || "Senza titolo") + (kinds ? ` · ${kinds}` : " · vuota");
+    }
+
+    // ── blocchi (schede evento, home, pagine nuove): il tipo si sceglie aggiungendolo e non cambia
+    function initBlocks(wrap: HTMLElement, blocks: Data[]) {
+        const add = $<HTMLElement>(":scope > .add-blocks", wrap);
+        add.replaceChildren($<HTMLTemplateElement>("#tpl-add").content.cloneNode(true));
+        const list = $<HTMLElement>(":scope > .blocks", wrap);
+        list.replaceChildren();
+        blocks.forEach((b) => addBlock(list, b));
+    }
+    function addBlock(list: Element, b: Data, open = false) {
+        const el = clone("block") as HTMLDetailsElement;
+        el.open = open;
+        el.dataset.type = b.type;
+        for (const x of $$<HTMLElement>("[data-for]", el)) x.hidden = !x.dataset.for!.split(" ").includes(b.type);
+        el.classList.toggle("off", !!b.hidden);
+        const set = (n: string, v: unknown) => { const i = el.querySelector<HTMLInputElement>(`[name=${n}]`); if (i) i.value = v == null ? "" : String(v); };
+        set("bTitle", b.title); set("bBody", b.body); set("key", b.key ?? "home-hero"); set("side", b.side);
+        set("label", b.label); set("href", b.href); set("video", b.video); set("show", b.show ?? "prossimi"); set("limit", b.limit);
+        initImg($<HTMLElement>(".img[data-name=bImage]", el), b.image);
+        b.gallery?.forEach((g: Data) => addRow("shot", $(".shots", el), g));
+        b.characters?.forEach((c: Data) => addRow("char", $(".chars", el), c));
+        b.faq?.forEach((f: Data) => addRow("faq", $(".faqs", el), f));
+        initBg($<HTMLElement>(".bg", el), b.style);
+        list.append(el);
+        markBlock(el);
+        return el;
+    }
+    function markBlock(el: HTMLElement) {
+        const type = el.dataset.type!;
+        const [ico, name] = BLOCK_TEXT[type];
+        const v = (n: string) => el.querySelector<HTMLInputElement>(`[name=${n}]`)?.value.trim() ?? "";
+        const n = $$(".shots > .row, .chars > .row, .faqs > .row", el).length;
+        const what = type === "sezione" ? $<HTMLSelectElement>("[name=key]", el).selectedOptions[0]?.text : v("bTitle") || v("bBody").split("\n")[0];
+        $(".block-ico", el).textContent = ico;
+        $(".block-name", el).textContent = name + (what ? ` · ${what.length > 50 ? what.slice(0, 50) + "…" : what}` : "") + (n ? ` (${n})` : "") + (el.classList.contains("off") ? " · nascosto" : "");
+        $(".md-label", el).textContent = type === "testo" ? "Testo" : type === "bottone" ? "Testo sopra il bottone (facoltativo)" : "Introduzione (facoltativa)";
+        const tab = el.closest(".tab-ed");
+        if (tab) markTab(tab);
+    }
+    function readBlock(el: HTMLElement) {
+        const type = el.dataset.type!;
+        const is = (...t: string[]) => t.includes(type);
+        const v = (n: string, root: ParentNode = el) => root.querySelector<HTMLInputElement>(`[name=${n}]`)?.value.trim() || undefined;
+        const rows = (sel: string) => $$<HTMLElement>(`${sel} > .row`, el);
+        const list = <T,>(a: T[]) => (a.length ? a : undefined);
+        const limit = v("limit");
+        return {
+            type,
+            hidden: el.classList.contains("off") || undefined,
+            title: is("sezione") ? undefined : v("bTitle"),
+            body: is("sezione") ? undefined : v("bBody"),
+            image: is("testo") ? getImg($(".img[data-name=bImage]", el)) : undefined,
+            side: is("testo") ? v("side") : undefined,
+            gallery: is("galleria") ? list(rows(".shots").map((r) => ({ image: getImg($(".img", r)), caption: v("caption", r) })).filter((g) => g.image)) : undefined,
+            characters: is("personaggi") ? list(rows(".chars").map((r) => ({ name: v("name", r), role: v("role", r), hint: v("hint", r), portrait: getImg($(".img", r)) }))) : undefined,
+            faq: is("faq") ? list(rows(".faqs").map((r) => ({ q: v("q", r), a: v("a", r) }))) : undefined,
+            label: is("bottone") ? v("label") : undefined,
+            href: is("bottone") ? v("href") : undefined,
+            video: is("video") ? v("video") : undefined,
+            show: is("eventi") ? v("show") : undefined,
+            limit: is("eventi") && limit ? Number(limit) : undefined,
+            key: is("sezione") ? v("key") : undefined,
+            style: is("sezione") ? undefined : readBg($(".bg", el)),
+        };
+    }
+    const readBlocks = (wrap: Element) => $$<HTMLElement>(":scope > .blocks > .block-ed", wrap).map(readBlock);
+
+    // clic comuni a editor evento e pagine: blocchi, righe, markdown, inquadratura, stile. true = gestito
+    function editClick(b: HTMLElement): boolean {
+        const blk = b.closest<HTMLElement>(".block-ed");
+        const item = b.closest<HTMLElement>(".row, .block-ed, .tab-ed");
+        if (b.dataset.add === "block") {
+            const wrap = b.closest(".blocks-wrap")!;
+            const el = addBlock($(":scope > .blocks", wrap), { type: b.dataset.type, ...(b.dataset.type === "eventi" ? { title: "Prossimi appuntamenti" } : {}) }, true);
+            (el.querySelector<HTMLInputElement>("[name=bTitle], [name=key]"))?.focus();
+            el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        } else if (b.dataset.add === "char") $("[name=name]", addRow("char", $(".chars", blk!))).focus();
+        else if (b.dataset.add === "faq") $("[name=q]", addRow("faq", $(".faqs", blk!))).focus();
+        else if ("hide" in b.dataset && blk) blk.classList.toggle("off");
+        else if ("dup" in b.dataset && blk) {
+            const copy = addBlock(blk.parentElement!, readBlock(blk), true);
+            blk.after(copy);
+        } else if ("crop" in b.dataset) return openCrop(b.closest<HTMLElement>(".img")!), true;
+        else if ("clear" in b.dataset) setImg(b.closest<HTMLElement>(".img")!);
+        else if (b.dataset.md) return mdTool(b.dataset.md, b.closest(".md")!), true;
+        else if (b.closest(".bg") && ("font" in b.dataset || "styleSave" in b.dataset || "styleDel" in b.dataset)) return bgClick(b), true;
+        else if (item && "rm" in b.dataset) {
+            if (item.matches(".tab-ed") && !confirm(`Rimuovere la scheda "${$("[name=tabTitle]", item).value}"?`)) return true;
+            if (item.matches(".block-ed") && !confirm(`Rimuovere il blocco "${$(".block-name", item).textContent}"?`)) return true;
+            const tab = item.parentElement?.closest(".tab-ed");
+            item.remove();
+            if (tab) markTab(tab);
+        } else if (item && "up" in b.dataset) item.previousElementSibling?.before(item);
+        else if (item && "down" in b.dataset) item.nextElementSibling?.after(item);
+        else return false;
+        if (blk?.isConnected) markBlock(blk);
+        return true;
+    }
+    // galleria: più foto insieme, una riga per foto
+    async function editChange(t: HTMLInputElement) {
+        if (!("multi" in t.dataset)) return;
+        const blk = t.closest<HTMLElement>(".block-ed")!;
+        const files = [...(t.files ?? [])];
+        t.value = "";
+        for (const f of files) {
+            const url = await upload(f, blk);
+            if (url) addRow("shot", $(".shots", blk), { image: { src: url } });
+        }
+        markBlock(blk);
+    }
+    function editInput(t: HTMLInputElement) {
+        bgInput(t);
+        if (t.name === "bBody") renderPreview(t.closest(".md")!);
+        if (t.name === "tabTitle") markTab(t.closest(".tab-ed")!);
+        const blk = t.closest<HTMLElement>(".block-ed");
+        if (blk && ["bTitle", "bBody", "key"].includes(t.name)) markBlock(blk);
     }
 
     // ── clic: aggiungi/sposta/rimuovi righe e schede, markdown, inquadratura, font
     form.addEventListener("click", (e) => {
         const b = (e.target as Element).closest("button");
         if (!b) return;
-        if (b.closest("summary")) e.preventDefault(); // i bottoni nel titolo della scheda non la chiudono
-        const row = b.closest(".row, .tab-ed");
-        const tab = b.closest(".tab-ed");
+        if (b.closest("summary")) e.preventDefault(); // i bottoni nel titolo di scheda/blocco non lo chiudono
         if (b.dataset.add === "date") {
             // la nuova data copia luogo e quota dall'ultima
             const last = $$("#dates > .row", form).pop();
             const r = addRow("date", $("#dates", form), last ? { location: $("[name=location]", last).value, price: $("[name=price]", last).value } : {});
             $("[name=dateISO]", r).focus();
-        } else if (b.dataset.add === "char") $("[name=name]", addRow("char", $(".chars", tab!))).focus();
-        else if (b.dataset.add === "tab") {
-            const el = addTab(PRESETS[b.dataset.preset!], true);
+        } else if (b.dataset.add === "tab") {
+            const el = addTab(structuredClone(PRESETS[b.dataset.preset!]), true);
             $("[name=tabTitle]", el).select();
             el.scrollIntoView({ block: "nearest" });
-        } else if ("crop" in b.dataset) return openCrop(b.closest<HTMLElement>(".img")!);
-        else if ("clear" in b.dataset) setImg(b.closest<HTMLElement>(".img")!);
-        else if (b.dataset.font) return openFonts($(`[name=${b.dataset.font}]`, form));
-        else if (b.closest(".bg") && "font" in b.dataset) return void bgClick(b);
-        else if (b.closest(".bg") && ("styleSave" in b.dataset || "styleDel" in b.dataset)) return void bgClick(b);
-        else if (b.dataset.md) return mdTool(b.dataset.md, b.closest(".md")!);
-        else if (row && "rm" in b.dataset) {
-            if (row.matches(".tab-ed") && !confirm(`Rimuovere la scheda "${$("[name=tabTitle]", row).value}"?`)) return;
-            row.remove();
-        } else if (row && "up" in b.dataset) row.previousElementSibling?.before(row);
-        else if (row && "down" in b.dataset) row.nextElementSibling?.after(row);
-        else return;
-        if (tab?.isConnected) markTab(tab);
+        } else if (b.dataset.font) return openFonts($(`[name=${b.dataset.font}]`, form));
+        else if (!editClick(b)) return;
         setDirty(true);
     });
 
-    // galleria: più foto insieme, una riga per foto
-    form.addEventListener("change", async (e) => {
+    form.addEventListener("change", (e) => {
         const t = e.target as HTMLInputElement;
         if (t.name === "titleFont" || t.name === "characterFont") return fontSample(t.name);
-        if (!("multi" in t.dataset)) return;
-        const tab = t.closest(".tab-ed")!;
-        const files = [...(t.files ?? [])];
-        t.value = "";
-        for (const f of files) {
-            const url = await upload(f, tab as HTMLElement);
-            if (url) addRow("shot", $(".shots", tab), { image: { src: url } });
-        }
-        markTab(tab);
+        editChange(t);
     });
 
     form.addEventListener("input", (e) => {
@@ -419,9 +515,7 @@ if (form) {
         }
         if (t === slugEl) delete slugEl.dataset.auto;
         if (t.name === "excerpt") countExcerpt();
-        if (t.name === "tabBody") renderPreview(t.closest(".md")!);
-        if (t.name === "tabTitle" || t.name === "template") markTab(t.closest(".tab-ed")!);
-        bgInput(t);
+        editInput(t);
     });
 
     function countExcerpt() {
@@ -526,7 +620,7 @@ if (form) {
         d.dates?.forEach((x: Data) => addRow("date", $("#dates", form!), x));
         (d.tabs as Data[] | undefined)?.forEach((t) => addTab(t));
         for (const box of $$<HTMLElement>("fieldset > .img", form!)) initImg(box, d[box.dataset.name!]);
-        for (const box of $$<HTMLElement>("fieldset > .bg", form!)) initBg(box, d[box.dataset.name!]);
+        for (const box of $$<HTMLElement>("fieldset > .bg-wrap > .bg", form!)) initBg(box, d[box.dataset.name!]);
         $("#ed-title").textContent = d.title || "Nuovo evento";
         countExcerpt();
         fontSample("titleFont");
@@ -559,21 +653,14 @@ if (form) {
                 location: val("location"), price: val("price"),
                 includes: list($<HTMLTextAreaElement>("[name=includes]", form!).value.split("\n").map((s) => s.trim()).filter(Boolean)),
                 cover: img("cover"),
-                background: readBg($("fieldset > .bg[data-name=background]", form!)),
-                heroStyle: readBg($("fieldset > .bg[data-name=heroStyle]", form!)),
+                background: readBg($(".bg[data-name=background]", form!)),
+                heroStyle: readBg($(".bg[data-name=heroStyle]", form!)),
                 titleFont: val("titleFont"), characterFont: val("characterFont"),
-                // i contenuti degli altri modelli non vengono salvati: la scheda tiene solo quelli del suo modello
-                tabs: $$("#tabs > .tab-ed", form!).map((t) => {
-                    const template = val("template", t)!;
-                    return {
-                        title: val("tabTitle", t), template,
-                        body: $<HTMLTextAreaElement>("[name=tabBody]", t).value.trim() || undefined,
-                        image: template === "testo" ? img("tabImage", t) : undefined,
-                        gallery: template === "galleria" ? list(rows(".shots", t).map((r) => ({ image: img("shot", r), caption: val("caption", r) })).filter((g) => g.image)) : undefined,
-                        characters: template === "personaggi" ? list(rows(".chars", t).map((r) => ({ name: val("name", r), role: val("role", r), hint: val("hint", r), portrait: img("portrait", r) }))) : undefined,
-                        background: readBg($(".bg", t)),
-                    };
-                }),
+                tabs: $$<HTMLElement>("#tabs > .tab-ed", form!).map((t) => ({
+                    title: val("tabTitle", t),
+                    blocks: readBlocks($(".blocks-wrap", t)),
+                    background: readBg($(":scope > .grid > .bg-wrap > .bg", t)),
+                })),
                 historicalYear: year === undefined ? undefined : Number(year),
                 era: val("era"), yearLabel: val("yearLabel"), place: val("place"),
                 timelineImage: img("timelineImage"),
@@ -587,12 +674,15 @@ if (form) {
         form!.hidden = v !== "editor";
         settingsForm.hidden = v !== "settings";
         pagesView.hidden = v !== "pages";
+        pageForm.hidden = v !== "page";
         $<HTMLElement>("#empty").hidden = v !== "empty";
         $$<HTMLElement>(".view-link").forEach((a) => a.classList.toggle("on", a.dataset.view === v));
-        msg = $<HTMLElement>(".msg", { editor: form!, settings: settingsForm, pages: pagesView, empty: form! }[v]);
+        msg = $<HTMLElement>(".msg", { editor: form!, settings: settingsForm, pages: pagesView, page: pageForm, empty: form! }[v]);
+        renderPages();
     }
     // indirizzo della vista aperta, per tornarci se si annulla un cambio di vista
-    const here = () => ({ editor: `#${current?.id ?? ""}`, settings: "#impostazioni", pages: "#pagine", empty: location.pathname })[view];
+    const here = () =>
+        ({ editor: `#${current?.id ?? ""}`, settings: "#impostazioni", pages: "#pagine", page: pageKey === "" ? location.pathname : `#pagina-${pageKey}`, empty: location.pathname })[view];
 
     // ── evento aperto: intestazione, pulsanti, cronologia
     const histSel = $<HTMLSelectElement>("#history");
@@ -688,6 +778,7 @@ if (form) {
             if (view === "editor") form.requestSubmit();
             else if (view === "settings") settingsForm.requestSubmit();
             else if (view === "pages") saveSettings(edits);
+            else if (view === "page") pageForm.requestSubmit();
         }
     });
 
@@ -751,11 +842,24 @@ if (form) {
         say("Salvataggio…");
         const next = { ...settings, ...changes };
         const { error } = await actions.saveSettings(next as any);
-        if (error) return say(isInputError(error) ? "Controlla i campi: " + Object.keys(error.fields).join(", ") : error.message, true);
+        if (error) return say(isInputError(error) ? "Controlla i campi: " + Object.keys(error.fields).join(", ") : error.message, true), false;
         settings = next;
         edits = {};
         setDirty(false);
         say(`Salvato alle ${savedAt()} ✓ (il sito si aggiorna entro un minuto)`);
+        return true;
+    }
+    // menu del form impostazioni ridisegnato da settings.nav (le pagine nuove possono cambiarlo)
+    function renderNav() {
+        $("#nav", settingsForm).replaceChildren(
+            ...settings.nav.map((l: Data) => {
+                const r = clone("nav");
+                $("[name=label]", r).value = l.label;
+                $("[name=href]", r).value = l.href;
+                r.append(clone("btns"));
+                return r;
+            }),
+        );
     }
     settingsForm.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -858,8 +962,129 @@ if (form) {
     };
     $<HTMLButtonElement>("#pages-save").onclick = () => saveSettings(edits);
 
+    // ── home e pagine nuove: liste di blocchi salvate nelle impostazioni (home, pagine)
+    let pageKey: string | undefined; // "home", slug della pagina aperta, "" = nuova
+    const pageList = $<HTMLUListElement>("#page-list");
+    function renderPages() {
+        pageList.replaceChildren(
+            ...[{ slug: "home", title: "🏠 Home" }, ...settings.pagine].map((p: Data) => {
+                const li = document.createElement("li");
+                const a = Object.assign(document.createElement("a"), { href: `#pagina-${p.slug}`, textContent: p.title });
+                if (p.hidden) a.append(Object.assign(document.createElement("small"), { textContent: " · nascosta" }));
+                a.classList.toggle("on", view === "page" && pageKey === p.slug);
+                li.append(a);
+                return li;
+            }),
+        );
+    }
+    const inMenu = (slug: string) => settings.nav.some((l: Data) => l.href === `/${slug}`);
+    function openPage(key: string) {
+        if (!discardOk()) return history.replaceState(null, "", here());
+        const p = settings.pagine.find((x: Data) => x.slug === key);
+        if (key !== "home" && key !== "" && !p) return;
+        pageKey = key;
+        edits = {};
+        const home = key === "home";
+        pageForm.reset();
+        $<HTMLElement>("#pg-base").hidden = home;
+        $<HTMLFieldSetElement>("#pg-base fieldset").disabled = home; // campi obbligatori della pagina: non bloccano il salvataggio della home
+        $<HTMLElement>("#pg-del").hidden = home || key === "";
+        $("#pg-title").textContent = home ? "Home" : p?.title ?? "Nuova pagina";
+        $("#pg-meta").textContent = home ? "Le sezioni della home, nell'ordine in cui appaiono" : key ? `/${key}` : "Non ancora salvata";
+        const openA = $<HTMLAnchorElement>("#pg-open");
+        openA.hidden = key === "";
+        openA.href = home ? "/" : `/${key}`;
+        const slug = $("[name=pgSlug]", pageForm);
+        if (p) {
+            $("[name=pgTitle]", pageForm).value = p.title;
+            slug.value = p.slug;
+            $<HTMLTextAreaElement>("[name=pgDesc]", pageForm).value = p.description ?? "";
+            $("[name=pgHidden]", pageForm).checked = !!p.hidden;
+            $("[name=pgMenu]", pageForm).checked = inMenu(p.slug);
+            delete slug.dataset.auto;
+        } else if (!home) {
+            slug.dataset.auto = "1";
+            $("[name=pgHidden]", pageForm).checked = true; // si parte da bozza
+        }
+        initBlocks($(".blocks-wrap", pageForm), home ? settings.home : p?.blocks ?? [{ type: "testo" }]);
+        if (key === "") $<HTMLDetailsElement>("#page-ed .block-ed").open = true;
+        show("page");
+        setDirty(false);
+        say(key === "" ? "Nuova pagina: parte nascosta, togli la spunta quando è pronta." : "");
+        queuePagePrev();
+        if (key === "") $("[name=pgTitle]", pageForm).focus();
+    }
+    pageForm.addEventListener("click", (e) => {
+        const b = (e.target as Element).closest("button");
+        if (!b) return;
+        if (b.closest("summary")) e.preventDefault();
+        if (editClick(b)) setDirty(true);
+    });
+    pageForm.addEventListener("change", (e) => editChange(e.target as HTMLInputElement));
+    pageForm.addEventListener("input", (e) => {
+        const t = e.target as HTMLInputElement;
+        if (t.type === "file") return;
+        setDirty(true);
+        editInput(t);
+        const slug = $("[name=pgSlug]", pageForm);
+        if (t.name === "pgTitle") {
+            $("#pg-title").textContent = t.value || "Nuova pagina";
+            if (slug.dataset.auto) slug.value = slugify(t.value);
+        }
+        if (t === slug) delete slug.dataset.auto;
+    });
+    pageForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const blocks = readBlocks($(".blocks-wrap", pageForm));
+        if (pageKey === "home") return void saveSettings({ home: blocks });
+        const v = (n: string) => $(`[name=${n}]`, pageForm).value.trim() || undefined;
+        const p = { slug: v("pgSlug")!, title: v("pgTitle")!, description: v("pgDesc"), hidden: $("[name=pgHidden]", pageForm).checked || undefined, blocks };
+        if (settings.pagine.some((x: Data) => x.slug === p.slug && x.slug !== pageKey)) return say(`C'è già una pagina /${p.slug}: scegli un altro indirizzo.`, true);
+        // stessa posizione nell'elenco; il menu segue indirizzo e spunta "Nel menu"
+        const pagine = [...settings.pagine];
+        const i = pagine.findIndex((x: Data) => x.slug === pageKey);
+        i >= 0 ? (pagine[i] = p) : pagine.push(p);
+        let nav = settings.nav.map((l: Data) => (pageKey && l.href === `/${pageKey}` ? { ...l, href: `/${p.slug}` } : l));
+        const want = $("[name=pgMenu]", pageForm).checked;
+        const has = nav.some((l: Data) => l.href === `/${p.slug}`);
+        if (want && !has) nav.splice(Math.max(0, nav.length - 1), 0, { label: p.title, href: `/${p.slug}` }); // prima del bottone finale
+        if (!want) nav = nav.filter((l: Data) => l.href !== `/${p.slug}`);
+        if (!(await saveSettings({ pagine, nav }))) return;
+        renderNav();
+        pageKey = p.slug;
+        history.replaceState(null, "", `#pagina-${p.slug}`);
+        $("#pg-meta").textContent = `/${p.slug}`;
+        const openA = $<HTMLAnchorElement>("#pg-open");
+        openA.hidden = false;
+        openA.href = `/${p.slug}`;
+        $<HTMLElement>("#pg-del").hidden = false;
+        renderPages();
+    });
+    $<HTMLButtonElement>("#pg-del").onclick = async () => {
+        const p = settings.pagine.find((x: Data) => x.slug === pageKey);
+        if (!p || !confirm(`Eliminare la pagina "${p.title}"? Non si può annullare.`)) return;
+        const ok = await saveSettings({
+            pagine: settings.pagine.filter((x: Data) => x !== p),
+            nav: settings.nav.filter((l: Data) => l.href !== `/${p.slug}`),
+        });
+        if (!ok) return;
+        renderNav();
+        show("empty");
+        $("#empty").textContent = `Pagina "${p.title}" eliminata.`;
+        history.replaceState(null, "", location.pathname);
+    };
+    $<HTMLButtonElement>("#new-page").onclick = () => {
+        history.replaceState(null, "", location.pathname);
+        openPage("");
+    };
+
     const fromHash = () => {
         const id = decodeURIComponent(location.hash.slice(1));
+        if (id.startsWith("pagina-")) {
+            const key = id.slice(7);
+            if (view !== "page" || pageKey !== key) openPage(key);
+            return;
+        }
         const v = ({ impostazioni: "settings", pagine: "pages" } as const)[id];
         if (v) {
             if (view === v) return;
