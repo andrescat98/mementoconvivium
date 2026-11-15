@@ -70,7 +70,7 @@ Nell'evento, **Foto delle serate passate** → **+ Aggiungi serata**: parte dall
 
 ## Foto e inquadratura
 
-Trascina una foto su un riquadro, oppure clicca "sceglila". Viene ridotta e caricata in automatico; poi **salva**.
+Trascina una foto su un riquadro, oppure clicca "sceglila". Viene ridotta e compressa in webp in automatico, anche da iPhone (il messaggio dice quanto pesava e quanto pesa ora: una foto da 5 MB diventa di solito 150–300 KB); poi **salva**. Non serve comprimerla prima.
 
 **Inquadra** apre la foto intera: clicca (o trascina) sul punto che deve restare sempre visibile, ad esempio il viso, e regola lo **zoom**. A destra vedi come apparirà nella sua forma: tondo per i ritratti, verticale per la foto accanto al testo. Per **copertina** e **immagine della timeline** sotto la foto compare l'anteprima vera: intestazione della pagina e card della timeline (computer e telefono), che si aggiornano mentre sposti il punto. Su schermi diversi il taglio cambia, ma quel punto resta sempre visibile. **Centra** annulla l'inquadratura.
 

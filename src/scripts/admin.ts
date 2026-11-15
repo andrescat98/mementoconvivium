@@ -144,27 +144,40 @@ if (form) {
 
     // ── immagini: ridimensionate e convertite in webp nel browser, poi caricate su Turso
     const MAX_SIDE = 1600;
-    async function shrink(file: File): Promise<Blob> {
+    // Compressione nel browser, come Squoosh: lato lungo ridotto e webp qualità 80
+    async function shrink(file: File, max: number): Promise<Blob> {
         const bmp = await createImageBitmap(file);
-        const k = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+        const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
         const c = new OffscreenCanvas(Math.round(bmp.width * k), Math.round(bmp.height * k));
-        c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
-        const webp = await c.convertToBlob({ type: "image/webp", quality: 0.8 });
-        // Safari non codifica webp: ripiega su jpeg
-        return webp.type === "image/webp" ? webp : c.convertToBlob({ type: "image/jpeg", quality: 0.82 });
+        const ctx = c.getContext("2d")!;
+        ctx.drawImage(bmp, 0, 0, c.width, c.height);
+        let out = await c.convertToBlob({ type: "image/webp", quality: 0.8 });
+        if (out.type !== "image/webp") {
+            // Safari non codifica webp: codificatore di Squoosh (wasm), scaricato solo in questo caso
+            try {
+                const { default: encode } = await import("@jsquash/webp/encode.js");
+                out = new Blob([await encode(ctx.getImageData(0, 0, c.width, c.height), { quality: 80 })], { type: "image/webp" });
+            } catch {
+                out = await c.convertToBlob({ type: "image/jpeg", quality: 0.82 });
+            }
+        }
+        // già piccola e in webp: meglio l'originale che ricomprimerla
+        return k === 1 && file.type === "image/webp" && file.size <= out.size ? file : out;
     }
+    const kb = (n: number) => (n > 1e6 ? `${(n / 1e6).toFixed(1).replace(".", ",")} MB` : `${Math.round(n / 1e3)} KB`);
     async function upload(file: File | undefined, box: HTMLElement): Promise<string | undefined> {
         if (!file?.type.startsWith("image/")) return void say("Serve un file immagine (jpg, png, webp…).", true);
         box.classList.add("busy");
         say("Caricamento immagine…");
         try {
-            const blob = await shrink(file);
+            // ritratti e foto accanto al testo non servono più grandi di così; copertine, sfondi e gallerie sì
+            const blob = await shrink(file, box.dataset.shape === "circle" || box.dataset.shape === "tall" ? 1200 : MAX_SIDE);
             const fd = new FormData();
             fd.append("file", new File([blob], "img", { type: blob.type }));
             const { data, error } = await actions.uploadImage(fd);
             if (error) return void say(error.message, true);
             setDirty(true);
-            say("Immagine caricata: ricorda di salvare.");
+            say(`Immagine caricata e compressa: ${kb(file.size)} → ${kb(blob.size)}. Ricorda di salvare.`);
             return data.url;
         } catch {
             say("Non riesco a leggere questa immagine: prova con un jpg o png.", true);

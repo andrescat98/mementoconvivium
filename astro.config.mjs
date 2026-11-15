@@ -11,6 +11,8 @@ export default defineConfig({
   output: 'server',
   adapter: cloudflare({ imageService: 'passthrough' }),
   session: false,
+  // codificatore webp di Squoosh (wasm, solo /admin su Safari): Vite non deve pre-impacchettarlo
+  vite: { optimizeDeps: { exclude: ['@jsquash/webp'] } },
   cache: { provider: memoryCache() },
   routeRules: {
     '/': eventi,
