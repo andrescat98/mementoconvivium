@@ -369,7 +369,7 @@ if (form) {
     }
 
     // ── righe ripetibili (date, personaggi, foto della galleria)
-    function addRow(kind: "date" | "char" | "shot" | "faq", into: Element, v: Data = {}) {
+    function addRow(kind: "date" | "char" | "shot" | "faq" | "serata", into: Element, v: Data = {}) {
         const row = clone(kind);
         row.querySelectorAll<HTMLInputElement>("label > [name]").forEach((el) => (el.value = v[el.name] ?? ""));
         row.querySelectorAll<HTMLElement>(".img").forEach((b) => initImg(b, kind === "shot" ? v.image : v[b.dataset.name!]));
@@ -382,6 +382,13 @@ if (form) {
         const iso = $("[name=dateISO]", row).value;
         row.classList.toggle("past", !!iso && iso < oggi);
         $("[data-dl]", row).textContent = iso ? dateLabel(iso) + (iso < oggi ? " · passata" : "") : "";
+    }
+
+    // ── foto delle serate passate: data, luogo, foto
+    function addSerata(x: Data = {}) {
+        const r = addRow("serata", $("#serate", form!), { sDate: x.dateISO, sPlace: x.place });
+        x.photos?.forEach((g: Data) => addRow("shot", $(".shots", r), g));
+        return r;
     }
 
     // ── schede: titolo, blocchi, stile
@@ -508,14 +515,14 @@ if (form) {
     // galleria: più foto insieme, una riga per foto
     async function editChange(t: HTMLInputElement) {
         if (!("multi" in t.dataset)) return;
-        const blk = t.closest<HTMLElement>(".block-ed")!;
+        const blk = t.closest<HTMLElement>(".block-ed, .serata")!;
         const files = [...(t.files ?? [])];
         t.value = "";
         for (const f of files) {
             const url = await upload(f, blk);
             if (url) addRow("shot", $(".shots", blk), { image: { src: url } });
         }
-        markBlock(blk);
+        if (blk.matches(".block-ed")) markBlock(blk);
     }
     function editInput(t: HTMLInputElement) {
         bgInput(t);
@@ -539,6 +546,10 @@ if (form) {
             const el = addTab(structuredClone(PRESETS[b.dataset.preset!]), true);
             $("[name=tabTitle]", el).select();
             el.scrollIntoView({ block: "nearest" });
+        } else if (b.dataset.add === "serata") {
+            // parte dall'ultima data già passata, col suo luogo
+            const past = $$("#dates > .row", form).map((r) => ({ d: $("[name=dateISO]", r).value, l: $("[name=location]", r).value })).filter((x) => x.d && x.d < oggi).pop();
+            $("[name=sDate]", addSerata({ dateISO: past?.d, place: past?.l || undefined })).focus();
         } else if (b.dataset.font) return openFonts($(`[name=${b.dataset.font}]`, form));
         else if (!editClick(b)) return;
         setDirty(true);
@@ -658,7 +669,7 @@ if (form) {
     // ── form ⇄ dati
     function fill(d: Data, slug: string) {
         form!.reset();
-        form!.querySelectorAll("#dates, #tabs, fieldset > .img").forEach((r) => r.replaceChildren());
+        form!.querySelectorAll("#dates, #tabs, #serate, fieldset > .img").forEach((r) => r.replaceChildren());
         for (const el of $$("fieldset > label > [name], .font-field > label > [name]", form!)) {
             el.value = el.name === "includes" ? (d.includes ?? []).join("\n") : String(d[el.name] ?? "");
         }
@@ -666,6 +677,7 @@ if (form) {
         $("[name=status]", form!).value = d.status ?? "bozza";
         d.dates?.forEach((x: Data) => addRow("date", $("#dates", form!), x));
         (d.tabs as Data[] | undefined)?.forEach((t) => addTab(t));
+        d.serate?.forEach((x: Data) => addSerata(x));
         for (const box of $$<HTMLElement>("fieldset > .img", form!)) initImg(box, d[box.dataset.name!]);
         for (const box of $$<HTMLElement>("fieldset > .bg-wrap > .bg", form!)) initBg(box, d[box.dataset.name!]);
         $("#ed-title").textContent = d.title || "Nuovo evento";
@@ -708,6 +720,14 @@ if (form) {
                     blocks: readBlocks($(".blocks-wrap", t)),
                     background: readBg($(":scope > .grid > .bg-wrap > .bg", t)),
                 })),
+                serate: list(
+                    rows("#serate")
+                        .map((r) => ({
+                            dateISO: val("sDate", r), place: val("sPlace", r),
+                            photos: rows(".shots", r).map((x) => ({ image: img("shot", x), caption: val("caption", x) })).filter((g) => g.image),
+                        }))
+                        .filter((x) => x.photos.length),
+                ),
                 historicalYear: year === undefined ? undefined : Number(year),
                 era: val("era"), yearLabel: val("yearLabel"), place: val("place"),
                 timelineImage: img("timelineImage"),
@@ -879,7 +899,9 @@ if (form) {
     settingsForm.addEventListener("click", (e) => {
         const b = (e.target as Element).closest("button");
         const row = b?.closest(".row");
-        if (b?.dataset.add === "nav") {
+        if (b && "crop" in b.dataset) return openCrop(b.closest<HTMLElement>(".img")!);
+        if (b && "clear" in b.dataset) setImg(b.closest<HTMLElement>(".img")!);
+        else if (b?.dataset.add === "nav") {
             const r = clone("nav");
             r.append(clone("btns"));
             $("#nav", settingsForm).append(r);
@@ -917,7 +939,7 @@ if (form) {
             }),
         );
     }
-    const SETTINGS_KEYS = ["email", "phone", "whatsapp", "instagram", "bookingUrl", "heroAction", "heroUrl", "nav"];
+    const SETTINGS_KEYS = ["email", "phone", "whatsapp", "instagram", "bookingUrl", "heroAction", "heroUrl", "nav", "banner", "seo", "analyticsToken"];
     function collectSettings() {
         const v = (n: string, root: ParentNode = settingsForm) => $(`[name=${n}]`, root).value.trim() || undefined;
         return {
@@ -925,10 +947,27 @@ if (form) {
             instagram: v("instagram") ?? "", bookingUrl: v("bookingUrl") ?? "",
             heroAction: heroAction.value, heroUrl: v("heroUrl") ?? "",
             nav: $$(".row", $("#nav", settingsForm)).map((r) => ({ label: v("label", r), href: v("href", r) })),
+            banner: { text: v("bannerText"), href: v("bannerHref") },
+            seo: Object.fromEntries(
+                $$<HTMLElement>(".seo-row", settingsForm)
+                    .map((r) => [r.dataset.path!, { title: v("seoTitle", r), description: v("seoDesc", r), image: getImg($(".img", r)) }] as const)
+                    .filter(([, x]) => x.title || x.description || x.image),
+            ),
+            analyticsToken: v("analyticsToken") ?? "",
         };
     }
     function fillSettings(d: Data) {
-        for (const k of SETTINGS_KEYS) if (k !== "nav") $(`[name=${k}]`, settingsForm).value = d[k] ?? "";
+        for (const k of ["email", "phone", "whatsapp", "instagram", "bookingUrl", "heroAction", "heroUrl", "analyticsToken"]) $(`[name=${k}]`, settingsForm).value = d[k] ?? "";
+        $("[name=bannerText]", settingsForm).value = d.banner?.text ?? "";
+        $("[name=bannerHref]", settingsForm).value = d.banner?.href ?? "";
+        for (const r of $$<HTMLElement>(".seo-row", settingsForm)) {
+            const x = d.seo?.[r.dataset.path!] ?? {};
+            $("[name=seoTitle]", r).value = x.title ?? "";
+            $<HTMLTextAreaElement>("[name=seoDesc]", r).value = x.description ?? "";
+            const box = $<HTMLElement>(".img", r);
+            box.replaceChildren();
+            initImg(box, x.image);
+        }
         renderNav(d.nav);
         syncHero();
     }

@@ -12,7 +12,7 @@ const p = s.pagine.find((x) => x.slug === Astro.params.slug);
 if (!p || p.hidden) Astro.cache.set(false);
 if (!p || (p.hidden && !(await isAdmin(Astro.cookies)))) return new Response(null, { status: 404 });
 const blocks = p.blocks.filter((b) => !b.hidden);
-const eventi = blocks.some((b) => b.type === "eventi" || b.type === "sezione") ? await getEvents() : [];
+const eventi = blocks.some((b) => b.type === "eventi" || b.type === "ricordi" || b.type === "sezione") ? await getEvents() : [];
 ---
 
 <Layout title={`${p.title} · Memento Convivium`} description={p.description}>

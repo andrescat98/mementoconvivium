@@ -111,6 +111,11 @@ fieldset > button { justify-self: start; }
 .row.char { grid-template-columns: 8rem repeat(2, minmax(9rem, 1fr)) auto; }
 .row.shot { grid-template-columns: 10rem 1fr auto; }
 .row.nav { grid-template-columns: 1fr 1fr auto; }
+.row.seo-row { grid-template-columns: 12rem 1fr; }
+.row.seo-row .img { grid-row: span 2; }
+.row.serata { grid-template-columns: 1fr 1fr auto; }
+.row.serata > .wide { display: grid; gap: 0.6rem; justify-items: start; }
+.row.serata .rows { width: 100%; }
 .row.char .img { grid-row: span 2; }
 .row.char .wide { grid-column: 2 / -1; }
 .row-btns { display: flex; gap: 0.3rem; grid-row: 1; grid-column: -2; }

@@ -70,7 +70,7 @@ const ids = tabs.map((t, i) => {
                         <div class="container ev-panel-inner">
                             <h2 class="ev-panel-title">{t.title}</h2>
                             <div class="divider"><span>⬥</span></div>
-                            {t.blocks.filter((b) => !b.hidden).map((b) => <Blocco b={b} eventi={eventi} inline />)}
+                            {t.blocks.filter((b) => !b.hidden).map((b) => <Blocco b={b} eventi={eventi} evento={evento} inline />)}
                         </div>
                     </section>
                 ))}

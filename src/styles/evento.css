@@ -645,6 +645,56 @@
         border: 0;
     }
 
+    .ricordi {
+        display: grid;
+        gap: 3rem;
+    }
+
+    .ricordi-filtro {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .ricordi-filtro button {
+        font: inherit;
+        font-size: 0.95rem;
+        padding: 0.4rem 1rem;
+        border: 1px solid var(--border-strong);
+        background: none;
+        color: var(--cream);
+        cursor: pointer;
+    }
+
+    .ricordi-filtro button[aria-pressed="true"] {
+        background: var(--gold);
+        color: var(--bg);
+        border-color: var(--gold);
+    }
+
+    .ricordo[hidden] {
+        display: none;
+    }
+
+    .ricordo-head {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.25rem 1rem;
+        margin-bottom: 1.25rem;
+        font-family: var(--font-title);
+        font-size: 0.8rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--cream-dim);
+    }
+
+    .ricordo-head a {
+        color: var(--white);
+        text-decoration: none;
+    }
+
     .blocco-vuoto {
         text-align: center;
         color: var(--cream-dim);

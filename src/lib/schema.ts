@@ -43,7 +43,7 @@ const character = z.object({
 
 // ── Blocchi: home, pagine nuove e schede evento sono liste di blocchi (render in components/Blocco.astro).
 // "sezione" = una sezione fissa del sito (stile da /admin → Testi e stili delle pagine).
-export const BLOCKS = ["testo", "galleria", "personaggi", "faq", "bottone", "video", "eventi", "sezione"] as const;
+export const BLOCKS = ["testo", "galleria", "personaggi", "faq", "bottone", "video", "eventi", "ricordi", "sezione"] as const;
 export const SEZIONI = ["home-hero", "come-funziona", "timeline", "prenota"] as const;
 export const EVENTI_SHOW = ["prossimi", "tutti", "passati"] as const;
 export const blockSchema = z.object({
@@ -100,6 +100,10 @@ export const eventoSchema = z.object({
   yearLabel: opt,
   place: opt,
   timelineImage: img,
+  // foto delle serate già fatte (blocco "ricordi": nella scheda dell'evento e nella pagina galleria del sito)
+  serate: z
+    .array(z.object({ dateISO: z.iso.date().optional(), place: opt, photos: z.array(z.object({ image: imgReq, caption: opt })).min(1) }))
+    .optional(),
 });
 
 export const slugSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "solo minuscole, numeri e trattini");
@@ -171,6 +175,11 @@ export const settingsSchema = z.object({
   // stile delle sezioni del sito, per chiave data-sez (home-hero, prenota…): /admin → Pagine → 🎨
   sezioni: z.record(z.string().regex(/^[a-z-]+$/), bgObj).default({}),
   stili: z.array(z.object({ name: z.string().trim().min(1).max(40), style: bgObj })).default([]), // stili salvati con nome
+  // striscia avvisi su tutte le pagine (vuota = niente)
+  banner: z.object({ text: opt, href: opt }).default({}),
+  // Google e anteprime social delle pagine fisse, per percorso ("/", "/lista-eventi"…)
+  seo: z.record(z.string().regex(/^\/[a-z-]*$/), z.object({ title: opt, description: opt, image: img })).default({}),
+  analyticsToken: z.union([z.string().regex(/^[0-9a-f]{32}$/, "token di 32 caratteri"), z.literal("").transform(() => undefined)]).optional(), // Cloudflare Web Analytics
   home: z.array(blockSchema).default(DEFAULT_HOME),
   pagine: z.array(pageSchema).default([]),
 
@@ -191,6 +200,8 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   sezioni: {},
   stili: [],
+  banner: {},
+  seo: {},
   home: DEFAULT_HOME,
   pagine: [],
   tagline: "\"Omnes vulnerant, ultima necat\" — ogni ora ferisce, l'ultima uccide.",

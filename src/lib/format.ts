@@ -27,6 +27,7 @@ export const BLOCK_TEXT: Record<string, [string, string, string]> = {
   bottone: ["➜", "Bottone", "invito con testo e link"],
   video: ["▶", "Video", "YouTube o Vimeo"],
   eventi: ["✦", "Elenco eventi", "card degli eventi prossimi, passati o tutti"],
+  ricordi: ["❖", "Foto delle serate", "le foto delle serate passate: dell'evento, o di tutti con il filtro"],
   sezione: ["◆", "Sezione del sito", "intestazione, come funziona, timeline, prenota"],
 };
 export const SEZIONI_TEXT: Record<string, string> = {

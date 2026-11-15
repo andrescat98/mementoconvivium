@@ -13,15 +13,17 @@ interface Props {
     image?: string; // anteprima social (copertina evento); default /og-image.jpg
 }
 
+const s = await getSettings();
+// pagine fisse: titolo, descrizione e immagine social da /admin → Impostazioni sito → Google e social
+const seo = s.seo[Astro.url.pathname.replace(/\/$/, "") || "/"];
 const {
     title = "Memento Convivium",
     description = "Cene con delitto a tema storico. Un banchetto. Un mistero. Una notte che non dimenticherai.",
     fontHref,
     image,
-} = Astro.props;
+} = { ...Astro.props, ...(seo?.title && { title: seo.title }), ...(seo?.description && { description: seo.description }), ...(seo?.image && { image: seo.image.src }) };
 
 // font scelti nello stile delle sezioni del sito e dei blocchi di home e pagine nuove
-const s = await getSettings();
 const blocks = [...s.home, ...s.pagine.flatMap((p) => p.blocks)];
 const sezFonts = googleFontsHref(...Object.values(s.sezioni).map((b) => b.font), ...blocks.map((b) => b.style?.font));
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -65,9 +67,18 @@ const ogImage = new URL(image ?? "/og-image.jpg", Astro.site);
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         <meta name="twitter:image" content={ogImage} />
+        {s.analyticsToken && (
+            <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token: s.analyticsToken })}></script>
+        )}
     </head>
     <body>
         <Header />
+        {s.banner.text && (
+            <aside class="avviso" data-avviso={s.banner.text}>
+                {s.banner.href ? <a href={s.banner.href}>{s.banner.text} →</a> : <span>{s.banner.text}</span>}
+                <button type="button" aria-label="Chiudi avviso">✕</button>
+            </aside>
+        )}
         <main>
             <slot />
         </main>
@@ -83,4 +94,15 @@ const ogImage = new URL(image ?? "/og-image.jpg", Astro.site);
         { rootMargin: "0px 0px -10% 0px" },
     );
     document.querySelectorAll("[data-anim]").forEach((el) => io.observe(el));
+
+    // Avviso: chiuso resta chiuso finché non cambia il testo
+    const avviso = document.querySelector<HTMLElement>("[data-avviso]");
+    if (avviso) {
+        const k = "mc_avviso";
+        try { if (localStorage.getItem(k) === avviso.dataset.avviso) avviso.remove(); } catch {}
+        avviso.querySelector("button")?.addEventListener("click", () => {
+            avviso.remove();
+            try { localStorage.setItem(k, avviso.dataset.avviso!); } catch {}
+        });
+    }
 </script>

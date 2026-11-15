@@ -2,13 +2,14 @@
 // Un blocco di home, pagine nuove e schede evento (schema.ts blockSchema).
 // inline = dentro una scheda evento: niente <section>, spazio sopra/sotto solo se ha uno sfondo suo.
 // Gallerie, personaggi e immagini aprono il FotoDialog della pagina.
+// "ricordi" = foto delle serate passate: con `evento` solo le sue, altrimenti di tutti gli eventi con un filtro.
 import ComeFunziona from "./ComeFunziona.astro";
 import EventCard from "./EventCard.astro";
 import HomeHero from "./HomeHero.astro";
 import Prenota from "./Prenota.astro";
 import Sfondo from "./Sfondo.astro";
 import TimelineSection from "./TimelineSection.astro";
-import { imgStyle, look, md, nextDate, videoEmbed } from "../lib/format";
+import { dateLabel, imgStyle, look, md, nextDate, videoEmbed } from "../lib/format";
 import type { Block, Evento } from "../lib/schema";
 import "../styles/index.css";
 import "../styles/timeline.css";
@@ -17,9 +18,10 @@ import "../styles/evento.css";
 interface Props {
     b: Block;
     eventi?: Evento[];
+    evento?: Evento; // la pagina evento che contiene il blocco
     inline?: boolean;
 }
-const { b, eventi = [], inline } = Astro.props;
+const { b, eventi = [], evento, inline } = Astro.props;
 const Tag = inline ? "div" : "section";
 const H = inline ? "h3" : "h2";
 
@@ -35,6 +37,13 @@ const lista =
               .slice(0, b.limit ?? 24)
         : [];
 const video = b.type === "video" ? videoEmbed(b.video) : undefined;
+const ricordi =
+    b.type === "ricordi"
+        ? (evento ? [evento] : eventi)
+              .flatMap((e) => (e.data.serate ?? []).map((s) => ({ e, s })))
+              .sort((x, y) => (y.s.dateISO ?? "").localeCompare(x.s.dateISO ?? ""))
+        : [];
+const conFoto = [...new Map(ricordi.map(({ e }) => [e.id, e.data.title])).entries()];
 const intro = b.body && b.type !== "testo" && b.type !== "bottone";
 ---
 
@@ -124,6 +133,38 @@ const intro = b.body && b.type !== "testo" && b.type !== "bottone";
                 </div>
             )}
 
+            {b.type === "ricordi" &&
+                (ricordi.length ? (
+                    <div class="ricordi" data-ricordi>
+                        {!evento && conFoto.length > 1 && (
+                            <div class="ricordi-filtro" role="group" aria-label="Filtra per evento">
+                                <button type="button" data-f="" aria-pressed="true">Tutte</button>
+                                {conFoto.map(([id, t]) => <button type="button" data-f={id} aria-pressed="false">{t}</button>)}
+                            </div>
+                        )}
+                        {ricordi.map(({ e, s }) => (
+                            <div class="ricordo" data-ev={e.id}>
+                                <p class="ricordo-head">
+                                    {!evento && <a href={`/eventi/${e.id}`}>{e.data.title}</a>}
+                                    <span>{[s.dateISO && dateLabel(s.dateISO), s.place].filter(Boolean).join(" · ")}</span>
+                                </p>
+                                <div class="ev-gallery">
+                                    {s.photos.map((g) => (
+                                        <figure>
+                                            <button type="button" class="crop" data-portrait={g.image.src} data-name={g.caption ?? ""}>
+                                                <img src={g.image.src} alt={g.caption ?? e.data.title} loading="lazy" style={imgStyle(g.image)} />
+                                            </button>
+                                            {g.caption && <figcaption>{g.caption}</figcaption>}
+                                        </figure>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p class="ev-panel-text blocco-vuoto">Le foto delle serate arriveranno presto.</p>
+                ))}
+
             {b.type === "eventi" &&
                 (lista.length ? (
                     <div class="events-grid">{lista.map((e) => <EventCard evento={e} />)}</div>
@@ -133,3 +174,15 @@ const intro = b.body && b.type !== "testo" && b.type !== "bottone";
         </div>
     </Tag>
 )}
+
+<script>
+    // Foto delle serate: filtro per evento
+    for (const box of document.querySelectorAll<HTMLElement>("[data-ricordi]")) {
+        box.addEventListener("click", (e) => {
+            const b = (e.target as Element).closest<HTMLButtonElement>("[data-f]");
+            if (!b) return;
+            box.querySelectorAll("[data-f]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+            box.querySelectorAll<HTMLElement>("[data-ev]").forEach((x) => (x.hidden = !!b.dataset.f && x.dataset.ev !== b.dataset.f));
+        });
+    }
+</script>

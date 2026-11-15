@@ -24,6 +24,7 @@ const STATUS_HINT: Record<string, string> = {
 };
 const ANIM_TEXT: Record<string, string> = { sali: "Sale dal basso", dissolvenza: "Dissolvenza", zoom: "Zoom", sinistra: "Da sinistra", destra: "Da destra" };
 const FX_TEXT: Record<string, string> = { ombra: "Ombra", bagliore: "Bagliore dorato", oro: "Oro", inciso: "Inciso", contorno: "Solo contorno" };
+const SEO_PAGES = [["/", "Home"], ["/lista-eventi", "Lista eventi"], ["/contatti", "Contatti"], ["/privacy", "Privacy"]];
 const PAD_TEXT: Record<string, string> = { compatta: "Compatta", ariosa: "Ariosa", schermo: "A tutto schermo" };
 const SIZES = [["0.8", "Piccoli"], ["1.2", "Grandi"], ["1.45", "Enormi"]];
 const SHOW_TEXT: Record<string, string> = { prossimi: "Prossimi", tutti: "Tutti", passati: "Già fatti" };
@@ -120,6 +121,36 @@ const fontsHref =
                     </label>
                     <label data-show="link">Link<input name="heroUrl" type="url" value={s.heroUrl} placeholder="https://…" /></label>
                     <p class="hint">"Prossimo evento" = quello aperto con la data più vicina; se non ce ne sono, apre l'elenco. Il testo del bottone e il motto del footer si cambiano in <a href="#pagine">Testi delle pagine</a>.</p>
+                </fieldset>
+            </details>
+            <details open class="sec">
+                <summary>Avviso su tutte le pagine</summary>
+                <fieldset>
+                    <label class="wide">Testo (vuoto = nessun avviso)<input name="bannerText" maxlength="140" placeholder="Ultimi posti per sabato 14 giugno!" /></label>
+                    <label class="wide">Link (facoltativo)<input name="bannerHref" placeholder="/eventi/pirati oppure https://…" /></label>
+                    <p class="hint">Compare in basso su ogni pagina; chi lo chiude non lo rivede finché non cambi il testo.</p>
+                </fieldset>
+            </details>
+            <details class="sec">
+                <summary>Google e anteprime social</summary>
+                <fieldset>
+                    <p class="hint">Titolo e descrizione che Google e WhatsApp mostrano per le pagine fisse. Vuoto = quelli predefiniti. Eventi e pagine nuove hanno i loro (estratto e copertina, descrizione della pagina).</p>
+                    <div class="rows wide" id="seo">
+                        {SEO_PAGES.map(([path, label]) => (
+                            <div class="row seo-row" data-path={path}>
+                                <div class="img" data-name="seoImage" data-shape="wide" data-label={`${label}: immagine di anteprima`}></div>
+                                <label>Titolo<input name="seoTitle" maxlength="70" placeholder={label} /></label>
+                                <label class="wide">Descrizione<textarea name="seoDesc" rows="2" maxlength="300"></textarea></label>
+                            </div>
+                        ))}
+                    </div>
+                </fieldset>
+            </details>
+            <details class="sec">
+                <summary>Statistiche visite</summary>
+                <fieldset>
+                    <label class="wide">Token di Cloudflare Web Analytics<input name="analyticsToken" pattern="[0-9a-f]{32}" placeholder="32 caratteri, es. 4f1c…" /></label>
+                    <p class="hint">Cloudflare → Analytics &amp; Logs → Web Analytics → Add a site → scegli "manual setup" e copia il valore di <code>token</code>. Le statistiche (visite, pagine, paesi) si vedono lì. Nessun cookie, niente banner.</p>
                 </fieldset>
             </details>
             <details open class="sec">
@@ -275,6 +306,15 @@ const fontsHref =
             </details>
 
             <details class="sec">
+                <summary>Foto delle serate passate</summary>
+                <fieldset>
+                    <div id="serate" class="rows"></div>
+                    <button type="button" data-add="serata">+ Aggiungi serata</button>
+                    <p class="hint">Si vedono con il blocco <b>❖ Foto delle serate</b>: in una scheda di questo evento, oppure in una pagina del sito (es. "Galleria") con le foto di tutti gli eventi e un filtro.</p>
+                </fieldset>
+            </details>
+
+            <details class="sec">
                 <summary>Timeline in home</summary>
                 <fieldset>
                     <label>Anno storico (negativo = a.C.)<input name="historicalYear" type="number" step="1" /></label>
@@ -408,12 +448,12 @@ const fontsHref =
                 </span>
             </summary>
             <div class="grid">
-                <label class="wide" data-for="testo galleria personaggi faq bottone video eventi">Titolo (facoltativo)<input name="bTitle" /></label>
+                <label class="wide" data-for="testo galleria personaggi faq bottone video eventi ricordi">Titolo (facoltativo)<input name="bTitle" /></label>
                 <label class="wide" data-for="sezione">Quale sezione
                     <select name="key">{SEZIONI.map((k) => <option value={k}>{SEZIONI_TEXT[k]}</option>)}</select>
                 </label>
                 <p class="hint wide" data-for="sezione">Testi e stile di questa sezione si cambiano in <a href="#pagine">✎ Testi e stili delle pagine</a> e valgono ovunque compaia.</p>
-                <div class="wide md" data-for="testo galleria personaggi faq bottone video eventi">
+                <div class="wide md" data-for="testo galleria personaggi faq bottone video eventi ricordi">
                     <div class="md-tools">
                         <span class="hint md-label">Testo</span>
                         <button type="button" data-md="b" title="Grassetto"><b>G</b></button>
@@ -450,9 +490,19 @@ const fontsHref =
                     <select name="show">{EVENTI_SHOW.map((v) => <option value={v}>{SHOW_TEXT[v]}</option>)}</select>
                 </label>
                 <label data-for="eventi">Quanti al massimo<input name="limit" type="number" min="1" max="24" placeholder="tutti" /></label>
-                <details class="bg-wrap wide" data-for="testo galleria personaggi faq bottone video eventi"><summary>🎨 Stile del blocco</summary><div class="bg"></div></details>
+                <details class="bg-wrap wide" data-for="testo galleria personaggi faq bottone video eventi ricordi"><summary>🎨 Stile del blocco</summary><div class="bg"></div></details>
             </div>
         </details>
+    </template>
+    <template id="tpl-serata">
+        <div class="row serata">
+            <label>Data<input type="date" name="sDate" /></label>
+            <label>Luogo<input name="sPlace" /></label>
+            <div class="wide">
+                <div class="rows shots"></div>
+                <label class="file-btn">+ Aggiungi foto (anche più insieme)<input type="file" accept="image/*" multiple data-multi /></label>
+            </div>
+        </div>
     </template>
     <template id="tpl-faq">
         <div class="row faq-row">

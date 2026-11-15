@@ -476,6 +476,42 @@ a {
     }
 }
 
+/* ─── AVVISO (banner da /admin → Impostazioni sito) ─── */
+.avviso {
+    position: fixed;
+    z-index: 90;
+    left: 50%;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    translate: -50% 0;
+    width: max-content;
+    max-width: calc(100vw - 2rem);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.6rem 0.6rem 1.2rem;
+    background: var(--bg-header);
+    color: var(--header-text);
+    border: 1px solid rgb(255 255 255 / 0.15);
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.3);
+    font-family: var(--font-title);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    animation: fadeUp 0.6s 0.8s var(--ease-out) both;
+}
+.avviso a {
+    color: inherit;
+    text-decoration: none;
+}
+.avviso button {
+    flex: none;
+    width: 1.8rem;
+    height: 1.8rem;
+    border: 0;
+    background: none;
+    color: var(--header-text-dim);
+    cursor: pointer;
+}
+
 /* ─── STILE DELLE SEZIONI (schema.ts: sfondo, data-anim, data-fx) ─── */
 [data-sez] {
     position: relative;

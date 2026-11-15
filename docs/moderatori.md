@@ -57,11 +57,16 @@ Schede degli eventi, Home e pagine nuove si compongono allo stesso modo: una lis
 - **Bottone**: un testo facoltativo e un bottone verso un link (`/lista-eventi`, la pagina di un locale…).
 - **Video**: incolla il link di YouTube o Vimeo.
 - **Elenco eventi**: le card degli eventi prossimi, già fatti o tutti, anche solo i primi N.
+- **Foto delle serate**: in una scheda di un evento mostra le foto delle sue serate passate; in una pagina del sito (es. una pagina *Galleria*) quelle di tutti gli eventi, con i bottoni per filtrare per evento.
 - **Sezione del sito** (solo Home e pagine nuove): intestazione della home, Come funziona, Timeline, box Prenota. I loro testi e il loro stile si cambiano in *Testi e stili delle pagine*.
 
 Tutti hanno un **titolo facoltativo**. Nella riga del blocco: 👁 lo nasconde dal sito senza cancellarlo, ⧉ lo duplica, ↑ ↓ lo spostano, ✕ lo rimuove. **🎨 Stile del blocco** apre le opzioni di stile (vedi *Stile*).
 
 **Testo**: scrivi normalmente; una riga vuota crea un nuovo paragrafo. Seleziona del testo e usa **G** (grassetto), **C** (corsivo) o **Link**. **Anteprima** mostra il testo come apparirà sul sito.
+
+## Foto delle serate passate
+
+Nell'evento, **Foto delle serate passate** → **+ Aggiungi serata**: parte dall'ultima data già passata, col suo luogo. Poi **+ Aggiungi foto** (anche molte insieme) e, se vuoi, una didascalia per foto. Sul sito si vedono dove metti il blocco **❖ Foto delle serate**.
 
 ## Foto e inquadratura
 
@@ -105,6 +110,9 @@ Sotto c'è l'**Anteprima** della pagina coi dati non ancora salvati.
 - **Link di prenotazione**: se lo metti (es. un modulo Google), i bottoni "Prenota" portano lì; se è vuoto aprono una email con l'oggetto già scritto.
 - **Bottone della home**: cosa fa (apre l'elenco delle prossime date, porta alla pagina del prossimo evento oppure a un link).
 - **Menu in alto**: voci e link, in ordine; l'ultima è evidenziata come bottone.
+- **Avviso su tutte le pagine**: una frase (es. *Ultimi posti per sabato!*) con un link facoltativo, in basso su ogni pagina. Chi lo chiude non lo rivede finché non cambi il testo. Vuoto = nessun avviso.
+- **Google e anteprime social**: titolo, descrizione e immagine che Google e WhatsApp mostrano per Home, Lista eventi, Contatti e Privacy.
+- **Statistiche visite**: incolla il token di Cloudflare Web Analytics (le istruzioni sono sotto il campo). Visite e pagine più viste si guardano poi su Cloudflare.
 
 Dopo il salvataggio il sito si aggiorna entro un minuto.
 

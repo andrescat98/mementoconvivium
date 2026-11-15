@@ -19,5 +19,6 @@ export default defineConfig({
     '/contatti': eventi,
     '/privacy': eventi,
     '/[slug]': eventi, // pagine nuove da /admin
+    '/sitemap.xml': eventi,
   },
 });
