@@ -14,6 +14,7 @@ const img = imgReq.optional();
 // Attributi in look() (format.ts), CSS in styles/global.css.
 export const ANIMS = ["sali", "dissolvenza", "zoom", "sinistra", "destra"] as const;
 export const DECOS = ["nessuno", "linea", "stelle", "fiore", "doppia"] as const; // divisori e ornamenti (vuoto = predefiniti)
+export const FADES = ["alto", "basso", "sinistra", "destra", "alto-basso", "tutti"] as const;
 export const FX = ["ombra", "bagliore", "oro", "inciso", "contorno"] as const;
 // forme dell'immagine nel blocco testo (proporzioni; originale = non ritagliata)
 export const IMG_AR = ["quadrata", "orizzontale", "panoramica", "originale"] as const;
@@ -28,6 +29,17 @@ export const bgObj = z.object({
   op: z.number().int().min(0).max(100).optional(), // opacità di colore e immagine di sfondo (vuoto = 100)
   dark: z.boolean().optional(), // velo scuro invece che chiaro
   parallax: z.boolean().optional(),
+  fit: z.enum(["contiene"]).optional(), // immagine intera (object-fit: contain) invece di riempire (cover)
+  fade: z.enum(FADES).optional(), // lati da cui l'immagine sfuma (mask-image)
+  fadeW: z.number().int().min(5).max(60).optional(), // quanto sfuma, % della dimensione (vuoto = 25)
+  inset: z.number().int().min(1).max(30).optional(), // margine interno dell'immagine, % della sezione
+  radius: z.number().int().min(1).max(200).optional(), // angoli arrotondati dell'immagine, px
+  blur: z.number().int().min(1).max(40).optional(), // sfocatura gaussiana, px
+  gray: z.number().int().min(1).max(100).optional(), // scala di grigi, %
+  sepia: z.number().int().min(1).max(100).optional(), // seppia, %
+  bright: z.number().int().min(20).max(200).optional(), // luminosità, % (vuoto = 100)
+  contrast: z.number().int().min(20).max(200).optional(), // contrasto, % (vuoto = 100)
+  sat: z.number().int().min(0).max(300).optional(), // saturazione, % (vuoto = 100)
   text: hex.optional(),
   font: z.string().regex(/^[\w\s'",-]+$/).optional(), // es. "Rye, cursive"
   size: z.number().min(0.6).max(1.8).optional(), // scala dei titoli

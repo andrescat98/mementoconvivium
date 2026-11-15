@@ -203,7 +203,7 @@ fieldset > button { justify-self: start; }
 .bg-grp > .bg-row, .bg-grp > .img { margin-bottom: 0.6rem; }
 /* bottoni ben visibili: salva in alto (rosso se c'è da salvare), card dell'evento */
 /* intestazione evento: la copertina è l'immagine e il font sta in "Font dei titoli" (niente doppioni) */
-.bg[data-name="heroStyle"] :is(.img, .bg-font, .veil:has([name=bgVeil]), .check:has([name=dark]), .check:has([name=parallax])) { display: none; }
+.bg[data-name="heroStyle"] :is(.img, .bg-fx, .bg-font, .veil:has([name=bgVeil]), .check:has([name=dark]), .check:has([name=parallax])) { display: none; }
 #save-top { background: #f4f0e8; color: #1a1a1a; border-color: #f4f0e8; font-weight: 600; }
 #save-top.dirty { background: #c62828; border-color: #c62828; color: #fff; box-shadow: 0 0 0 3px rgb(198 40 40 / 0.35); }
 .cards-btn { padding: 0.7rem 1rem; border: 2px solid #1f5fa8; background: #e8f0fb; color: #1f5fa8; font-weight: 600; text-align: left; }

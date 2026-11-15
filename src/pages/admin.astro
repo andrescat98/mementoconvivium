@@ -4,7 +4,7 @@ import { isAdmin, login as renew } from "../lib/auth";
 import { getDeleted, getEvents, getSettings } from "../lib/db";
 import { FONT_GROUPS } from "../lib/fonts";
 import { BLOCK_TEXT, SEZIONI_TEXT, STATUS_TEXT } from "../lib/format";
-import { ANIMS, BLOCKS, DECOS, EVENTI_SHOW, FX, HERO_ACTIONS, HERO_LAYOUTS, IMG_AR, PADS, SEZIONI, STATUS } from "../lib/schema";
+import { ANIMS, BLOCKS, DECOS, EVENTI_SHOW, FADES, FX, HERO_ACTIONS, HERO_LAYOUTS, IMG_AR, PADS, SEZIONI, STATUS } from "../lib/schema";
 import "../styles/admin.css";
 
 const login = Astro.getActionResult(actions.login);
@@ -24,6 +24,7 @@ const STATUS_HINT: Record<string, string> = {
 };
 const ANIM_TEXT: Record<string, string> = { sali: "Sale dal basso", dissolvenza: "Dissolvenza", zoom: "Zoom", sinistra: "Da sinistra", destra: "Da destra" };
 const DECO_TEXT: Record<string, string> = { nessuno: "Nessuno", linea: "Linea semplice", stelle: "Stelle ✦", fiore: "Fiore ❦", doppia: "Doppia linea" };
+const FADE_TEXT: Record<string, string> = { alto: "Alto", basso: "Basso", sinistra: "Sinistra", destra: "Destra", "alto-basso": "Alto e basso", tutti: "Tutti i lati (vignetta)" };
 const FX_TEXT: Record<string, string> = { ombra: "Ombra", bagliore: "Bagliore dorato (glow)", oro: "Oro (gradiente)", inciso: "Inciso (emboss)", contorno: "Solo contorno (outline)" };
 const SEO_PAGES = [["/", "Home"], ["/lista-eventi", "Lista eventi"], ["/contatti", "Contatti"], ["/privacy", "Privacy"]];
 const PAD_TEXT: Record<string, string> = { compatta: "Compatto (poco padding)", ariosa: "Ampio (molto padding)", schermo: "Una schermata intera (100svh)" };
@@ -632,6 +633,19 @@ const fontsHref =
                 <label class="check bg-sez"><input type="checkbox" name="parallax" /> Effetto parallax</label>
             </div>
             <div class="img" data-name="bgImage" data-shape="wide" data-label="Immagine di sfondo"></div>
+            <div class="bg-row bg-fx">
+                <label>Adattamento<select name="fit"><option value="">Riempie (cover)</option><option value="contiene">Intera (contain)</option></select></label>
+                <label>Sfumatura del bordo (mask)<select name="fade"><option value="">Nessuna</option>{FADES.map((f) => <option value={f}>{FADE_TEXT[f]}</option>)}</select></label>
+                <label class="veil">Ampiezza sfumatura <output></output><input type="range" name="fadeW" min="5" max="60" step="5" value="25" /></label>
+                <label class="veil">Margine interno (inset) <output></output><input type="range" name="inset" min="0" max="30" step="1" value="0" /></label>
+                <label class="veil">Angoli arrotondati (border-radius) <output></output><input type="range" name="radius" min="0" max="200" step="5" value="0" /></label>
+                <label class="veil">Sfocatura (blur gaussiano) <output></output><input type="range" name="blur" min="0" max="40" step="1" value="0" /></label>
+                <label class="veil">Scala di grigi (grayscale) <output></output><input type="range" name="gray" min="0" max="100" step="5" value="0" /></label>
+                <label class="veil">Seppia (sepia) <output></output><input type="range" name="sepia" min="0" max="100" step="5" value="0" /></label>
+                <label class="veil">Luminosità (brightness) <output></output><input type="range" name="bright" min="20" max="200" step="5" value="100" /></label>
+                <label class="veil">Contrasto (contrast) <output></output><input type="range" name="contrast" min="20" max="200" step="5" value="100" /></label>
+                <label class="veil">Saturazione (saturate) <output></output><input type="range" name="sat" min="0" max="300" step="10" value="100" /></label>
+            </div>
         </details>
         <details class="bg-grp bg-sez bg-txt">
             <summary>Testo e tipografia</summary>
