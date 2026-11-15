@@ -49,7 +49,7 @@ test("bookCta: niente bottone se chiuso o con sole date passate", () => {
 });
 
 test("look e veil", () => {
-  assert.deepEqual(look(undefined), { "data-anim": undefined, "data-fx": undefined, "data-pad": undefined, "data-font": undefined, "data-size": undefined, "data-h": undefined, "data-vpos": undefined, "data-align": undefined, "data-w": undefined, "data-lh": undefined, "data-fs": undefined, "data-parallax": undefined, style: undefined });
+  assert.deepEqual(look(undefined), { "data-anim": undefined, "data-fx": undefined, "data-deco": undefined, "data-pad": undefined, "data-font": undefined, "data-size": undefined, "data-h": undefined, "data-vpos": undefined, "data-align": undefined, "data-w": undefined, "data-lh": undefined, "data-fs": undefined, "data-parallax": undefined, style: undefined });
   const l = look({ anim: "sali", font: "Rye, cursive", size: 1.2, text: "#ffffff", parallax: true });
   assert.equal(l["data-anim"], "sali");
   assert.equal(l["data-font"], "");

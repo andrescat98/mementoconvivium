@@ -460,6 +460,18 @@ if (form) {
         pick(keyOf(el));
         el.querySelector<HTMLInputElement>("[name=tabTitle], [name=bTitle], [name=key]")?.select();
     }
+    // "＋ Foto/Personaggio/Domanda/Data" dentro un blocco o l'intestazione: come i bottoni del form
+    function addRowLive(kind: string, key: string) {
+        const el = edEl(key);
+        if (!el) return;
+        if (kind === "shot") {
+            const inp = Object.assign(document.createElement("input"), { type: "file", accept: "image/*", multiple: true });
+            inp.onchange = () => dropOn(key, images(inp.files));
+            return inp.click();
+        }
+        pick(key);
+        $<HTMLButtonElement>(`[data-add=${kind}]`, kind === "date" ? form! : el).click();
+    }
     // ── modifica diretta nell'anteprima (come in un editor di testo): titoli e testi si scrivono lì,
     // le foto si trascinano o si incollano nel punto voluto; angolo dei blocchi: sposta, duplica, nascondi, togli, aggiungi;
     // bordo inferiore delle sezioni: si trascina per l'altezza. Ogni modifica finisce nei campi (nascosti) del form a sinistra.
@@ -475,6 +487,16 @@ if (form) {
         };
         const grip = (root: Element | null, key: string) =>
             root?.insertAdjacentHTML("beforeend", `<div class="ed-grip" data-grip="${key}" contenteditable="false" title="Trascina per cambiare l'altezza"></div>`);
+        // "＋" dentro il blocco (foto, personaggio, domanda, data): visibili al passaggio del mouse o a blocco scelto
+        const addBtn = (el: Element | null | undefined, kind: string, txt: string) =>
+            el?.insertAdjacentHTML("afterend", `<div class="ed-add" contenteditable="false"><button type="button" data-addrow="${kind}">＋ ${txt}</button></div>`);
+        // ✕ accanto a un testo facoltativo: lo svuota (si vede solo quando il testo c'è)
+        const clearBtn = (el: HTMLElement | null, what: string) => {
+            if (!el) return;
+            const p = el.parentElement!;
+            if (doc.defaultView!.getComputedStyle(p).position === "static") p.style.position = "relative";
+            el.insertAdjacentHTML("afterend", `<button type="button" class="ed-x" contenteditable="false" data-clear title="Togli ${what}">✕</button>`);
+        };
         for (const w of doc.querySelectorAll<HTMLElement>("div[data-ed]")) {
             const key = w.dataset.ed!;
             if (key === "cards") continue;
@@ -482,16 +504,26 @@ if (form) {
                 ed(w.querySelector(".ev-title"), "title", key, false, "Titolo");
                 ed(w.querySelector(".section-label"), "theme", key, false, "Tema");
                 ed(w.querySelector(".ev-excerpt"), "excerpt", key, false, "Estratto");
+                addBtn([...w.querySelectorAll(".ev-date-box")].pop(), "date", "Data");
                 grip(w.firstElementChild, key);
                 continue;
             }
             if (/^t\d+$/.test(key)) {
-                ed(w.querySelector(".ev-panel-title"), "tabTitle", key, false, "Titolo della scheda");
+                const pt = w.querySelector<HTMLElement>(".ev-panel-title");
+                ed(pt, "tabTitle", key, false, "Titolo della scheda");
+                pt?.insertAdjacentHTML("afterend", `<button type="button" class="ed-x ed-xtab" contenteditable="false" data-tabrm title="Elimina questa scheda">✕ Elimina scheda</button>`);
                 grip(w.closest(".ev-panel"), key);
                 continue;
             }
-            ed(w.querySelector(".blocco-head :is(h2, h3)"), "bTitle", key, false, "Titolo (facoltativo)");
-            ed(w.querySelector(":is(.ev-panel-grid, .ev-panel-text, .blocco-cta) > .ev-prose, .ev-panel-intro"), "bBody", key, true, "Scrivi qui… (trascina o incolla le foto dove vuoi)");
+            const bt = w.querySelector<HTMLElement>(".blocco-head :is(h2, h3)");
+            ed(bt, "bTitle", key, false, "Titolo (facoltativo)");
+            clearBtn(bt, "il titolo");
+            const bb = w.querySelector<HTMLElement>(":is(.ev-panel-grid, .ev-panel-text, .blocco-cta) > .ev-prose, .ev-panel-intro");
+            ed(bb, "bBody", key, true, "Scrivi qui… (trascina o incolla le foto dove vuoi)");
+            clearBtn(bb, "il testo");
+            addBtn(w.querySelector(".ev-gallery"), "shot", "Foto");
+            addBtn(w.querySelector(".ev-chars-grid"), "char", "Personaggio");
+            addBtn(w.querySelector(".faq"), "faq", "Domanda");
             const root = w.firstElementChild as HTMLElement | null;
             if (!root) continue;
             if (doc.defaultView!.getComputedStyle(root).position === "static") root.style.position = "relative";
@@ -654,6 +686,24 @@ if (form) {
                 return;
             }
             if (add) return addFromLive(add);
+            const clr = t.closest<HTMLElement>("[data-clear]");
+            if (clr) {
+                const el = clr.previousElementSibling as HTMLElement;
+                el.replaceChildren();
+                return sync(el);
+            }
+            const trm = t.closest<HTMLElement>("[data-tabrm]");
+            if (trm) {
+                const tab = edEl(trm.closest<HTMLElement>("div[data-ed]")!.dataset.ed!);
+                tab?.querySelector<HTMLButtonElement>(":scope > summary [data-rm]")?.click(); // chiede conferma
+                if (!tab?.isConnected) {
+                    selKey = "";
+                    unfocus();
+                }
+                return;
+            }
+            const ar = t.closest<HTMLElement>("[data-addrow]");
+            if (ar) return addRowLive(ar.dataset.addrow!, ar.closest<HTMLElement>("div[data-ed]")!.dataset.ed!);
             const k = t.closest<HTMLElement>("[data-ed]")?.dataset.ed;
             if (k) pick(k);
         }, true);
@@ -854,7 +904,7 @@ if (form) {
         for (const r of $$("input[type=range]", box)) showRange(r);
         $("[name=dark]", box).checked = !!b.dark;
         $("[name=parallax]", box).checked = !!b.parallax;
-        for (const k of ["font", "size", "pad", "vpos", "align", "w", "lh", "fs", "anim", "fx"]) $(`[name=${k}]`, box).value = String(b[k] ?? "");
+        for (const k of ["font", "size", "pad", "vpos", "align", "w", "lh", "fs", "anim", "fx", "deco"]) $(`[name=${k}]`, box).value = String(b[k] ?? "");
         $("[name=preset]", box).append(...(settings.stili ?? []).map((s: Data) => new Option(s.name, s.name)));
         initImg($<HTMLElement>(".img", box), b.image);
     }
@@ -871,7 +921,7 @@ if (form) {
             text: on("textOn") && v("textColor"), font: v("font"), size: v("size") && Number(v("size")),
             pad: v("pad"), height: Number(v("height")) || undefined, vpos: v("vpos"),
             align: v("align"), w: v("w"), lh: v("lh") && Number(v("lh")), fs: v("fs") && Number(v("fs")),
-            anim: v("anim"), fx: v("fx"),
+            anim: v("anim"), fx: v("fx"), deco: v("deco"),
         };
         return Object.values(b).some(Boolean) ? b : undefined;
     }

@@ -4,7 +4,7 @@ import { isAdmin, login as renew } from "../lib/auth";
 import { getDeleted, getEvents, getSettings } from "../lib/db";
 import { FONT_GROUPS } from "../lib/fonts";
 import { BLOCK_TEXT, SEZIONI_TEXT, STATUS_TEXT } from "../lib/format";
-import { ANIMS, BLOCKS, EVENTI_SHOW, FX, HERO_ACTIONS, HERO_LAYOUTS, IMG_AR, PADS, SEZIONI, STATUS } from "../lib/schema";
+import { ANIMS, BLOCKS, DECOS, EVENTI_SHOW, FX, HERO_ACTIONS, HERO_LAYOUTS, IMG_AR, PADS, SEZIONI, STATUS } from "../lib/schema";
 import "../styles/admin.css";
 
 const login = Astro.getActionResult(actions.login);
@@ -23,6 +23,7 @@ const STATUS_HINT: Record<string, string> = {
     bozza: "nascosto",
 };
 const ANIM_TEXT: Record<string, string> = { sali: "Sale dal basso", dissolvenza: "Dissolvenza", zoom: "Zoom", sinistra: "Da sinistra", destra: "Da destra" };
+const DECO_TEXT: Record<string, string> = { nessuno: "Nessuno", linea: "Linea semplice", stelle: "Stelle ✦", fiore: "Fiore ❦", doppia: "Doppia linea" };
 const FX_TEXT: Record<string, string> = { ombra: "Ombra", bagliore: "Bagliore dorato (glow)", oro: "Oro (gradiente)", inciso: "Inciso (emboss)", contorno: "Solo contorno (outline)" };
 const SEO_PAGES = [["/", "Home"], ["/lista-eventi", "Lista eventi"], ["/contatti", "Contatti"], ["/privacy", "Privacy"]];
 const PAD_TEXT: Record<string, string> = { compatta: "Compatto (poco padding)", ariosa: "Ampio (molto padding)", schermo: "Una schermata intera (100svh)" };
@@ -651,6 +652,7 @@ const fontsHref =
             <div class="bg-row">
                 <label>Animazione all'ingresso (scroll)<select name="anim"><option value="">Nessuna</option>{ANIMS.map((a) => <option value={a}>{ANIM_TEXT[a]}</option>)}</select></label>
                 <label>Effetto titoli (text-shadow)<select name="fx"><option value="">Nessuno</option>{FX.map((f) => <option value={f}>{FX_TEXT[f]}</option>)}</select></label>
+                <label>Divisori (decoratori di sezione)<select name="deco"><option value="">Predefiniti</option>{DECOS.map((f) => <option value={f}>{DECO_TEXT[f]}</option>)}</select></label>
             </div>
         </details>
     </template>

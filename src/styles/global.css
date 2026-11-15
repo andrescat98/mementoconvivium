@@ -464,6 +464,16 @@ a {
     background: var(--border);
 }
 
+/* Divisori scelti nello stile (data-deco): nessuno, linea, stelle, fiore, doppia linea */
+[data-deco="nessuno"] :is(.divider, .greek-border, .prenota-ornament) { display: none; }
+[data-deco="stelle"] { --deco-g: "✦"; }
+[data-deco="fiore"] { --deco-g: "❦"; }
+[data-deco] :is(.divider, .prenota-ornament) span { font-size: 0; }
+[data-deco] :is(.divider, .prenota-ornament) span::before { content: var(--deco-g, none); font-size: 0.8rem; }
+[data-deco] .greek-border::before { content: var(--deco-g, none); font-size: 14px; letter-spacing: 0; }
+[data-deco="doppia"] .divider::before, [data-deco="doppia"] .divider::after, [data-deco="doppia"] .orn-line { height: 4px; background: none; border-block: 1px solid var(--border); }
+[data-deco="doppia"] .greek-border { height: 5px; background: none; border-block: 1px solid var(--gold-dim); }
+
 /* ─── ANIMATIONS ─────────────────────────────────────────── */
 .animate {
     opacity: 0;
