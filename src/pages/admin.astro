@@ -30,7 +30,7 @@ const LAYOUT_TEXT: Record<string, string> = { destra: "Testo a sinistra, date a 
 const ALIGNS = [["sinistra", "A sinistra"], ["centro", "Al centro"], ["destra", "A destra"], ["giustificato", "Giustificato"]];
 const FS = [["0.85", "Piccolo"], ["1.15", "Grande"], ["1.35", "Molto grande"]];
 const LH = [["1.3", "Stretta"], ["1.6", "Media"], ["2", "Ariosa"], ["2.4", "Molto ariosa"]];
-const WIDTHS = [["stretta", "Stretta (colonna di lettura)"], ["larga", "Larga"], ["piena", "Tutto lo schermo"]];
+const WIDTHS = [["minima", "Minima (560 px)"], ["stretta", "Stretta, da lettura (760 px)"], ["media", "Media (960 px)"], ["larga", "Larga (1500 px)"], ["piena", "Tutto lo schermo"]];
 const AR_TEXT: Record<string, string> = { quadrata: "Quadrata", orizzontale: "Orizzontale 3:2", panoramica: "Panoramica 16:9", originale: "Intera, non ritagliata" };
 const SIZES = [["0.8", "Piccoli"], ["1.2", "Grandi"], ["1.45", "Enormi"]];
 const SHOW_TEXT: Record<string, string> = { prossimi: "Prossimi", tutti: "Tutti", passati: "Già fatti" };
@@ -345,7 +345,34 @@ const fontsHref =
         <!-- ── Anteprima dal vivo di evento e pagine (a destra del form): clic su un blocco = sue impostazioni a sinistra -->
         <section id="live" hidden>
             <div class="live-bar">
-                <span class="hint">Anteprima dal vivo, coi dati non salvati: clicca una parte per modificarla</span>
+                <!-- formattazione come in Word, nello stesso ordine: agisce sul testo dell'anteprima su cui si è cliccato -->
+                <div class="ribbon" id="ribbon" role="toolbar" aria-label="Formattazione del testo" title="Clicca in un testo dell'anteprima, poi usa questi comandi">
+                    <select name="block" aria-label="Stile del paragrafo"><option value="">Stile ▾</option><option value="p">Normale</option><option value="h3">Titolo di sezione</option><option value="h4">Sottotitolo</option><option value="blockquote">Citazione</option></select>
+                    <i class="sep"></i>
+                    <button type="button" data-cmd="font" title="Font dei titoli del blocco">Font…</button>
+                    <select name="size" aria-label="Grandezza dei titoli"><option value="">Titoli ▾</option><option value="0">Normali</option>{SIZES.map(([v, l]) => <option value={v}>{l}</option>)}</select>
+                    <select name="fs" aria-label="Grandezza del testo"><option value="">Testo ▾</option><option value="0">Normale</option>{FS.map(([v, l]) => <option value={v}>{l}</option>)}</select>
+                    <i class="sep"></i>
+                    <button type="button" data-cmd="bold" title="Grassetto (Ctrl+B)"><b>G</b></button>
+                    <button type="button" data-cmd="italic" title="Corsivo (Ctrl+I)"><i>C</i></button>
+                    <button type="button" data-cmd="underline" title="Sottolineato (Ctrl+U)"><u>S</u></button>
+                    <button type="button" data-cmd="strikeThrough" title="Barrato"><s>ab</s></button>
+                    <label class="rb-color" title="Colore del testo del blocco"><span>A</span><input type="color" name="textColor" value="#1a1a1a" /></label>
+                    <i class="sep"></i>
+                    <button type="button" data-cmd="insertUnorderedList" title="Elenco puntato">• Elenco</button>
+                    <button type="button" data-cmd="insertOrderedList" title="Elenco numerato">1. Elenco</button>
+                    <i class="sep"></i>
+                    <button type="button" data-cmd="align:sinistra" title="Allinea a sinistra">⇤</button>
+                    <button type="button" data-cmd="align:centro" title="Centra">↔</button>
+                    <button type="button" data-cmd="align:destra" title="Allinea a destra">⇥</button>
+                    <button type="button" data-cmd="align:giustificato" title="Giustifica">☰</button>
+                    <select name="lh" aria-label="Interlinea"><option value="">Interlinea ▾</option><option value="0">Normale</option>{LH.map(([v, l]) => <option value={v}>{l}</option>)}</select>
+                    <i class="sep"></i>
+                    <button type="button" data-cmd="link" title="Link">🔗</button>
+                    <button type="button" data-cmd="img" title="Foto nel punto del cursore">🖼</button>
+                    <button type="button" data-cmd="insertHorizontalRule" title="Linea di separazione">―</button>
+                    <button type="button" data-cmd="clean" title="Togli la formattazione dal testo selezionato">⌫ Pulisci</button>
+                </div>
                 <label class="check"><input type="checkbox" id="live-phone" /> 📱 Telefono</label>
             </div>
             <div class="prev live"><iframe title="Anteprima dal vivo"></iframe></div>
@@ -581,7 +608,7 @@ const fontsHref =
             </div>
             <div class="img" data-name="bgImage" data-shape="wide" data-label="Immagine di sfondo"></div>
         </details>
-        <details class="bg-grp bg-sez">
+        <details class="bg-grp bg-sez bg-txt">
             <summary>Testo</summary>
             <div class="bg-row">
                 <label class="check"><input type="checkbox" name="textOn" /> Colore</label>
@@ -591,12 +618,12 @@ const fontsHref =
                 <label>Allineamento<select name="align"><option value="">Predefinito</option>{ALIGNS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
                 <label>Grandezza testo<select name="fs"><option value="">Normale</option>{FS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
                 <label>Interlinea<select name="lh"><option value="">Normale</option>{LH.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
-                <label>Larghezza<select name="w"><option value="">Normale</option>{WIDTHS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
             </div>
         </details>
         <details class="bg-grp bg-sez">
-            <summary>Altezza e spazi <small>(l'altezza si trascina anche dal bordo in basso, nell'anteprima)</small></summary>
+            <summary>Dimensioni e spazi <small>(l'altezza si trascina anche dal bordo in basso, nell'anteprima)</small></summary>
             <div class="bg-row">
+                <label>Larghezza<select name="w"><option value="">Normale (1200 px)</option>{WIDTHS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
                 <label class="veil">Altezza minima <output></output><input type="range" name="height" min="0" max="100" step="10" value="0" /></label>
                 <label>Contenuto<select name="vpos"><option value="">Al centro</option><option value="alto">In alto</option><option value="basso">In basso</option></select></label>
                 <label>Spaziatura<select name="pad"><option value="">Normale</option>{PADS.map((p) => <option value={p}>{PAD_TEXT[p]}</option>)}</select></label>

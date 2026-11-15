@@ -610,8 +610,16 @@ a {
 [data-align="giustificato"] :is(p, li) {
     text-align: justify;
 }
+[data-w="minima"] :is(.container, .blocco-inner) {
+    max-width: 560px;
+    margin-inline: auto;
+}
 [data-w="stretta"] :is(.container, .blocco-inner) {
     max-width: 760px;
+    margin-inline: auto;
+}
+[data-w="media"] :is(.container, .blocco-inner) {
+    max-width: 960px;
     margin-inline: auto;
 }
 [data-w="larga"] .container {
@@ -620,7 +628,7 @@ a {
 [data-w="piena"] .container {
     max-width: none;
 }
-:is([data-w="larga"], [data-w="piena"]) :is(.ev-panel-text, .ev-panel-intro, .faq) {
+:is([data-w="media"], [data-w="larga"], [data-w="piena"]) :is(.ev-panel-text, .ev-panel-intro, .faq) {
     max-width: none;
 }
 [data-lh] :is(p, li, .ev-prose) {

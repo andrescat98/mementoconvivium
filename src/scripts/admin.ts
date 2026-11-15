@@ -331,7 +331,8 @@ if (form) {
     const liveDoc = () => liveFrame.contentDocument;
     let liveTimer = 0;
     // si sta scrivendo dentro l'anteprima: si ridisegna solo quando si esce dal testo
-    const typing = () => !!liveDoc()?.hasFocus() && !!liveDoc()?.activeElement?.closest("[data-field], [data-k], [data-nav]");
+    const typing = () =>
+        (!!liveDoc()?.hasFocus() && !!liveDoc()?.activeElement?.closest("[data-field], [data-k], [data-nav]")) || ribbon.contains(document.activeElement);
     function queueLive(ms = 500) {
         clearTimeout(liveTimer);
         if (view === "editor" || view === "page")
@@ -355,6 +356,10 @@ if (form) {
         const doc = liveDoc();
         if (!doc) return;
         decorate(doc);
+        placeTools(doc);
+        // dopo un nuovo render la barra in alto resta sullo stesso testo
+        if (textEd && !textEd.isConnected)
+            setTextEd(doc.querySelector<HTMLElement>(`[data-field=bBody][data-key="${textEd.dataset.key}"]`) ?? undefined);
         const t = selKey.match(/^t(\d+)/);
         if (t) liveTab = Number(t[1]);
         const panels = doc.querySelectorAll(".ev-panel");
@@ -485,33 +490,36 @@ if (form) {
             if (doc.defaultView!.getComputedStyle(el).position === "static") el.style.position = "relative";
             el.insertAdjacentHTML("beforeend", `<div class="ed-tools" contenteditable="false"><button type="button" data-goto="#impostazioni">⚙ Menu, contatti e link del sito</button></div>`);
         }
-        doc.body.insertAdjacentHTML(
-            "beforeend",
-            `<div class="ed-fmt" contenteditable="false" hidden><button type="button" data-fmt="bold" title="Grassetto (Ctrl+B)"><b>G</b></button>` +
-                `<button type="button" data-fmt="italic" title="Corsivo (Ctrl+I)"><i>C</i></button><button type="button" data-fmt="link">Link</button>` +
-                `<button type="button" data-fmt="img">🖼 Foto</button></div>`,
-        );
     }
     // campo del form che corrisponde a un testo modificabile dell'anteprima
     const fieldFor = (el: HTMLElement) =>
         el.dataset.key === "hero"
             ? form!.querySelector<HTMLInputElement>(`fieldset > label > [name=${el.dataset.field}]`)
             : edEl(el.dataset.key!)?.querySelector<HTMLInputElement>(`[name=${el.dataset.field}]`);
-    // testo dell'anteprima → markdown di md() (paragrafi, a capo, grassetto, corsivo, link, foto del sito)
+    // testo dell'anteprima → markdown di md(): paragrafi, sottosezioni, elenchi, citazioni, linee, testo in linea, foto del sito
     function htmlToMd(root: Element) {
         const wrap = (m: string, s: string) => (s.trim() ? s.replace(s.trim(), m + s.trim() + m) : s);
+        const one = (s: string) => s.replace(/\s*\n\s*/g, " ").trim(); // titoli e voci di elenco: una riga
         const inl = (n: Node): string => {
             if (n.nodeType === Node.TEXT_NODE) return n.textContent!.replace(/\u00a0/g, " ");
             if (n.nodeType !== Node.ELEMENT_NODE) return "";
             const e = n as Element;
+            const t = e.tagName;
             const k = [...e.childNodes].map(inl).join("");
             const src = e.getAttribute("src") ?? "";
-            return e.tagName === "BR" ? "\n"
-                : /^(B|STRONG)$/.test(e.tagName) ? wrap("**", k)
-                : /^(I|EM)$/.test(e.tagName) ? wrap("*", k)
-                : e.tagName === "A" ? `[${k}](${e.getAttribute("href")})`
-                : e.tagName === "IMG" ? (src.startsWith("/") ? `![${e.getAttribute("alt") ?? ""}](${src})` : "") // le foto ancora in caricamento no
-                : /^(P|DIV|LI|H\d|BLOCKQUOTE)$/.test(e.tagName) ? `\n\n${k}\n\n`
+            return t === "BR" ? "\n"
+                : t === "HR" ? "\n\n---\n\n"
+                : /^(B|STRONG)$/.test(t) ? wrap("**", k)
+                : /^(I|EM)$/.test(t) ? wrap("*", k)
+                : t === "U" ? wrap("__", k)
+                : /^(S|STRIKE|DEL)$/.test(t) ? wrap("~~", k)
+                : t === "A" ? `[${k}](${e.getAttribute("href")})`
+                : t === "IMG" ? (src.startsWith("/") ? `![${e.getAttribute("alt") ?? ""}](${src})` : "") // le foto ancora in caricamento no
+                : /^H[1-3]$/.test(t) ? `\n\n## ${one(k)}\n\n`
+                : /^H[4-6]$/.test(t) ? `\n\n### ${one(k)}\n\n`
+                : /^(UL|OL)$/.test(t) ? `\n\n${[...e.children].map((li, i) => `${t === "OL" ? `${i + 1}.` : "-"} ${one(inl(li).replace(/^\n+|\n+$/g, ""))}`).join("\n")}\n\n`
+                : t === "BLOCKQUOTE" ? `\n\n${one(k) && k.trim().split(/\n+/).map((l) => `> ${l.trim()}`).join("\n")}\n\n`
+                : /^(P|DIV|LI|H\d)$/.test(t) ? `\n\n${k}\n\n`
                 : k;
         };
         return inl(root).replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
@@ -577,8 +585,17 @@ if (form) {
         : /^t\d+$/.test(key) ? edEl(key)?.querySelector<HTMLElement>(":scope > .grid > .bg-wrap > .bg")
         : edEl(key)?.querySelector<HTMLElement>(".bg");
     // ponytail: execCommand è deprecato ma è l'unico modo nativo (con annulla/ripeti) di formattare un contenteditable; se sparisce, serve un editor (es. Tiptap)
+    // comandi d'angolo: seguono lo schermo, visibili sotto l'header e dentro il loro blocco
+    function placeTools(doc: Document) {
+        const head = doc.querySelector(".site-header")?.getBoundingClientRect().bottom ?? 0;
+        for (const t of doc.querySelectorAll<HTMLElement>(".ed-tools")) {
+            const p = t.parentElement!;
+            if (p.matches(".site-header, .site-footer, [data-sez]")) continue;
+            const r = p.getBoundingClientRect();
+            t.style.top = `${Math.max(8, Math.min(head + 8 - r.top, r.height - 50))}px`;
+        }
+    }
     function wireLive(doc: Document) {
-        const fmt = () => doc.querySelector<HTMLElement>(".ed-fmt");
         doc.addEventListener("click", (e) => {
             const t = e.target as Element;
             if (!t.closest("summary")) e.preventDefault(); // niente link; le FAQ si aprono
@@ -590,23 +607,8 @@ if (form) {
             }
             const go = t.closest<HTMLElement>("[data-goto]");
             if (go) return void (location.hash = go.dataset.goto!);
-            const f = t.closest<HTMLElement>("[data-fmt]");
             const act = t.closest<HTMLElement>("[data-act]");
             const add = t.closest<HTMLElement>("[data-add]");
-            if (f) {
-                const el = doc.activeElement?.closest<HTMLElement>("[data-field]");
-                if (f.dataset.fmt === "img") {
-                    const range = doc.getSelection()?.rangeCount ? doc.getSelection()!.getRangeAt(0).cloneRange() : null;
-                    const inp = Object.assign(doc.createElement("input"), { type: "file", accept: "image/*", multiple: true });
-                    inp.onchange = () => el && insertImgs(el, range, images(inp.files));
-                    return inp.click();
-                }
-                if (f.dataset.fmt === "link") {
-                    const url = prompt("Indirizzo del link (https://…)", "https://");
-                    if (url && /^https?:\/\/\S+$/.test(url)) doc.execCommand("createLink", false, url);
-                } else doc.execCommand(f.dataset.fmt!);
-                return el && sync(el);
-            }
             if (act) {
                 const el = edEl(act.closest<HTMLElement>("div[data-ed]")!.dataset.ed!);
                 el?.querySelector<HTMLButtonElement>(`:scope > summary [data-${act.dataset.act}]`)?.click();
@@ -619,9 +621,6 @@ if (form) {
             const k = t.closest<HTMLElement>("[data-ed]")?.dataset.ed;
             if (k) pick(k);
         }, true);
-        doc.addEventListener("mousedown", (e) => {
-            if ((e.target as Element).closest(".ed-fmt")) e.preventDefault(); // la barra non toglie la selezione
-        });
         doc.addEventListener("input", (e) => {
             const el = (e.target as Element).closest?.<HTMLElement>("[data-field]");
             if (el) sync(el);
@@ -647,21 +646,17 @@ if (form) {
                 el.blur();
             }
         });
+        // la barra in alto lavora sull'ultimo testo cliccato e sulla sua selezione
         doc.addEventListener("focusin", (e) => {
             const el = (e.target as Element).closest?.<HTMLElement>("[data-field=bBody]");
-            const bar = fmt();
-            if (!bar) return;
-            bar.hidden = !el;
-            if (!el) return;
-            const r = el.getBoundingClientRect();
-            bar.style.cssText = `top:${Math.max(0, r.top + doc.defaultView!.scrollY - 46)}px;left:${r.left}px`;
+            if (el) setTextEd(el);
         });
-        doc.addEventListener("focusout", () =>
-            setTimeout(() => {
-                const bar = fmt();
-                if (bar && !doc.activeElement?.closest("[data-field=bBody]")) bar.hidden = true;
-            }),
-        );
+        doc.addEventListener("selectionchange", () => {
+            const s = doc.getSelection();
+            if (s?.rangeCount && textEd?.contains(s.anchorNode)) textRange = s.getRangeAt(0).cloneRange();
+        });
+        doc.addEventListener("scroll", () => placeTools(doc), { passive: true });
+        doc.addEventListener("input", () => placeTools(doc));
         doc.addEventListener("paste", (e) => {
             const el = (e.target as Element).closest?.<HTMLElement>("[data-field], [data-k], [data-nav]");
             if (!el) return;
@@ -707,6 +702,72 @@ if (form) {
             };
         });
     }
+    // ── barra di formattazione in alto (come in Word): stile del paragrafo e testo in linea sul testo scelto,
+    // carattere, grandezze, colore, allineamento e interlinea sullo stile del suo blocco
+    const ribbon = $<HTMLElement>("#ribbon");
+    let textEd: HTMLElement | undefined; // ultimo testo cliccato nell'anteprima
+    let textRange: Range | undefined;
+    function setTextEd(el?: HTMLElement) {
+        textEd = el;
+        textRange = undefined;
+        ribbon.classList.toggle("on", !!el);
+    }
+    // torna nel testo con la sua selezione (cliccando la barra il fuoco esce dall'anteprima)
+    function backToText() {
+        if (!textEd?.isConnected) return say("Clicca prima in un testo dell'anteprima.", true), false;
+        liveFrame.contentWindow!.focus();
+        textEd.focus();
+        if (textRange) {
+            const s = liveDoc()!.getSelection()!;
+            s.removeAllRanges();
+            s.addRange(textRange);
+        }
+        return true;
+    }
+    function textStyle(name: string, value: string) {
+        const box = bgOf(textEd!.dataset.key!);
+        const el = box?.querySelector<HTMLInputElement>(`[name=${name}]`);
+        if (!box || !el) return;
+        if (name === "textColor") $("[name=textOn]", box).checked = true;
+        el.value = value === "0" ? "" : value;
+        el.dispatchEvent(new Event("input", { bubbles: true })); // → editInput → livePaint
+    }
+    ribbon.addEventListener("mousedown", (e) => {
+        if ((e.target as Element).closest("button")) e.preventDefault(); // la selezione resta nel testo
+    });
+    ribbon.addEventListener("click", (e) => {
+        const cmd = (e.target as Element).closest<HTMLElement>("[data-cmd]")?.dataset.cmd;
+        if (!cmd || !backToText()) return;
+        const doc = liveDoc()!;
+        if (cmd === "font") return openFonts(bgOf(textEd!.dataset.key!)!.querySelector<HTMLInputElement>("[name=font]")!);
+        if (cmd.startsWith("align:")) return textStyle("align", cmd.slice(6));
+        if (cmd === "img") {
+            const range = textRange;
+            const inp = Object.assign(document.createElement("input"), { type: "file", accept: "image/*", multiple: true });
+            inp.onchange = () => textEd && insertImgs(textEd, range, images(inp.files));
+            return inp.click();
+        }
+        if (cmd === "link") {
+            const url = prompt("Indirizzo del link (https://…)", "https://");
+            if (!url || !/^https?:\/\/\S+$/.test(url) || !backToText()) return;
+            doc.execCommand("createLink", false, url);
+        } else if (cmd === "clean") {
+            doc.execCommand("removeFormat");
+            doc.execCommand("unlink");
+        } else doc.execCommand(cmd);
+        sync(textEd!);
+    });
+    ribbon.addEventListener("change", (e) => {
+        const t = e.target as HTMLInputElement;
+        const v = t.value;
+        if (t.tagName === "SELECT") t.value = ""; // menu d'azione: torna all'etichetta
+        if (!v || !backToText()) return;
+        if (t.name === "block") {
+            liveDoc()!.execCommand("formatBlock", false, v);
+            sync(textEd!);
+        } else textStyle(t.name, v);
+    });
+
     liveFrame.addEventListener("load", () => {
         const doc = liveDoc();
         if (doc) wireLive(doc);
@@ -874,6 +935,11 @@ if (form) {
         return el;
     }
     // blocco nuovo, aperto, in fondo alla lista o prima di `before`
+    // stile di un blocco ridisegnato subito nell'anteprima, senza aspettare il nuovo render
+    function livePaint(blk: HTMLElement) {
+        const root = liveDoc()?.querySelector(`[data-ed="${keyOf(blk)}"]`)?.firstElementChild as HTMLElement | null;
+        if (root) paintSez(root, readBg($(".bg", blk)));
+    }
     function newBlock(list: Element, type: string, before?: Element) {
         const el = addBlock(list, { type, ...(type === "eventi" ? { title: "Prossimi appuntamenti" } : {}) }, true);
         before?.before(el);
@@ -967,6 +1033,8 @@ if (form) {
     }
     function editInput(t: HTMLInputElement) {
         bgInput(t);
+        const own = t.closest(".bg") && t.closest<HTMLElement>(".block-ed");
+        if (own) livePaint(own);
         if (t.name === "bBody") renderPreview(t.closest(".md")!);
         if (t.name === "tabTitle") markTab(t.closest(".tab-ed")!);
         const blk = t.closest<HTMLElement>(".block-ed");

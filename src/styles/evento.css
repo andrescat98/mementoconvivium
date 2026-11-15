@@ -278,6 +278,51 @@
         color: var(--cream);
     }
 
+    /* sottosezioni, elenchi, citazioni e linee del testo (format.ts md) */
+    .ev-prose :is(h3, h4) {
+        font-family: var(--sez-font, var(--font-display));
+        font-weight: 400;
+        color: var(--white);
+        line-height: 1.25;
+        margin: 2.4rem 0 1rem;
+    }
+
+    .ev-prose h3 {
+        font-size: 1.7rem;
+    }
+
+    .ev-prose h4 {
+        font-family: var(--font-title);
+        font-size: 1rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--gold-dim);
+    }
+
+    .ev-prose :is(ul, ol) {
+        margin: 0 0 1.4rem;
+        padding-left: 1.6rem;
+    }
+
+    .ev-prose li + li {
+        margin-top: 0.35rem;
+    }
+
+    .ev-prose blockquote {
+        margin: 0 0 1.4rem;
+        padding: 0.2rem 0 0.2rem 1.4rem;
+        border-left: 2px solid var(--gold-dim);
+        font-style: italic;
+        color: var(--cream-dim);
+    }
+
+    .ev-prose hr {
+        border: 0;
+        border-top: 1px solid var(--border);
+        margin: 2.4rem auto;
+        width: 40%;
+    }
+
     .ev-prose img {
         display: block;
         max-width: 100%;

@@ -34,7 +34,7 @@ export const bgObj = z.object({
   height: z.number().int().min(10).max(100).optional(), // altezza minima, % dello schermo
   vpos: z.enum(["alto", "basso"]).optional(), // contenuto in una sezione alta (vuoto = al centro)
   align: z.enum(["sinistra", "centro", "destra", "giustificato"]).optional(), // allineamento del testo
-  w: z.enum(["stretta", "larga", "piena"]).optional(), // larghezza del contenuto
+  w: z.enum(["minima", "stretta", "media", "larga", "piena"]).optional(), // larghezza del contenuto
   lh: z.number().min(1).max(3).optional(), // interlinea
   fs: z.number().min(0.6).max(2).optional(), // grandezza del testo
   anim: z.enum(ANIMS).optional(),

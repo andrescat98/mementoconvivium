@@ -48,24 +48,40 @@ export const STATUS_TEXT: Record<string, string> = {
 const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
+// testo in linea: foto del sito, **grassetto**, __sottolineato__, ~~barrato~~, *corsivo*, [link](https://…)
+const inline = (s: string) =>
+  esc(s)
+    .replace(/!\[([^\]]*)\]\((\/[\w\-./]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.+?)__/g, "<u>$1</u>")
+    .replace(/~~(.+?)~~/g, "<s>$1</s>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/\n/g, "<br>");
+
 /**
- * Markdown minimo per il racconto degli eventi: paragrafi, **grassetto**, *corsivo*,
- * [link](https://…), ![foto](/img/…) (solo immagini del sito). L'HTML in input viene sempre escapato.
- * ponytail: niente liste/titoli; se servono, usare `marked`.
+ * Markdown minimo dei testi (blocchi, schede, FAQ), scritto dall'editor dal vivo di /admin (htmlToMd):
+ * paragrafi (riga vuota), "## " titolo di sezione, "### " sottotitolo, elenchi "- " e "1. ", citazioni "> ",
+ * linea "---", più il testo in linea sopra. L'HTML in input viene sempre escapato.
+ * ponytail: niente elenchi annidati o tabelle; se servono, usare `marked`.
  */
 export const md = (src: string) =>
   src
     .trim()
     .split(/\n\s*\n/)
-    .map(
-      (p) =>
-        `<p>${esc(p.trim())
-          .replace(/!\[([^\]]*)\]\((\/[\w\-./]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
-          .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-          .replace(/\*(.+?)\*/g, "<em>$1</em>")
-          .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>')
-          .replace(/\n/g, "<br>")}</p>`,
-    )
+    .map((p) => {
+      p = p.trim();
+      const lines = p.split("\n");
+      const all = (re: RegExp) => lines.every((l) => re.test(l));
+      const items = (re: RegExp) => lines.map((l) => `<li>${inline(l.replace(re, ""))}</li>`).join("");
+      if (/^### /.test(p)) return `<h4>${inline(p.slice(4))}</h4>`;
+      if (/^## /.test(p)) return `<h3>${inline(p.slice(3))}</h3>`;
+      if (p === "---") return "<hr>";
+      if (all(/^[-*] /)) return `<ul>${items(/^[-*] /)}</ul>`;
+      if (all(/^\d+\. /)) return `<ol>${items(/^\d+\. /)}</ol>`;
+      if (all(/^> ?/)) return `<blockquote>${inline(lines.map((l) => l.replace(/^> ?/, "")).join("\n"))}</blockquote>`;
+      return `<p>${inline(p)}</p>`;
+    })
     .join("");
 
 /** Immagine con inquadratura: punto focale x/y in % (0–100) e zoom (1–3). */

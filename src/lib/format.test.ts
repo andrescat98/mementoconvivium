@@ -12,6 +12,10 @@ test("md: paragrafi, enfasi, link, escape", () => {
   assert.equal(md("[x](https://a.it?q=1&r=2)"), '<p><a href="https://a.it?q=1&#38;r=2">x</a></p>');
   assert.equal(md('<script>"'), "<p>&#60;script&#62;&#34;</p>");
   assert.equal(md("[x](javascript:alert(1))"), "<p>[x](javascript:alert(1))</p>");
+  assert.equal(
+    md("## Titolo\n\n### Sotto\n\n- uno\n- **due**\n\n1. a\n2. b\n\n> cit\n> ancora\n\n---\n\n__s__ ~~b~~"),
+    "<h3>Titolo</h3><h4>Sotto</h4><ul><li>uno</li><li><strong>due</strong></li></ul><ol><li>a</li><li>b</li></ol><blockquote>cit<br>ancora</blockquote><hr><p><u>s</u> <s>b</s></p>",
+  );
   assert.equal(md("a ![b](/img/12) c"), '<p>a <img src="/img/12" alt="b" loading="lazy"> c</p>');
   assert.equal(md("![x](https://evil.it/a.png)"), '<p>!<a href="https://evil.it/a.png">x</a></p>'); // immagini esterne: mai <img>
 });
