@@ -79,11 +79,13 @@ details { scroll-margin-top: 6rem; }
 .bar small { color: var(--dim); font-size: 0.8rem; }
 .bar select { width: auto; max-width: 15rem; }
 .msg { margin: 0; min-height: 1.5em; }
+.msg:empty { display: none; }
 .msg button { margin-left: 0.5rem; padding: 0.2rem 0.6rem; }
 
 details.sec { background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
 details.sec > summary { padding: 0.75rem 1rem; font-weight: 600; cursor: pointer; }
 details.sec[open] > summary { border-bottom: 1px solid var(--line); }
+form { align-content: start; } /* il form alto non allarga i cassetti chiusi */
 fieldset {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.9rem;
     margin: 0; padding: 1rem; border: 0;
@@ -204,6 +206,8 @@ fieldset > button { justify-self: start; }
 /* bottoni ben visibili: salva in alto (rosso se c'è da salvare), card dell'evento */
 /* intestazione evento: la copertina è l'immagine e il font sta in "Font dei titoli" (niente doppioni) */
 .bg[data-name="heroStyle"] :is(.img, .bg-fx, .bg-font, .veil:has([name=bgVeil]), .check:has([name=dark]), .check:has([name=parallax])) { display: none; }
+/* effetti dell'immagine e parallax: solo se c'è un'immagine di sfondo */
+.img[data-name="bgImage"]:not(.has) + .bg-fx, .bg-grp:has(.img[data-name="bgImage"]:not(.has)) .check:has([name=parallax]) { display: none; }
 #save-top { background: #f4f0e8; color: #1a1a1a; border-color: #f4f0e8; font-weight: 600; }
 #undo, #redo { background: #f4f0e8; color: #1a1a1a; border-color: #f4f0e8; padding-inline: 0.6rem; }
 #undo:disabled, #redo:disabled { opacity: 0.4; }

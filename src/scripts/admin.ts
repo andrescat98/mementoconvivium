@@ -515,7 +515,16 @@ if (form) {
         $<HTMLButtonElement>(`[data-add=${kind}]`, kind === "date" ? form! : el).click();
     }
     // ── modelli di blocco: JSON di readBlock salvato nelle impostazioni (si salva con Salva), nella palette "＋" sotto "Modelli"
-    const modelli = (): { name: string; block: Data }[] => edits.modelli ?? settings.modelli ?? [];
+    const modelli = (): { name: string; block: Data }[] => settings.modelli ?? [];
+    // come gli stili salvati: si salvano subito e soli, senza toccare le altre modifiche in corso
+    async function putModelli(m: { name: string; block: Data }[]) {
+        const { error } = await actions.saveSettings({ settings: { ...settings, modelli: m }, author: author() } as any);
+        if (error) return say(error.message, true), false;
+        settings.modelli = m;
+        sHist = undefined;
+        paintModelli(liveDoc()!);
+        return true;
+    }
     function paintModelli(doc: Document) {
         const m = modelli();
         for (const pal of doc.querySelectorAll(".ed-pal")) {
@@ -526,15 +535,12 @@ if (form) {
                 `<button type="button" data-modrm="${i}" title="Elimina il modello">✕</button></span>`).join("")}</div>`);
         }
     }
-    function saveModello(el: HTMLElement) {
+    async function saveModello(el: HTMLElement) {
         if (el.dataset.type === "sezione") return say("Le sezioni fisse del sito non si salvano come modello.", true);
         const name = prompt("Nome del modello", $(".block-name", el).textContent!.split(" · ")[0])?.trim().slice(0, 40);
         if (!name) return;
         const block = JSON.parse(JSON.stringify({ ...readBlock(el), hidden: undefined }));
-        edits.modelli = [...modelli().filter((x) => x.name !== name), { name, block }];
-        setDirty(true);
-        paintModelli(liveDoc()!);
-        say(`Modello "${name}" pronto nel ＋ di ogni evento e pagina: si salva con Salva.`);
+        if (await putModelli([...modelli().filter((x) => x.name !== name), { name, block }])) say(`Modello "${name}" salvato ✓: lo trovi nel ＋ di ogni evento e pagina.`);
     }
 
     // ── modifica diretta nell'anteprima (come in un editor di testo): titoli e testi si scrivono lì,
@@ -756,11 +762,7 @@ if (form) {
             const add = t.closest<HTMLElement>("[data-add]");
             if (t.closest("[data-modrm]")) {
                 const i = Number(t.closest<HTMLElement>("[data-modrm]")!.dataset.modrm);
-                if (confirm(`Eliminare il modello "${modelli()[i].name}"?`)) {
-                    edits.modelli = modelli().filter((_, j) => j !== i);
-                    setDirty(true);
-                    paintModelli(doc);
-                }
+                if (confirm(`Eliminare il modello "${modelli()[i].name}"?`)) putModelli(modelli().filter((_, j) => j !== i));
                 return;
             }
             if (act?.dataset.act === "grip") return;
@@ -2335,6 +2337,7 @@ if (form) {
     };
     addEventListener("hashchange", fromHash);
     renderList();
+    renderPages();
     renderTrash();
     fromHash();
 }
