@@ -106,6 +106,25 @@ export function imgStyle(i?: Img, defY = 50) {
   return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%` + (z > 1 ? `;transform:scale(${z})` : "");
 }
 
+/** Effetti sull'immagine di sfondo (schema.ts bgObj): sfumatura dei bordi, margine, angoli, sfocatura, filtri colore. Si aggiunge a imgStyle. */
+export function imgFx(b: Bg) {
+  const n = b.fadeW ?? 25, o = 100 - n;
+  const dir = { alto: "bottom", basso: "top", sinistra: "right", destra: "left" } as const;
+  const mask = !b.fade ? "" : b.fade === "tutti" ? `radial-gradient(ellipse closest-side,#000 ${o}%,transparent)`
+    : b.fade === "alto-basso" ? `linear-gradient(to bottom,transparent,#000 ${n}%,#000 ${o}%,transparent)`
+    : `linear-gradient(to ${dir[b.fade]},transparent,#000 ${n}%)`;
+  const filter = [b.blur && `blur(${b.blur}px)`, b.gray && `grayscale(${b.gray}%)`, b.sepia && `sepia(${b.sepia}%)`,
+    b.bright && b.bright !== 100 && `brightness(${b.bright}%)`, b.contrast && b.contrast !== 100 && `contrast(${b.contrast}%)`,
+    b.sat !== undefined && b.sat !== 100 && `saturate(${b.sat}%)`].filter(Boolean).join(" ");
+  return [
+    b.fit && "object-fit:contain",
+    b.inset && `inset:${b.inset}%;width:${100 - 2 * b.inset}%;height:${100 - 2 * b.inset}%`,
+    b.radius && `border-radius:${b.radius}px`,
+    mask && `-webkit-mask-image:${mask};mask-image:${mask}`,
+    filter && `filter:${filter}`,
+  ].filter(Boolean).join(";");
+}
+
 /** Vecchia scheda evento a modello unico ({template, body, …}) → scheda con un blocco (schema.ts, db.ts, admin). */
 export function upgradeTab(t: any) {
   if (!t?.template) return t;

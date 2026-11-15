@@ -1,6 +1,6 @@
 // Logica di /admin (vanilla, nessun framework). Markup e <template> in src/pages/admin.astro.
 import { actions, isInputError } from "astro:actions";
-import { BASE_FONTS, BLOCK_TEXT, dateLabel, upgradeTab, googleFontsHref, imgStyle, look, md, nextDate, slugify, STATUS_TEXT, today, veil, type Img } from "../lib/format";
+import { BASE_FONTS, BLOCK_TEXT, dateLabel, upgradeTab, googleFontsHref, imgFx, imgStyle, look, md, nextDate, slugify, STATUS_TEXT, today, veil, type Img } from "../lib/format";
 import type { Version } from "../lib/db";
 import type { Bg, Evento } from "../lib/schema";
 
@@ -791,6 +791,8 @@ if (form) {
     }
     $<HTMLButtonElement>("#menu").onclick = () => adminEl.classList.toggle("nav-open");
 
+    // cursori degli effetti sull'immagine: [nome, unità, valore neutro]
+    const FXN: [string, string, number][] = [["fadeW", "%", 25], ["inset", "%", 0], ["radius", "px", 0], ["blur", "px", 0], ["gray", "%", 0], ["sepia", "%", 0], ["bright", "%", 100], ["contrast", "%", 100], ["sat", "%", 100]];
     // ── stile di una sezione (riquadro .bg): sfondo, testo, titoli, spaziatura, animazione, effetto, stili salvati
     function initBg(box: HTMLElement, b: Data = {}) {
         box.replaceChildren($<HTMLTemplateElement>("#tpl-bg").content.cloneNode(true));
@@ -805,14 +807,16 @@ if (form) {
         for (const r of $$("input[type=range]", box)) showRange(r);
         $("[name=dark]", box).checked = !!b.dark;
         $("[name=parallax]", box).checked = !!b.parallax;
-        for (const k of ["font", "size", "pad", "vpos", "align", "w", "lh", "fs", "anim", "fx"]) $(`[name=${k}]`, box).value = String(b[k] ?? "");
+        for (const [k, , d] of FXN) $(`[name=${k}]`, box).value = String(b[k] ?? d);
+        for (const k of ["font", "size", "pad", "vpos", "align", "w", "lh", "fs", "anim", "fx", "fit", "fade"]) $(`[name=${k}]`, box).value = String(b[k] ?? "");
         $("[name=preset]", box).append(...(settings.stili ?? []).map((s: Data) => new Option(s.name, s.name)));
         initImg($<HTMLElement>(".img", box), b.image);
     }
     // valore accanto ai cursori: velo in %, altezza in % dello schermo, larghezza immagine in % (0 = automatica)
     const showRange = (r: HTMLInputElement) =>
-        (r.previousElementSibling!.textContent =
-            r.name === "bgVeil" || r.name === "op" ? `${r.value}%` : r.value === "0" ? "automatica" : `${r.value}%${r.name === "height" ? " dello schermo" : ""}`);
+        (r.previousElementSibling!.textContent = FXN.find(([k]) => k === r.name)
+            ? `${r.value}${FXN.find(([k]) => k === r.name)![1]}`
+            : r.name === "bgVeil" || r.name === "op" ? `${r.value}%` : r.value === "0" ? "automatica" : `${r.value}%${r.name === "height" ? " dello schermo" : ""}`);
     function readBg(box: Element) {
         const v = (k: string) => $(`[name=${k}]`, box).value.trim() || undefined;
         const on = (k: string) => $(`[name=${k}]`, box).checked || undefined;
@@ -823,6 +827,7 @@ if (form) {
             pad: v("pad"), height: Number(v("height")) || undefined, vpos: v("vpos"),
             align: v("align"), w: v("w"), lh: v("lh") && Number(v("lh")), fs: v("fs") && Number(v("fs")),
             anim: v("anim"), fx: v("fx"),
+            fit: v("fit"), fade: v("fade"), ...Object.fromEntries(FXN.map(([k, , d]) => [k, v(k) && Number(v(k)) !== d ? Number(v(k)) : undefined])),
         };
         return Object.values(b).some(Boolean) ? b : undefined;
     }
@@ -1626,7 +1631,7 @@ if (form) {
             d.ariaHidden = "true";
             if (b.color) d.style.background = b.color;
             if (b.op !== undefined) d.style.opacity = String(b.op / 100);
-            if (b.image) d.append(Object.assign(doc.createElement("img"), { src: b.image.src, alt: "", style: imgStyle(b.image) }));
+            if (b.image) d.append(Object.assign(doc.createElement("img"), { src: b.image.src, alt: "", style: [imgStyle(b.image), imgFx(b as Bg)].filter(Boolean).join(";") }));
             if (b.veil) d.append(Object.assign(doc.createElement("span"), { style: `background:${veil(b as Bg)}` }));
             el.prepend(d);
         }
