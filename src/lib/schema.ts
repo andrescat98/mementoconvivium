@@ -38,6 +38,7 @@ export const bgObj = z.object({
   w: z.enum(["minima", "stretta", "media", "larga", "piena"]).optional(), // larghezza del contenuto
   lh: z.number().min(1).max(3).optional(), // interlinea
   fs: z.number().min(0.6).max(2).optional(), // grandezza del testo
+  ps: z.enum(["nessuna", "stretta", "ampia"]).optional(), // spazio tra i paragrafi (margin)
   anim: z.enum(ANIMS).optional(),
   fx: z.enum(FX).optional(),
   deco: z.enum(DECOS).optional(),

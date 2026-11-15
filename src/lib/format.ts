@@ -139,14 +139,14 @@ export function look(b?: Bg) {
   return {
     "data-anim": b?.anim, "data-fx": b?.fx, "data-deco": b?.deco, "data-pad": b?.pad,
     "data-font": flag(b?.font), "data-size": flag(b?.size), "data-h": flag(b?.height), "data-vpos": b?.vpos, "data-align": b?.align, "data-w": b?.w,
-    "data-lh": flag(b?.lh), "data-fs": flag(b?.fs), "data-parallax": flag(b?.parallax && b.image),
+    "data-lh": flag(b?.lh), "data-fs": flag(b?.fs), "data-ps": b?.ps, "data-parallax": flag(b?.parallax && b.image),
     style: vars.join(";") || undefined,
   };
 }
 
 /** Stile di ogni scheda evento: parte da quello dell'intestazione (colori, testo, impaginazione; non opacità, velo, immagine,
  * altezza, spazi e animazione), poi lo stile predefinito delle schede, poi quello della scheda. */
-const EREDITA = ["color", "dark", "text", "font", "size", "align", "w", "lh", "fs", "fx", "deco"] as const;
+const EREDITA = ["color", "dark", "text", "font", "size", "align", "w", "lh", "fs", "ps", "fx", "deco"] as const;
 export function tabLooks(d: { heroStyle?: Bg; background?: Bg; tabs: { background?: Bg }[] }): (Bg | undefined)[] {
   const base = Object.fromEntries(EREDITA.filter((k) => d.heroStyle?.[k] !== undefined).map((k) => [k, d.heroStyle![k]]));
   return d.tabs.map((t) => {

@@ -904,7 +904,7 @@ if (form) {
         for (const r of $$("input[type=range]", box)) showRange(r);
         $("[name=dark]", box).checked = !!b.dark;
         $("[name=parallax]", box).checked = !!b.parallax;
-        for (const k of ["font", "size", "pad", "vpos", "align", "w", "lh", "fs", "anim", "fx", "deco"]) $(`[name=${k}]`, box).value = String(b[k] ?? "");
+        for (const k of ["font", "size", "pad", "vpos", "align", "w", "lh", "fs", "ps", "anim", "fx", "deco"]) $(`[name=${k}]`, box).value = String(b[k] ?? "");
         $("[name=preset]", box).append(...(settings.stili ?? []).map((s: Data) => new Option(s.name, s.name)));
         initImg($<HTMLElement>(".img", box), b.image);
     }
@@ -920,7 +920,7 @@ if (form) {
             veil: Number(v("bgVeil")) || undefined, op: v("op") === "100" ? undefined : Number(v("op")), dark: on("dark"), parallax: on("parallax"),
             text: on("textOn") && v("textColor"), font: v("font"), size: v("size") && Number(v("size")),
             pad: v("pad"), height: Number(v("height")) || undefined, vpos: v("vpos"),
-            align: v("align"), w: v("w"), lh: v("lh") && Number(v("lh")), fs: v("fs") && Number(v("fs")),
+            align: v("align"), w: v("w"), lh: v("lh") && Number(v("lh")), fs: v("fs") && Number(v("fs")), ps: v("ps"),
             anim: v("anim"), fx: v("fx"), deco: v("deco"),
         };
         return Object.values(b).some(Boolean) ? b : undefined;

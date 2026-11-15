@@ -644,6 +644,12 @@ a {
 [data-lh] :is(p, li, .ev-prose) {
     line-height: var(--sez-lh);
 }
+/* spazio tra i paragrafi (stile bgObj.ps), come "Spaziatura dopo" di Word */
+[data-ps] .ev-prose > :is(p, ul, ol, blockquote) { margin-bottom: var(--ps); }
+[data-ps] .ev-prose li + li { margin-top: var(--ps-li); }
+[data-ps="nessuna"] { --ps: 0; --ps-li: 0; }
+[data-ps="stretta"] { --ps: 0.5rem; --ps-li: 0.1rem; }
+[data-ps="ampia"] { --ps: 2.4rem; --ps-li: 0.8rem; }
 [data-fs] :is(p, li, .ev-prose) {
     font-size: calc(1.1rem * var(--sez-fs));
 }

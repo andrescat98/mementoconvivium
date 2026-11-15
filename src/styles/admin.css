@@ -313,13 +313,13 @@ form:not(:has(.sel)) :is(.tab-ed, .block-ed) > .grid { display: none; }
 form:not(:has(.sel)) :is(.tab-ed, .block-ed)[open] > summary { border-bottom: 0; background: none; }
 #live { display: grid; gap: 0.5rem; align-content: start; }
 .live-bar { display: flex; gap: 0.5rem 1rem; align-items: center; flex-wrap: wrap; justify-content: space-between; }
-/* barra di formattazione in alto: sottile, una riga; spenta finché non si clicca un testo */
-.ribbon { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; min-width: 0; opacity: 0.45; transition: opacity 0.2s; }
+/* barra di formattazione in alto, come la barra di Word: tutta la larghezza, va a capo se serve; spenta finché non si clicca un testo */
+.ribbon { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: 1 1 100%; min-width: 0; padding: 0.35rem 0.5rem; border: 1px solid var(--line); border-radius: 6px; background: #faf8f4; opacity: 0.45; transition: opacity 0.2s; }
 .ribbon.on { opacity: 1; }
-.ribbon button, .ribbon select, .rb-color { height: 28px; padding: 0 0.5rem; border: 1px solid transparent; border-radius: 4px; background: transparent; font-size: 0.85rem; line-height: 1; }
+.ribbon button, .ribbon select, .rb-color { height: 34px; padding: 0 0.6rem; border: 1px solid transparent; border-radius: 4px; background: transparent; font-size: 0.95rem; line-height: 1; }
 .ribbon select { width: auto; padding-right: 0.25rem; }
 .ribbon button:hover, .ribbon select:hover, .rb-color:hover { border-color: var(--line); background: #fff; }
-.ribbon .sep { width: 1px; height: 20px; margin: 0 0.3rem; background: var(--line); }
+.ribbon .sep { width: 1px; height: 26px; margin: 0 0.4rem; background: var(--line); }
 .rb-color { display: inline-flex; align-items: center; gap: 0.2rem; cursor: pointer; color: var(--ink); font-weight: 700; }
 .rb-color input { width: 1.2rem; height: 1.2rem; padding: 0; border: 0; background: none; }
 /* nei blocchi il testo si formatta dalla barra in alto: a sinistra non si ripete */

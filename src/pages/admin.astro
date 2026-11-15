@@ -30,6 +30,7 @@ const PAD_TEXT: Record<string, string> = { compatta: "Compatto (poco padding)", 
 const LAYOUT_TEXT: Record<string, string> = { destra: "Testo a sinistra, date a destra", sinistra: "Date a sinistra, testo a destra", sotto: "Date in una fascia sotto il testo", centro: "Tutto centrato" };
 const ALIGNS = [["sinistra", "A sinistra"], ["centro", "Al centro"], ["destra", "A destra"], ["giustificato", "Giustificato"]];
 const FS = [["0.85", "Piccolo (0,85×)"], ["1.15", "Grande (1,15×)"], ["1.35", "Molto grande (1,35×)"]];
+const PS = [["nessuna", "Nessuno (righe attaccate)"], ["stretta", "Stretto"], ["ampia", "Ampio"]];
 const LH = [["1.3", "Stretta"], ["1.6", "Media"], ["2", "Ariosa"], ["2.4", "Molto ariosa"]];
 const WIDTHS = [["minima", "Minima (560 px)"], ["stretta", "Stretta, da lettura (760 px)"], ["media", "Media (960 px)"], ["larga", "Larga (1500 px)"], ["piena", "Tutto lo schermo"]];
 const AR_TEXT: Record<string, string> = { quadrata: "Quadrata", orizzontale: "Orizzontale 3:2", panoramica: "Panoramica 16:9", originale: "Intera, non ritagliata" };
@@ -369,6 +370,8 @@ const fontsHref =
                     <button type="button" data-cmd="align:destra" title="Allinea a destra">⇥</button>
                     <button type="button" data-cmd="align:giustificato" title="Giustifica">☰</button>
                     <select name="lh" aria-label="Interlinea"><option value="">Interlinea ▾</option><option value="0">Normale</option>{LH.map(([v, l]) => <option value={v}>{l}</option>)}</select>
+                    <select name="ps" aria-label="Spazio tra i paragrafi"><option value="">Spazio paragrafi ▾</option><option value="0">Normale</option>{PS.map(([v, l]) => <option value={v}>{l}</option>)}</select>
+                    <button type="button" data-cmd="insertLineBreak" title="A capo nello stesso paragrafo, senza spazio (Maiusc+Invio)">↵ A capo</button>
                     <i class="sep"></i>
                     <button type="button" data-cmd="link" title="Link">🔗</button>
                     <button type="button" data-cmd="img" title="Foto nel punto del cursore">🖼</button>
@@ -636,6 +639,7 @@ const fontsHref =
                 <label>Allineamento del testo<select name="align"><option value="">Predefinito</option>{ALIGNS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
                 <label>Dimensione testo<select name="fs"><option value="">Normale</option>{FS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
                 <label>Interlinea (line-height)<select name="lh"><option value="">Normale</option>{LH.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+                <label>Spazio tra i paragrafi (margin)<select name="ps"><option value="">Normale</option>{PS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
             </div>
         </details>
         <details class="bg-grp bg-sez">
