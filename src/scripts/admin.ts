@@ -750,7 +750,9 @@ if (form) {
             e.preventDefault();
             const files = images(e.clipboardData?.files);
             if (files.length && el.dataset.field === "bBody") return insertImgs(el, doc.getSelection()?.rangeCount ? doc.getSelection()!.getRangeAt(0) : null, files);
-            doc.execCommand("insertText", false, e.clipboardData?.getData("text/plain") ?? ""); // niente formattazione copiata da Word
+            const text = e.clipboardData?.getData("text/plain") ?? "";
+            if (el.dataset.field === "bBody" && looksMd(text)) return pasteMd(doc, text), sync(el);
+            doc.execCommand("insertText", false, text); // niente formattazione copiata da Word
         });
         doc.addEventListener("dragover", (e) => {
             if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
@@ -798,7 +800,17 @@ if (form) {
         textEd = el;
         textRange = undefined;
         ribbon.classList.toggle("on", !!el);
+        // le scelte dello stile del blocco si vedono nella barra, come in Word
+        const box = el?.dataset.key ? bgOf(el.dataset.key) : undefined;
+        for (const sel of $$<HTMLSelectElement>("select:not([name=block])", ribbon))
+            sel.value = box?.querySelector<HTMLSelectElement>(`[name=${sel.name}]`)?.value ?? "";
     }
+    // Markdown incollato o importato → HTML nel punto del cursore ("# " diventa titolo di sezione, "#### " sottotitolo)
+    function pasteMd(doc: Document, text: string) {
+        const src = text.replace(/\r/g, "").replace(/^#{4,6} /gm, "### ").replace(/^# /gm, "## ").replace(/^\+ /gm, "- ");
+        doc.execCommand("insertHTML", false, md(src));
+    }
+    const looksMd = (t: string) => /^(#{1,6} |[-*+] |\d+\. |> |---$)|\*\*.+\*\*|__.+__|~~.+~~|\[.+\]\(https?:/m.test(t);
     // torna nel testo con la sua selezione (cliccando la barra il fuoco esce dall'anteprima)
     function backToText() {
         if (!textEd?.isConnected) return say("Clicca prima in un testo dell'anteprima.", true), false;
@@ -834,6 +846,19 @@ if (form) {
             inp.onchange = () => textEd && insertImgs(textEd, range, images(inp.files));
             return inp.click();
         }
+        if (cmd === "mdfile") {
+            const ed = textEd!, range = textRange;
+            if (ed.dataset.field !== "bBody") return say("Il Markdown va in un testo di blocco.", true);
+            const inp = Object.assign(document.createElement("input"), { type: "file", accept: ".md,.markdown,.txt,text/markdown,text/plain" });
+            inp.onchange = async () => {
+                const text = await inp.files?.[0]?.text();
+                if (!text) return;
+                textEd = ed;
+                textRange = range;
+                if (backToText()) pasteMd(doc, text), sync(ed);
+            };
+            return inp.click();
+        }
         if (cmd === "link") {
             const url = prompt("Indirizzo del link (https://…)", "https://");
             if (!url || !/^https?:\/\/\S+$/.test(url) || !backToText()) return;
@@ -847,7 +872,7 @@ if (form) {
     ribbon.addEventListener("change", (e) => {
         const t = e.target as HTMLInputElement;
         const v = t.value;
-        if (t.tagName === "SELECT") t.value = ""; // menu d'azione: torna all'etichetta
+        if (t.name === "block") t.value = ""; // menu d'azione: torna all'etichetta
         if (!v || !backToText()) return;
         if (t.name === "block") {
             liveDoc()!.execCommand("formatBlock", false, v);

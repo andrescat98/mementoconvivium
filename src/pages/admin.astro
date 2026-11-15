@@ -29,12 +29,13 @@ const SEO_PAGES = [["/", "Home"], ["/lista-eventi", "Lista eventi"], ["/contatti
 const PAD_TEXT: Record<string, string> = { compatta: "Compatto (poco padding)", ariosa: "Ampio (molto padding)", schermo: "Una schermata intera (100svh)" };
 const LAYOUT_TEXT: Record<string, string> = { destra: "Testo a sinistra, date a destra", sinistra: "Date a sinistra, testo a destra", sotto: "Date in una fascia sotto il testo", centro: "Tutto centrato" };
 const ALIGNS = [["sinistra", "A sinistra"], ["centro", "Al centro"], ["destra", "A destra"], ["giustificato", "Giustificato"]];
-const FS = [["0.85", "Piccolo (0,85×)"], ["1.15", "Grande (1,15×)"], ["1.35", "Molto grande (1,35×)"]];
+// grandezza del testo in px come in Word: fattore su 17,6 px (1,1rem); 15, 20 e 24 tengono i vecchi valori 0,85/1,15/1,35
+const FS = [[11, 0.63], [12, 0.68], [13, 0.74], [14, 0.8], [15, 0.85], [16, 0.91], [19, 1.08], [20, 1.15], [22, 1.25], [24, 1.35], [26, 1.48], [28, 1.6], [32, 1.82], [35, 2]].map(([px, f]) => [String(f), `${px} px`]);
 const PS = [["nessuna", "Nessuno (righe attaccate)"], ["stretta", "Stretto"], ["ampia", "Ampio"]];
 const LH = [["1.3", "Stretta"], ["1.6", "Media"], ["2", "Ariosa"], ["2.4", "Molto ariosa"]];
 const WIDTHS = [["minima", "Minima (560 px)"], ["stretta", "Stretta, da lettura (760 px)"], ["media", "Media (960 px)"], ["larga", "Larga (1500 px)"], ["piena", "Tutto lo schermo"]];
 const AR_TEXT: Record<string, string> = { quadrata: "Quadrata", orizzontale: "Orizzontale 3:2", panoramica: "Panoramica 16:9", originale: "Intera, non ritagliata" };
-const SIZES = [["0.8", "Piccoli (0,8×)"], ["1.2", "Grandi (1,2×)"], ["1.45", "Enormi (1,45×)"]];
+const SIZES = [0.6, 0.7, 0.8, 0.9, 1.1, 1.2, 1.3, 1.45, 1.6, 1.8].map((f) => [String(f), `${Math.round(f * 100)}%`]);
 const SHOW_TEXT: Record<string, string> = { prossimi: "Prossimi", tutti: "Tutti", passati: "Già fatti" };
 // home, pagine nuove ed eventi si scrivono nel loro editor (anteprima dal vivo): qui solo le pagine fisse
 const PAGES = [["/lista-eventi", "Lista eventi"], ["/contatti", "Contatti"]];
@@ -353,8 +354,8 @@ const fontsHref =
                     <select name="block" aria-label="Stile del paragrafo"><option value="">Stile ▾</option><option value="p">Normale</option><option value="h3">Titolo di sezione</option><option value="h4">Sottotitolo</option><option value="blockquote">Citazione</option></select>
                     <i class="sep"></i>
                     <button type="button" data-cmd="font" title="Font dei titoli del blocco">Font…</button>
-                    <select name="size" aria-label="Grandezza dei titoli"><option value="">Titoli ▾</option><option value="0">Normali</option>{SIZES.map(([v, l]) => <option value={v}>{l}</option>)}</select>
-                    <select name="fs" aria-label="Grandezza del testo"><option value="">Testo ▾</option><option value="0">Normale</option>{FS.map(([v, l]) => <option value={v}>{l}</option>)}</select>
+                    <select name="size" aria-label="Grandezza dei titoli"><option value="">Titoli ▾</option><option value="0">100% (normali)</option>{SIZES.map(([v, l]) => <option value={v}>{l}</option>)}</select>
+                    <select name="fs" aria-label="Grandezza del testo"><option value="">Testo px ▾</option><option value="0">17,6 px (normale)</option>{FS.map(([v, l]) => <option value={v}>{l}</option>)}</select>
                     <i class="sep"></i>
                     <button type="button" data-cmd="bold" title="Grassetto (Ctrl+B)"><b>G</b></button>
                     <button type="button" data-cmd="italic" title="Corsivo (Ctrl+I)"><i>C</i></button>
@@ -376,6 +377,7 @@ const fontsHref =
                     <button type="button" data-cmd="link" title="Link">🔗</button>
                     <button type="button" data-cmd="img" title="Foto nel punto del cursore">🖼</button>
                     <button type="button" data-cmd="insertHorizontalRule" title="Linea di separazione">―</button>
+                    <button type="button" data-cmd="mdfile" title="Inserisci un file Markdown (.md) nel punto del cursore; il testo Markdown incollato si formatta da solo">⇩ Markdown</button>
                     <button type="button" data-cmd="clean" title="Togli la formattazione dal testo selezionato">⌫ Pulisci</button>
                 </div>
                 <label class="check"><input type="checkbox" id="live-phone" /> 📱 Telefono</label>
