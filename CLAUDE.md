@@ -3,7 +3,7 @@
 Astro 7 SSR su Cloudflare Worker (`@astrojs/cloudflare` 14) + Turso. Italiano in UI, commenti e docs. Dettagli: README.md.
 
 - `src/lib/schema.ts` — zod `eventoSchema` (schede `tabs` = titolo + `blocks`), `blockSchema` (blocchi di schede, home e pagine), `bgObj` (stile: sfondo, testo, font, animazione, effetto), `pageSchema`, `settingsSchema` (+ `home`, `pagine`, `sezioni`, `stili`) + `DEFAULT_SETTINGS`
-- `src/lib/db.ts` — client libSQL web, eventi/versioni/immagini/impostazioni (`getSettings` in cache 60 s, cronologia in `settings_versions`), `normalize()` converte i vecchi eventi con `body` in schede, GC immagini orfane
+- `src/lib/db.ts` — client libSQL web, eventi/versioni/immagini/impostazioni (`getSettings` in cache 60 s, cronologia in `settings_versions`), `normalize()` converte i vecchi eventi con `body` in schede, GC immagini orfane, `listImages`/`moveImages` per la libreria foto di /admin (foto DB + statiche `public/ritratti/*/*.webp` via `import.meta.glob`, mai cancellabili; cartelle derivate = eventi/Sito/Non usate, cartelle proprie nella tabella `media_folders` creata al volo, fuori dal GC)
 - `src/lib/format.ts` — `dateLabel`, `today`, `nextDate`, `bookCta`, `md` (paragrafi, ## titoli, elenchi, citazioni, ---, sottolineato, barrato, foto), `imgStyle` (inquadratura), `look`/`veil` (attributi dello stile), `videoEmbed`, `upgradeTab`, `googleFontsHref`, `slugify`, `bookHref`, `BLOCK_TEXT` + `format.test.ts`
 - `src/lib/fonts.ts` — font Google del selettore in /admin
 - `src/lib/auth.ts` — cookie HMAC firmato con `ADMIN_PASSWORD`
