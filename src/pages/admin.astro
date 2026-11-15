@@ -362,10 +362,11 @@ const fontsHref =
                     <button type="button" data-cmd="insertUnorderedList" title="Elenco puntato">• Elenco</button>
                     <button type="button" data-cmd="insertOrderedList" title="Elenco numerato">1. Elenco</button>
                     <i class="sep"></i>
-                    <button type="button" data-cmd="align:sinistra" title="Allinea a sinistra">⇤</button>
-                    <button type="button" data-cmd="align:centro" title="Centra">↔</button>
-                    <button type="button" data-cmd="align:destra" title="Allinea a destra">⇥</button>
-                    <button type="button" data-cmd="align:giustificato" title="Giustifica">☰</button>
+                    <button type="button" data-cmd="align:sinistra" title="Allinea il paragrafo a sinistra">⇤</button>
+                    <button type="button" data-cmd="align:centro" title="Centra il paragrafo">↔</button>
+                    <button type="button" data-cmd="align:destra" title="Allinea il paragrafo a destra">⇥</button>
+                    <button type="button" data-cmd="align:giustificato" title="Giustifica il paragrafo">☰</button>
+                    <select name="align" aria-label="Allinea tutto il blocco"><option value="">Blocco ▾</option><option value="0">Tutto: normale</option>{ALIGNS.map(([v, l]) => <option value={v}>Tutto: {l.toLowerCase()}</option>)}</select>
                     <select name="lh" aria-label="Interlinea"><option value="">Interlinea ▾</option><option value="0">Normale</option>{LH.map(([v, l]) => <option value={v}>{l}</option>)}</select>
                     <select name="ps" aria-label="Spazio tra i paragrafi"><option value="">Spazio paragrafi ▾</option><option value="0">Normale</option>{PS.map(([v, l]) => <option value={v}>{l}</option>)}</select>
                     <button type="button" data-cmd="insertLineBreak" title="A capo nello stesso paragrafo, senza spazio (Maiusc+Invio)">↵ A capo</button>

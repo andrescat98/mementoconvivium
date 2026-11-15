@@ -217,6 +217,7 @@ export const settingsSchema = z.object({
   // Google e anteprime social delle pagine fisse, per percorso ("/", "/lista-eventi"…)
   seo: z.record(z.string().regex(/^\/[a-z-]*$/), z.object({ title: opt, description: opt, image: img })).default({}),
   analyticsToken: z.union([z.string().regex(/^[0-9a-f]{32}$/, "token di 32 caratteri"), z.literal("").transform(() => undefined)]).optional(), // Cloudflare Web Analytics
+  modelli: z.array(z.object({ name: z.string().trim().min(1).max(40), block: blockSchema })).default([]), // blocchi salvati come modello: palette "＋" dell'editor
   home: z.array(blockSchema).default(DEFAULT_HOME),
   pagine: z.array(pageSchema).default([]),
 
@@ -238,6 +239,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sezioni: {},
   sfondoPagine: {},
   stili: [],
+  modelli: [],
   banner: {},
   seo: {},
   home: DEFAULT_HOME,

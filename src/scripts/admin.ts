@@ -460,16 +460,43 @@ if (form) {
         el.closest("form")?.scrollTo({ top: 0 }); // in cima: si vede il percorso
     }
     // "＋" dell'anteprima: nuova scheda, o blocco del tipo scelto in quel punto (data-where/data-at, vedi anteprima.astro)
+    // lista dei blocchi di una scheda ("t0") o della pagina ("")
+    function listFor(where: string) {
+        const tab = where && $$<HTMLElement>("#tabs > .tab-ed", form!)[Number(where.slice(1))];
+        return tab ? $(":scope > .grid > .blocks-wrap > .blocks", tab) : $(".blocks", pageForm);
+    }
+    // sposta un blocco ("t0.2", "2") in una lista, prima della posizione `at`; una scheda prima della scheda `at`
+    function moveBlock(key: string, where: string, at: number) {
+        const el = edEl(key);
+        if (!el) return;
+        const list = listFor(where);
+        const old = el.closest<HTMLElement>(".tab-ed");
+        const ref = list.children[at];
+        if (ref !== el) list.insertBefore(el, ref ?? null);
+        markBlock(el);
+        if (old) markTab(old);
+        setDirty(true);
+        pick(keyOf(el));
+    }
+    function moveTab(from: number, at: number) {
+        const tabs = $$<HTMLElement>("#tabs > .tab-ed", form!);
+        if (tabs[at] !== tabs[from]) $("#tabs", form!).insertBefore(tabs[from], tabs[at] ?? null);
+        setDirty(true);
+        pick(keyOf(tabs[from]));
+    }
     function addFromLive(b: HTMLElement) {
         let el: HTMLElement;
         if (b.dataset.add === "tab") {
             el = addTab(structuredClone(PRESETS.testo), true);
         } else {
             const ins = b.closest<HTMLElement>(".ed-ins")!;
-            const where = ins.dataset.where!;
-            const tab = where && $$<HTMLElement>("#tabs > .tab-ed", form!)[Number(where.slice(1))];
-            const list = tab ? $(":scope > .grid > .blocks-wrap > .blocks", tab) : $(".blocks", pageForm);
-            el = newBlock(list, b.dataset.add!, list.children[Number(ins.dataset.at)]);
+            const list = listFor(ins.dataset.where!);
+            const before = list.children[Number(ins.dataset.at)];
+            if (b.dataset.model) {
+                el = addBlock(list, structuredClone(modelli()[Number(b.dataset.model)].block), true);
+                before?.before(el);
+                markBlock(el);
+            } else el = newBlock(list, b.dataset.add!, before);
         }
         setDirty(true);
         pick(keyOf(el));
@@ -487,10 +514,33 @@ if (form) {
         pick(key);
         $<HTMLButtonElement>(`[data-add=${kind}]`, kind === "date" ? form! : el).click();
     }
+    // ── modelli di blocco: JSON di readBlock salvato nelle impostazioni (si salva con Salva), nella palette "＋" sotto "Modelli"
+    const modelli = (): { name: string; block: Data }[] => edits.modelli ?? settings.modelli ?? [];
+    function paintModelli(doc: Document) {
+        const m = modelli();
+        for (const pal of doc.querySelectorAll(".ed-pal")) {
+            pal.querySelector(".ed-mod")?.remove();
+            if (!m.length) continue;
+            pal.insertAdjacentHTML("beforeend", `<div class="ed-mod"><b>Modelli</b>${m.map((x, i) =>
+                `<span><button type="button" data-add="x" data-model="${i}" title="Inserisci questo modello">${BLOCK_TEXT[x.block.type]?.[0] ?? ""} ${x.name.replace(/[<&]/g, "")}</button>` +
+                `<button type="button" data-modrm="${i}" title="Elimina il modello">✕</button></span>`).join("")}</div>`);
+        }
+    }
+    function saveModello(el: HTMLElement) {
+        if (el.dataset.type === "sezione") return say("Le sezioni fisse del sito non si salvano come modello.", true);
+        const name = prompt("Nome del modello", $(".block-name", el).textContent!.split(" · ")[0])?.trim().slice(0, 40);
+        if (!name) return;
+        const block = JSON.parse(JSON.stringify({ ...readBlock(el), hidden: undefined }));
+        edits.modelli = [...modelli().filter((x) => x.name !== name), { name, block }];
+        setDirty(true);
+        paintModelli(liveDoc()!);
+        say(`Modello "${name}" pronto nel ＋ di ogni evento e pagina: si salva con Salva.`);
+    }
+
     // ── modifica diretta nell'anteprima (come in un editor di testo): titoli e testi si scrivono lì,
     // le foto si trascinano o si incollano nel punto voluto; angolo dei blocchi: sposta, duplica, nascondi, togli, aggiungi;
     // bordo inferiore delle sezioni: si trascina per l'altezza. Ogni modifica finisce nei campi (nascosti) del form a sinistra.
-    const PAL_ACTS: [string, string, string][] = [["up", "↑", "Sposta su"], ["down", "↓", "Sposta giù"], ["dup", "⧉", "Duplica"], ["hide", "👁", "Nascondi"], ["rm", "✕", "Rimuovi"]];
+    const PAL_ACTS: [string, string, string][] = [["grip", "⠿", "Trascina per spostare il blocco"], ["up", "↑", "Sposta su"], ["down", "↓", "Sposta giù"], ["dup", "⧉", "Duplica"], ["tpl", "☆", "Salva come modello"], ["hide", "👁", "Nascondi"], ["rm", "✕", "Rimuovi"]];
     function decorate(doc: Document) {
         if (!doc.body || doc.body.dataset.dec) return;
         doc.body.dataset.dec = "1";
@@ -546,17 +596,19 @@ if (form) {
             const pal = doc.querySelector(`.ed-ins[data-where="${where}"] .ed-pal`)?.outerHTML ?? "";
             root.insertAdjacentHTML(
                 "beforeend",
-                `<div class="ed-tools" contenteditable="false">${PAL_ACTS.map(([a, t, h]) => `<button type="button" data-act="${a}" title="${h}">${t}</button>`).join("")}` +
+                `<div class="ed-tools" contenteditable="false">${PAL_ACTS.map(([a, t, h]) => `<button type="button" data-act="${a}" title="${h}"${a === "grip" ? " draggable=\"true\"" : ""}>${t}</button>`).join("")}` +
                     `<span class="ed-ins" data-where="${where}" data-at="${Number(at) + 1}"><span class="ed-plus" title="Aggiungi un blocco sotto">＋</span>${pal}</span></div>`,
             );
             if (!root.matches(".blocco-sezione, [data-sez]")) grip(root, key);
         }
+        paintModelli(doc);
         // testi del sito (Partecipa, footer, sezioni fisse) e stile delle sezioni fisse: come in "Testi e stili delle pagine"
         const cur = { ...settings, ...edits };
         for (const el of doc.querySelectorAll<HTMLElement>("[data-k]")) {
             if (cur[el.dataset.k!] !== undefined) el.textContent = cur[el.dataset.k!];
             el.contentEditable = "plaintext-only";
         }
+        doc.querySelectorAll<HTMLElement>("a.ev-tab[data-ed]").forEach((a) => (a.draggable = true));
         for (const el of doc.querySelectorAll<HTMLElement>("[data-sez]")) {
             if (edits.sezioni) paintSez(el, sezioni()[el.dataset.sez!]);
             const solo = view === "editor" && el.dataset.sez === "prenota" ? `<button type="button" data-noprenota>Nascondi in questo evento</button>` : "";
@@ -583,6 +635,8 @@ if (form) {
     function htmlToMd(root: Element) {
         const wrap = (m: string, s: string) => (s.trim() ? s.replace(s.trim(), m + s.trim() + m) : s);
         const one = (s: string) => s.replace(/\s*\n\s*/g, " ").trim(); // titoli e voci di elenco: una riga
+        // allineamento del paragrafo (style text-align del blocco) → prefisso {centro} di md()
+        const al = (e: Element) => { const a = ({ left: "sinistra", center: "centro", right: "destra", justify: "giustificato" } as Record<string, string>)[(e as HTMLElement).style?.textAlign]; return a ? `{${a}}` : ""; };
         const inl = (n: Node): string => {
             if (n.nodeType === Node.TEXT_NODE) return n.textContent!.replace(/\u00a0/g, " ");
             if (n.nodeType !== Node.ELEMENT_NODE) return "";
@@ -598,11 +652,11 @@ if (form) {
                 : /^(S|STRIKE|DEL)$/.test(t) ? wrap("~~", k)
                 : t === "A" ? `[${k}](${e.getAttribute("href")})`
                 : t === "IMG" ? (src.startsWith("/") ? `![${e.getAttribute("alt") ?? ""}](${src})` : "") // le foto ancora in caricamento no
-                : /^H[1-3]$/.test(t) ? `\n\n## ${one(k)}\n\n`
-                : /^H[4-6]$/.test(t) ? `\n\n### ${one(k)}\n\n`
-                : /^(UL|OL)$/.test(t) ? `\n\n${[...e.children].map((li, i) => `${t === "OL" ? `${i + 1}.` : "-"} ${one(inl(li).replace(/^\n+|\n+$/g, ""))}`).join("\n")}\n\n`
-                : t === "BLOCKQUOTE" ? `\n\n${one(k) && k.trim().split(/\n+/).map((l) => `> ${l.trim()}`).join("\n")}\n\n`
-                : /^(P|DIV|LI|H\d)$/.test(t) ? `\n\n${k}\n\n`
+                : /^H[1-3]$/.test(t) ? `\n\n${al(e)}## ${one(k)}\n\n`
+                : /^H[4-6]$/.test(t) ? `\n\n${al(e)}### ${one(k)}\n\n`
+                : /^(UL|OL)$/.test(t) ? `\n\n${al(e)}${[...e.children].map((li, i) => `${t === "OL" ? `${i + 1}.` : "-"} ${one(inl(li).replace(/^\n+|\n+$/g, ""))}`).join("\n")}\n\n`
+                : t === "BLOCKQUOTE" ? `\n\n${one(k) && al(e) + k.trim().split(/\n+/).map((l) => `> ${l.trim()}`).join("\n")}\n\n`
+                : /^(P|DIV|LI|H\d)$/.test(t) ? `\n\n${k.trim() && al(e)}${k}\n\n`
                 : k;
         };
         return inl(root).replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
@@ -700,6 +754,17 @@ if (form) {
             if (go) return void (location.hash = go.dataset.goto!);
             const act = t.closest<HTMLElement>("[data-act]");
             const add = t.closest<HTMLElement>("[data-add]");
+            if (t.closest("[data-modrm]")) {
+                const i = Number(t.closest<HTMLElement>("[data-modrm]")!.dataset.modrm);
+                if (confirm(`Eliminare il modello "${modelli()[i].name}"?`)) {
+                    edits.modelli = modelli().filter((_, j) => j !== i);
+                    setDirty(true);
+                    paintModelli(doc);
+                }
+                return;
+            }
+            if (act?.dataset.act === "grip") return;
+            if (act?.dataset.act === "tpl") return saveModello(edEl(act.closest<HTMLElement>("div[data-ed]")!.dataset.ed!)!);
             if (act) {
                 const el = edEl(act.closest<HTMLElement>("div[data-ed]")!.dataset.ed!);
                 el?.querySelector<HTMLButtonElement>(`:scope > summary [data-${act.dataset.act}]`)?.click();
@@ -781,6 +846,67 @@ if (form) {
         });
         doc.addEventListener("dragover", (e) => {
             if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
+        });
+        // riordino: i blocchi dalla maniglia ⠿ (su un altro blocco: sopra o sotto la sua metà; sul titolo di una scheda o sul ＋ finale: in fondo),
+        // le schede dal loro titolo nella barra. Poi lo stesso "sposta" del form e nuovo render.
+        let drag: { key: string; tab: boolean } | undefined;
+        let drop: { where: string; at: number } | undefined;
+        const clear = () => doc.querySelectorAll(".ed-d-b, .ed-d-a, .ed-d-l, .ed-d-r, .ed-d-t").forEach((x) => x.classList.remove("ed-d-b", "ed-d-a", "ed-d-l", "ed-d-r", "ed-d-t"));
+        doc.addEventListener("dragstart", (e) => {
+            const t = e.target as Element;
+            const g = t.closest<HTMLElement>("[data-act=grip]");
+            const tab = t.closest<HTMLElement>("a.ev-tab[data-ed]");
+            const el = g ? g.closest<HTMLElement>("div[data-ed]") : tab;
+            if (!el) return;
+            drag = { key: el.dataset.ed!, tab: !g };
+            e.dataTransfer!.effectAllowed = "move";
+            e.dataTransfer!.setData("text/plain", drag.key);
+            if (g) e.dataTransfer!.setDragImage(el.firstElementChild!, 16, 16);
+        });
+        doc.addEventListener("dragover", (e) => {
+            if (!drag) return;
+            const t = e.target as Element;
+            const side = (r: DOMRect, horiz: boolean) => (horiz ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2);
+            const tab = t.closest<HTMLElement>("a.ev-tab[data-ed]");
+            const blk = t.closest<HTMLElement>("div[data-ed]");
+            const end = t.closest<HTMLElement>(".ed-ins.end");
+            let hit: HTMLElement | null | undefined, cls = "";
+            drop = undefined;
+            if (drag.tab) {
+                if (!tab) return clear();
+                const after = side(tab.getBoundingClientRect(), true);
+                drop = { where: "", at: Number(tab.dataset.ed!.slice(1)) + (after ? 1 : 0) };
+                [hit, cls] = [tab, after ? "ed-d-r" : "ed-d-l"];
+            } else if (tab) {
+                drop = { where: tab.dataset.ed!, at: $$(".block-ed", edEl(tab.dataset.ed!)!).length };
+                [hit, cls] = [tab, "ed-d-t"];
+            } else if (end) {
+                drop = { where: end.dataset.where!, at: Number(end.dataset.at) };
+                [hit, cls] = [end, "ed-d-t"];
+            } else if (blk && /^(t\d+\.)?\d+$/.test(blk.dataset.ed!)) {
+                const root = blk.firstElementChild!;
+                const after = side(root.getBoundingClientRect(), false);
+                const [, where = "", at] = blk.dataset.ed!.match(/^(?:(t\d+)\.)?(\d+)$/)!;
+                drop = { where, at: Number(at) + (after ? 1 : 0) };
+                [hit, cls] = [root as HTMLElement, after ? "ed-d-a" : "ed-d-b"];
+            }
+            clear();
+            if (!drop) return;
+            e.preventDefault();
+            hit!.classList.add(cls);
+        });
+        doc.addEventListener("dragend", () => {
+            drag = drop = undefined;
+            clear();
+        });
+        doc.addEventListener("drop", (e) => {
+            if (!drag || !drop) return;
+            e.preventDefault();
+            const { key, tab } = drag, { where, at } = drop;
+            drag = drop = undefined;
+            clear();
+            if (tab) moveTab(Number(key.slice(1)), at);
+            else moveBlock(key, where, at);
         });
         doc.addEventListener("drop", (e) => {
             const files = images(e.dataTransfer?.files);
@@ -864,7 +990,11 @@ if (form) {
         if (!cmd || !backToText()) return;
         const doc = liveDoc()!;
         if (cmd === "font") return openFonts(bgOf(textEd!.dataset.key!)!.querySelector<HTMLInputElement>("[name=font]")!);
-        if (cmd.startsWith("align:")) return textStyle("align", cmd.slice(6));
+        if (cmd.startsWith("align:")) {
+            // il cursore è nel testo: vale per il paragrafo (o i paragrafi selezionati); "Blocco ▾" allinea tutto il blocco
+            doc.execCommand(({ sinistra: "justifyLeft", centro: "justifyCenter", destra: "justifyRight", giustificato: "justifyFull" } as Record<string, string>)[cmd.slice(6)]);
+            return sync(textEd!);
+        }
         if (cmd === "img") {
             const range = textRange;
             const inp = Object.assign(document.createElement("input"), { type: "file", accept: "image/*", multiple: true });

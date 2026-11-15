@@ -203,6 +203,17 @@ const cards = [
     .ed-tools .ed-pal { left: auto; right: 0; top: 100%; transform: none; }
     .site-header .ed-tools { top: 50%; transform: translateY(-50%); }
     :is([data-sez], .site-footer) > .ed-tools { top: auto; bottom: 12px; } /* in alto finirebbero sotto l'header fisso */
+    /* riordino: segno dove cade il blocco o la scheda trascinati; modelli nella palette */
+    .ed-tools [data-act=grip] { cursor: grab; }
+    .ed-d-b { box-shadow: 0 -5px 0 #1f5fa8; }
+    .ed-d-a { box-shadow: 0 5px 0 #1f5fa8; }
+    .ed-d-l { box-shadow: -5px 0 0 #1f5fa8; }
+    .ed-d-r { box-shadow: 5px 0 0 #1f5fa8; }
+    .ed-d-t { outline: 3px solid #1f5fa8; }
+    .ed-pal .ed-mod { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; padding-top: 8px; border-top: 1px solid rgb(0 0 0 / 0.15); }
+    .ed-mod span { display: inline-flex; }
+    .ed-mod span button:first-child { border-radius: 6px 0 0 6px; }
+    .ed-mod span button:last-child { border-radius: 0 6px 6px 0; border-left: 0; padding: 6px 8px; }
     /* maniglia in basso: si trascina per l'altezza della sezione */
     .ed-grip { position: absolute; left: 0; right: 0; bottom: 0; z-index: 35; height: 10px; cursor: ns-resize; }
     .ed-grip:hover, .ed-grip[data-h] { background: rgb(31 95 168 / 0.35); }

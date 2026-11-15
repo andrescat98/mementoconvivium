@@ -16,6 +16,7 @@ test("md: paragrafi, enfasi, link, escape", () => {
     md("## Titolo\n\n### Sotto\n\n- uno\n- **due**\n\n1. a\n2. b\n\n> cit\n> ancora\n\n---\n\n__s__ ~~b~~"),
     "<h3>Titolo</h3><h4>Sotto</h4><ul><li>uno</li><li><strong>due</strong></li></ul><ol><li>a</li><li>b</li></ol><blockquote>cit<br>ancora</blockquote><hr><p><u>s</u> <s>b</s></p>",
   );
+  assert.equal(md("{centro}## T\n\n{destra}a **b**\n\n{giustificato}- x\n- y\n\n{x}z"), '<h3 style="text-align:center">T</h3><p style="text-align:right">a <strong>b</strong></p><ul style="text-align:justify"><li>x</li><li>y</li></ul><p>{x}z</p>');
   assert.equal(md("a ![b](/img/12) c"), '<p>a <img src="/img/12" alt="b" loading="lazy"> c</p>');
   assert.equal(md("![x](https://evil.it/a.png)"), '<p>!<a href="https://evil.it/a.png">x</a></p>'); // immagini esterne: mai <img>
 });
