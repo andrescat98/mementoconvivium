@@ -217,7 +217,6 @@ fieldset > button { justify-self: start; }
 .img-opts.wide[data-for] { justify-items: stretch; }
 .img-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.6rem 0.9rem; align-items: end; }
 .img-opts .veil input { padding: 0; }
-.page-frame.phone { display: block; width: 390px; margin-inline: auto; }
 
 /* ── dialog (inquadratura, font) */
 .dlg { overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 1.25rem; width: min(56rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); background: var(--card); color: var(--ink); }
@@ -262,8 +261,6 @@ fieldset > button { justify-self: start; }
 .with-prev .crop-side > .hint, .with-prev .crop-prev { display: none; }
 .with-prev .crop-src img { max-height: 35dvh; }
 .dlg .prev { margin-top: 1rem; }
-#pages { display: grid; gap: 1rem; min-width: 0; }
-.page-frame { width: 100%; height: calc(100dvh - 9rem); border: 1px solid var(--line); border-radius: 6px; background: #fff; }
 code { font-size: 0.85em; background: #efe9df; padding: 0 0.25rem; border-radius: 3px; }
 
 /* form stretti (colonna a sinistra dell'anteprima, telefono): righe in colonna */

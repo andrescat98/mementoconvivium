@@ -195,6 +195,7 @@ export const settingsSchema = z.object({
   sezioni: z.record(z.string().regex(/^[a-z-]+$/), bgObj).default({}),
   sfondo: bg, // sfondo di tutte le pagine al posto del marmo
   sfondoHome: bg, // sfondo della home (vuoto = quello del sito)
+  sfondoPagine: z.record(z.string().regex(/^[a-z-]+$/), bg).default({}), // sfondo delle pagine fisse (lista-eventi, contatti)
   stili: z.array(z.object({ name: z.string().trim().min(1).max(40), style: bgObj })).default([]), // stili salvati con nome
   // striscia avvisi su tutte le pagine (vuota = niente)
   banner: z.object({ text: opt, href: opt }).default({}),
@@ -220,6 +221,7 @@ export const DEFAULT_SETTINGS: Settings = {
     { label: "Prenota", href: "/#prenota" },
   ],
   sezioni: {},
+  sfondoPagine: {},
   stili: [],
   banner: {},
   seo: {},

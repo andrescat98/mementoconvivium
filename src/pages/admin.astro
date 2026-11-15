@@ -34,8 +34,6 @@ const WIDTHS = [["minima", "Minima (560 px)"], ["stretta", "Stretta, da lettura 
 const AR_TEXT: Record<string, string> = { quadrata: "Quadrata", orizzontale: "Orizzontale 3:2", panoramica: "Panoramica 16:9", originale: "Intera, non ritagliata" };
 const SIZES = [["0.8", "Piccoli"], ["1.2", "Grandi"], ["1.45", "Enormi"]];
 const SHOW_TEXT: Record<string, string> = { prossimi: "Prossimi", tutti: "Tutti", passati: "Già fatti" };
-// home, pagine nuove ed eventi si scrivono nel loro editor (anteprima dal vivo): qui solo le pagine fisse
-const PAGES = [["/lista-eventi", "Lista eventi"], ["/contatti", "Contatti"]];
 const HERO_TEXT: Record<string, string> = {
     lista: "Apre l'elenco delle prossime date",
     prossimo: "Porta alla pagina del prossimo evento",
@@ -92,7 +90,6 @@ const fontsHref =
             <ul id="page-list"></ul>
             <button type="button" id="new-page">+ Nuova pagina</button>
             <p class="side-h">Tutto il sito</p>
-            <a href="#pagine" class="view-link" data-view="pages">✎ Pagine Lista eventi e Contatti</a>
             <a href="#impostazioni" class="view-link" data-view="settings">⚙ Impostazioni sito</a>
         </nav>
 
@@ -142,7 +139,7 @@ const fontsHref =
                         <select name="heroAction">{HERO_ACTIONS.map((a) => <option value={a} selected={a === s.heroAction}>{HERO_TEXT[a]}</option>)}</select>
                     </label>
                     <label data-show="link">Link<input name="heroUrl" type="url" value={s.heroUrl} placeholder="https://…" /></label>
-                    <p class="hint">"Prossimo evento" = quello aperto con la data più vicina; se non ce ne sono, apre l'elenco. Il testo del bottone e il motto del footer si cambiano in <a href="#pagine">Testi delle pagine</a>.</p>
+                    <p class="hint">"Prossimo evento" = quello aperto con la data più vicina; se non ce ne sono, apre l'elenco. Il testo del bottone e il motto del footer si scrivono direttamente nell'anteprima di una pagina.</p>
                 </fieldset>
             </details>
             <details open class="sec">
@@ -177,18 +174,6 @@ const fontsHref =
             </details>
         </form>
 
-        <!-- ── Testi delle pagine: la pagina vera in un iframe, testi data-k modificabili al clic -->
-        <section id="pages" hidden>
-            <div class="bar">
-                <div class="bar-title"><h2>Lista eventi e Contatti</h2><small>Clicca su un testo tratteggiato e scrivi (vuoto = testo originale). 🎨 su ogni sezione per lo stile. Home, pagine ed eventi si modificano dal loro editor.</small></div>
-                <label class="check"><input type="checkbox" id="phone" /> 📱 Telefono</label>
-                <select name="page" aria-label="Pagina">{PAGES.map(([href, label]) => <option value={href}>{label}</option>)}</select>
-<select class="hist" aria-label="Cronologia versioni" title="Versioni salvate: scegline una per ricaricarla, poi Salva per ripristinarla"></select>
-            </div>
-            <p class="msg" role="status"></p>
-            <iframe class="page-frame" title="Pagina da modificare"></iframe>
-        </section>
-
         <!-- ── Home e pagine nuove: liste di blocchi -->
         <form id="page-ed" hidden>
             <div class="bar">
@@ -200,6 +185,14 @@ const fontsHref =
             </div>
             <p class="msg" role="status"></p>
             <button type="button" class="unfocus" data-unfocus>← Tutti i blocchi della pagina</button>
+            <details class="sec" id="pg-seo" hidden>
+                <summary>🔎 Google e anteprime social</summary>
+                <fieldset>
+                    <label>Titolo<input name="seoTitle" maxlength="70" /></label>
+                    <label class="wide">Descrizione<textarea name="seoDesc" rows="2" maxlength="300"></textarea></label>
+                    <p class="hint">Vuoto = quelli predefiniti. L'immagine di anteprima è in Impostazioni sito.</p>
+                </fieldset>
+            </details>
             <details open class="sec" id="pg-base">
                 <summary>📝 Pagina</summary>
                 <fieldset>
@@ -214,7 +207,7 @@ const fontsHref =
                 <summary>🌄 Sfondo della pagina</summary>
                 <div class="bg" data-name="sfondo" data-page data-label="Al posto del marmo, dietro tutta la pagina. Vuoto = lo sfondo del sito (Impostazioni sito)."></div>
             </details>
-            <details open class="sec">
+            <details open class="sec" id="pg-blocks">
                 <summary>🧱 Blocchi</summary>
                 <div class="blocks-wrap">
                     <div class="blocks"></div>
