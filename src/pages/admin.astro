@@ -418,11 +418,13 @@ const fontsHref =
         <h3>Libreria foto</h3>
         <p class="hint media-hint"></p>
         <div class="media-bar">
-            <button type="button" data-f="all" class="on">Tutte</button>
-            <button type="button" data-f="free">Non usate</button>
+            <button type="button" data-newfolder>＋ Nuova cartella</button>
             <button type="button" data-pickmulti hidden>Aggiungi</button>
         </div>
-        <div class="media-grid"></div>
+        <div class="media-body">
+            <nav class="media-folders" aria-label="Cartelle"></nav>
+            <div class="media-grid"></div>
+        </div>
         <div class="dlg-btns"><button type="button" data-close>Chiudi</button></div>
     </dialog>
 

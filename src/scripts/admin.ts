@@ -1,7 +1,7 @@
 // Logica di /admin (vanilla, nessun framework). Markup e <template> in src/pages/admin.astro.
 import { actions, isInputError } from "astro:actions";
 import { BASE_FONTS, BLOCK_TEXT, dateLabel, upgradeTab, googleFontsHref, imgStyle, look, md, nextDate, slugify, STATUS_TEXT, today, veil, type Img } from "../lib/format";
-import type { Version } from "../lib/db";
+import type { MediaItem, Version } from "../lib/db";
 import type { Bg, Evento } from "../lib/schema";
 
 type Data = Record<string, any>;
@@ -1178,59 +1178,108 @@ if (form) {
     // ── libreria foto: sfoglia/elimina da "📁 Libreria foto", oppure sceglie per una casella (una foto) o una galleria (più foto)
     const mediaDlg = $<HTMLDialogElement>("#media");
     const mediaGrid = $<HTMLElement>(".media-grid", mediaDlg);
+    const mediaNav = $<HTMLElement>(".media-folders", mediaDlg);
     const mediaAdd = $<HTMLButtonElement>("[data-pickmulti]", mediaDlg);
     let mediaPick: ((urls: string[]) => void) | undefined;
     let mediaMulti = false;
-    let mediaFree = false;
+    let mediaItems: MediaItem[] = [];
+    let mediaFolders: string[] = [];
+    let mediaDir = ""; // "" = tutte; altrimenti nome della cartella (derivata o propria)
     let mediaSel = new Set<string>();
     const mediaPaint = () => {
-        for (const c of $$<HTMLElement>(".media-card", mediaGrid)) {
-            c.hidden = mediaFree && c.dataset.used !== "0";
-            c.classList.toggle("sel", mediaSel.has(c.dataset.id!));
-        }
-        for (const b of $$<HTMLElement>("[data-f]", mediaDlg)) b.classList.toggle("on", (b.dataset.f === "free") === mediaFree);
+        for (const c of $$<HTMLElement>(".media-card", mediaGrid)) c.classList.toggle("sel", mediaSel.has(c.dataset.src!));
         mediaAdd.textContent = mediaSel.size ? `Aggiungi ${mediaSel.size} foto` : "Aggiungi";
         mediaAdd.disabled = !mediaSel.size;
     };
-    async function openMedia(pick?: (urls: string[]) => void, multi = false) {
-        mediaPick = pick;
-        mediaMulti = multi;
-        mediaSel = new Set();
-        mediaAdd.hidden = !multi;
-        $(".media-hint", mediaDlg).textContent = pick ? (multi ? "Spunta le foto da aggiungere alla galleria." : "Clicca una foto per usarla.") : "Le foto non usate si possono eliminare; quelle in uso restano.";
-        mediaGrid.textContent = "Caricamento…";
-        mediaDlg.showModal();
-        const { data, error } = await actions.listImages();
-        if (error) return void (mediaGrid.textContent = error.message);
-        mediaGrid.textContent = data.length ? "" : "Nessuna foto caricata.";
-        for (const m of data) {
+    // cartelle: derivate (eventi, Sito, Non usate) con le foto che contengono, poi quelle proprie
+    function mediaRender() {
+        const derived = [...new Set(mediaItems.flatMap((m) => m.folders))].sort((a, b) => (a === "Non usate" || a === "Sito" ? 1 : 0) - (b === "Non usate" || b === "Sito" ? 1 : 0) || a.localeCompare(b));
+        const inDir = (m: MediaItem, d: string) => (m.folder === d || m.folders.includes(d));
+        const dirs: [string, boolean][] = [["", false], ...derived.map((d): [string, boolean] => [d, false]), ...mediaFolders.map((d): [string, boolean] => [d, true])];
+        if (mediaDir && !dirs.some(([d]) => d === mediaDir)) mediaDir = "";
+        mediaNav.textContent = "";
+        for (const [d, own] of dirs) {
+            const b = Object.assign(document.createElement("button"), { type: "button", className: d === mediaDir ? "on" : "" });
+            b.dataset.dir = d;
+            if (own) b.dataset.own = "1";
+            b.textContent = `${own ? "📁 " : ""}${d || "Tutte"} (${d ? mediaItems.filter((m) => inDir(m, d)).length : mediaItems.length})`;
+            mediaNav.append(b);
+        }
+        const shown = mediaItems.filter((m) => !mediaDir || inDir(m, mediaDir));
+        mediaGrid.textContent = shown.length ? "" : "Nessuna foto.";
+        for (const m of shown) {
             const c = document.createElement("div");
             c.className = "media-card";
-            c.dataset.id = m.id;
-            c.dataset.used = m.used ? "1" : "0";
+            c.dataset.src = m.src;
+            c.draggable = true;
             c.innerHTML = `<button type="button" class="media-pick"><img loading="lazy" alt=""></button><small></small>`;
-            $<HTMLImageElement>("img", c).src = `/img/${m.id}`;
-            $("small", c).textContent = `${kb(m.bytes)} · ${fmtTime(m.createdAt).split(",")[0]}`;
-            if (!m.used) {
+            $<HTMLImageElement>("img", c).src = m.src;
+            $("small", c).textContent = m.static ? "foto del sito" : `${kb(m.bytes!)} · ${fmtTime(m.createdAt!).split(",")[0]}`;
+            if (mediaFolders.length || m.folder) {
+                const sel = document.createElement("select");
+                sel.className = "media-folder";
+                sel.setAttribute("aria-label", "Cartella");
+                sel.innerHTML = `<option value="">Cartella…</option>`;
+                for (const f of mediaFolders) sel.add(new Option(f, f, false, f === m.folder));
+                c.append(sel);
+            }
+            if (!m.used && !m.static) {
                 const del = Object.assign(document.createElement("button"), { type: "button", textContent: "Elimina", className: "media-del" });
-                del.dataset.del = m.id;
+                del.dataset.del = m.src.slice(5);
                 c.append(Object.assign(document.createElement("span"), { className: "badge", textContent: m.inHistory ? "non usata (solo cronologia)" : "non usata" }), del);
             }
             mediaGrid.append(c);
         }
         mediaPaint();
     }
+    async function mediaMove(srcs: string[], folder: string) {
+        const { error } = await actions.moveImages({ srcs, folder });
+        if (error) return void say(error.message, true);
+        for (const m of mediaItems) if (srcs.includes(m.src)) m.folder = folder || undefined;
+        if (folder && !mediaFolders.includes(folder)) mediaFolders = [...mediaFolders, folder].sort();
+        mediaRender();
+    }
+    async function openMedia(pick?: (urls: string[]) => void, multi = false) {
+        mediaPick = pick;
+        mediaMulti = multi;
+        mediaSel = new Set();
+        mediaAdd.hidden = !multi;
+        $(".media-hint", mediaDlg).textContent = pick ? (multi ? "Spunta le foto da aggiungere alla galleria." : "Clicca una foto per usarla.") : "Le foto non usate si possono eliminare; quelle in uso e quelle del sito restano. Per spostare una foto in una cartella tua: menu sulla foto o trascinala sulla cartella.";
+        mediaGrid.textContent = "Caricamento…";
+        mediaDlg.showModal();
+        const { data, error } = await actions.listImages();
+        if (error) return void (mediaGrid.textContent = error.message);
+        mediaItems = data.items;
+        mediaFolders = data.folders;
+        mediaRender();
+    }
+    mediaGrid.addEventListener("dragstart", (e) => e.dataTransfer?.setData("text/x-media", (e.target as HTMLElement).closest<HTMLElement>(".media-card")?.dataset.src ?? ""));
+    mediaNav.addEventListener("dragover", (e) => { if ((e.target as Element).closest("[data-own], [data-dir='']")) e.preventDefault(); });
+    mediaNav.addEventListener("drop", (e) => {
+        const b = (e.target as Element).closest<HTMLElement>("[data-own], [data-dir='']");
+        const src = e.dataTransfer?.getData("text/x-media");
+        if (b && src) { e.preventDefault(); mediaMove([src], b.dataset.dir!); }
+    });
+    mediaDlg.addEventListener("change", (e) => {
+        const sel = (e.target as Element).closest<HTMLSelectElement>(".media-folder");
+        if (sel) mediaMove([sel.closest<HTMLElement>(".media-card")!.dataset.src!], sel.value);
+    });
     mediaDlg.addEventListener("click", async (e) => {
         const t = e.target as Element;
-        const f = t.closest<HTMLElement>("[data-f]");
-        if (f) { mediaFree = f.dataset.f === "free"; return mediaPaint(); }
+        const dir = t.closest<HTMLElement>("[data-dir]");
+        if (dir) { mediaDir = dir.dataset.dir!; return mediaRender(); }
+        if (t.closest("[data-newfolder]")) {
+            const name = prompt("Nome della nuova cartella:")?.trim().slice(0, 40);
+            if (name && !name.startsWith("folder:")) { await mediaMove([], name); mediaDir = name; mediaRender(); }
+            return;
+        }
         const del = t.closest<HTMLElement>("[data-del]");
         if (del) {
             if (!confirm("Eliminare questa foto per sempre? Non è usata, ma potrebbe comparire in una versione della cronologia.")) return;
             const { error } = await actions.deleteImage({ id: del.dataset.del! });
             if (error) return void say(error.message, true);
-            del.closest(".media-card")!.remove();
-            return;
+            mediaItems = mediaItems.filter((m) => m.src !== `/img/${del.dataset.del}`);
+            return mediaRender();
         }
         if (t.closest("[data-pickmulti]")) {
             mediaDlg.close();
@@ -1240,9 +1289,9 @@ if (form) {
         if (!card || !mediaPick) return;
         if (!mediaMulti) {
             mediaDlg.close();
-            return mediaPick([`/img/${card.dataset.id}`]);
+            return mediaPick([card.dataset.src!]);
         }
-        const u = `/img/${card.dataset.id}`;
+        const u = card.dataset.src!;
         mediaSel.has(u) ? mediaSel.delete(u) : mediaSel.add(u);
         mediaPaint();
     });

@@ -243,7 +243,12 @@ fieldset > button { justify-self: start; }
 .lib-link { background: none; border: 0; padding: 0.25rem 0; color: var(--accent); text-decoration: underline; cursor: pointer; font-size: 0.9rem; }
 .media-hint { margin: 0 0 0.5rem; }
 .media-bar { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
-.media-bar button.on { box-shadow: inset 0 0 0 2px var(--accent); }
+.media-body { display: grid; grid-template-columns: 11rem 1fr; gap: 0.75rem; align-items: start; }
+.media-folders { display: grid; gap: 0.3rem; max-height: 60dvh; overflow: auto; }
+.media-folders button { text-align: left; font-size: 0.85rem; }
+.media-folders button.on { box-shadow: inset 0 0 0 2px var(--accent); }
+.media-folder { font-size: 0.8rem; max-width: 100%; }
+@media (max-width: 600px) { .media-body { grid-template-columns: 1fr; } .media-folders { display: flex; flex-wrap: wrap; max-height: none; } }
 .media-grid { max-height: 60dvh; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.6rem; }
 .media-card { display: grid; gap: 0.2rem; align-content: start; padding: 0.3rem; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
 .media-card[hidden] { display: none; }

@@ -165,17 +165,55 @@ const GC = `DELETE FROM images WHERE created_at < unixepoch() - 86400
   AND NOT EXISTS (SELECT 1 FROM settings WHERE instr(settings.data, '/img/' || images.id))
   AND NOT EXISTS (SELECT 1 FROM settings_versions WHERE instr(settings_versions.data, '/img/' || images.id))`;
 
-export interface MediaItem { id: string; mime: string; bytes: number; createdAt: number; used: boolean; inHistory: boolean }
-/** Tutte le immagini; used = in eventi/impostazioni correnti, inHistory = anche (o solo) nelle versioni vecchie. */
-export async function listImages(): Promise<MediaItem[]> {
-  await db().execute(SETTINGS_VERSIONS);
-  const { rows } = await db().execute(`SELECT id, mime, length(data) AS bytes, created_at,
-    (EXISTS (SELECT 1 FROM events WHERE instr(events.data, '/img/' || images.id))
-      OR EXISTS (SELECT 1 FROM settings WHERE instr(settings.data, '/img/' || images.id))) AS used,
-    (EXISTS (SELECT 1 FROM event_versions WHERE instr(event_versions.data, '/img/' || images.id))
-      OR EXISTS (SELECT 1 FROM settings_versions WHERE instr(settings_versions.data, '/img/' || images.id))) AS hist
-    FROM images ORDER BY created_at DESC`);
-  return rows.map((r) => ({ id: r.id as string, mime: r.mime as string, bytes: Number(r.bytes), createdAt: Number(r.created_at), used: !!r.used, inHistory: !!r.hist }));
+// Foto statiche del sito (public/ritratti/…): solo l'elenco dei percorsi, i file li serve il sito. Mai eliminabili.
+const STATIC_PHOTOS = Object.keys(import.meta.glob("/public/ritratti/*/*.webp", { query: "?url" })).map((p) => p.slice("/public".length));
+
+// Cartelle personalizzate: src → nome; le cartelle vuote hanno src "folder:<nome>". Tabella a parte, così il GC
+// e la cronologia delle impostazioni non c'entrano.
+const FOLDERS = "CREATE TABLE IF NOT EXISTS media_folders (src TEXT PRIMARY KEY, folder TEXT NOT NULL)";
+
+export interface MediaItem { src: string; bytes?: number; createdAt?: number; used: boolean; inHistory: boolean; static: boolean; folders: string[]; folder?: string }
+export interface MediaLibrary { items: MediaItem[]; folders: string[] }
+/** Foto del DB + statiche. folders = cartelle derivate (un evento = le foto che usa, "Sito", "Non usate"); folder = cartella propria. */
+export async function listImages(): Promise<MediaLibrary> {
+  await db().batch([SETTINGS_VERSIONS, FOLDERS], "write");
+  const q = async (sql: string) => (await db().execute(sql)).rows;
+  const [imgs, evs, sets, hist, fol] = await Promise.all([
+    q("SELECT id, length(data) AS bytes, created_at FROM images ORDER BY created_at DESC"),
+    q("SELECT slug, data FROM events ORDER BY slug"),
+    q("SELECT data FROM settings"),
+    q("SELECT data FROM event_versions UNION ALL SELECT data FROM settings_versions"),
+    q("SELECT src, folder FROM media_folders"),
+  ]);
+  const own = new Map(fol.map((r) => [r.src as string, r.folder as string]));
+  const sitoTxt = sets.map((r) => r.data as string).join("\n");
+  const histTxt = hist.map((r) => r.data as string);
+  const evTxt = evs.map((r) => [r.slug as string, r.data as string] as const);
+  const one = (src: string, extra: Partial<MediaItem>): MediaItem => {
+    const folders = evTxt.filter(([, d]) => d.includes(src)).map(([s]) => s);
+    if (sitoTxt.includes(src)) folders.push("Sito");
+    const used = folders.length > 0;
+    if (!used) folders.push("Non usate");
+    return { src, used, inHistory: histTxt.some((d) => d.includes(src)), static: false, folders, folder: own.get(src), ...extra };
+  };
+  const items = [
+    ...imgs.map((r) => one(`/img/${r.id}`, { bytes: Number(r.bytes), createdAt: Number(r.created_at) })),
+    ...STATIC_PHOTOS.map((src) => one(src, { static: true })),
+  ];
+  return { items, folders: [...new Set(own.values())].sort() };
+}
+
+/** Sposta le foto in una cartella propria (folder vuoto = fuori da ogni cartella propria); senza foto crea la cartella vuota. */
+export async function moveImages(srcs: string[], folder: string) {
+  await db().execute(FOLDERS);
+  await db().batch(
+    srcs.length
+      ? srcs.map((src) => folder
+          ? { sql: "INSERT INTO media_folders (src, folder) VALUES (?, ?) ON CONFLICT(src) DO UPDATE SET folder = excluded.folder", args: [src, folder] }
+          : { sql: "DELETE FROM media_folders WHERE src = ?", args: [src] })
+      : [{ sql: "INSERT OR IGNORE INTO media_folders (src, folder) VALUES (?, ?)", args: [`folder:${folder}`, folder] }],
+    "write",
+  );
 }
 
 /** Elimina un'immagine solo se non è usata da eventi o impostazioni correnti. */
@@ -186,6 +224,7 @@ export async function deleteImage(id: string): Promise<boolean> {
       AND NOT EXISTS (SELECT 1 FROM settings WHERE instr(settings.data, '/img/' || images.id))`,
     args: [id],
   });
+  if (rowsAffected) await db().execute({ sql: "DELETE FROM media_folders WHERE src = ?", args: [`/img/${id}`] }).catch(() => {});
   return rowsAffected > 0;
 }
 
