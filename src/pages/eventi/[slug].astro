@@ -39,7 +39,7 @@ const ids = tabs.map((t, i) => {
 <Layout
     title={`${title} · Memento Convivium`}
     description={excerpt}
-    fontHref={googleFontsHref(titleFont, characterFont)}
+    fontHref={googleFontsHref(titleFont, characterFont, evento.data.heroStyle?.font, ...looks.map((l) => l?.font))}
     image={cover?.src}
 >
     {preview && (

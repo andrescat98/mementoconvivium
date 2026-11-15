@@ -505,6 +505,49 @@ a {
     z-index: 1;
 }
 
+/* Parallasse: l'immagine scorre più lenta (solo browser con scroll-driven animations, altrimenti ferma) */
+@supports (animation-timeline: view()) {
+    [data-parallax] .sfondo img {
+        inset: -15% 0;
+        height: 130%;
+        animation: parallasse linear both;
+        animation-timeline: view();
+    }
+}
+@keyframes parallasse {
+    from {
+        translate: 0 -12%;
+    }
+    to {
+        translate: 0 12%;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-parallax] .sfondo img {
+        animation: none;
+    }
+}
+
+/* Font, grandezza dei titoli, spaziatura */
+[data-font] :is(h1, h2, h3, h4) {
+    font-family: var(--sez-font);
+}
+[data-size] :is(h1, h2, h3, h4) {
+    zoom: var(--sez-zoom);
+}
+[data-pad="compatta"] {
+    padding-block: 3rem !important; /* vince il padding delle singole sezioni */
+}
+[data-pad="ariosa"] {
+    padding-block: 9rem !important;
+}
+[data-pad="schermo"] {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
 /* Entrata: il contenuto (non lo sfondo) appare quando la sezione entra nello schermo, vedi Layout */
 .js [data-anim] > :not(.sfondo, [aria-hidden]) {
     transition:

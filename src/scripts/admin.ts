@@ -1,8 +1,8 @@
 // Logica di /admin (vanilla, nessun framework). Markup e <template> in src/pages/admin.astro.
 import { actions, isInputError } from "astro:actions";
-import { BASE_FONTS, dateLabel, imgStyle, md, nextDate, slugify, STATUS_TEXT, today, type Img } from "../lib/format";
+import { BASE_FONTS, dateLabel, googleFontsHref, imgStyle, look, md, nextDate, slugify, STATUS_TEXT, today, veil, type Img } from "../lib/format";
 import type { Version } from "../lib/db";
-import type { Evento } from "../lib/schema";
+import type { Bg, Evento } from "../lib/schema";
 
 type Data = Record<string, any>;
 const $ = <T extends Element = HTMLInputElement>(sel: string, root: ParentNode = document) => root.querySelector<T>(sel)!;
@@ -253,25 +253,63 @@ if (form) {
     }
     prevSec.ontoggle = queuePrev;
 
-    // ── sfondo: colore (facoltativo), immagine inquadrata, velo chiaro
+    // ── stile di una sezione (riquadro .bg): sfondo, testo, titoli, spaziatura, animazione, effetto, stili salvati
     function initBg(box: HTMLElement, b: Data = {}) {
         box.replaceChildren($<HTMLTemplateElement>("#tpl-bg").content.cloneNode(true));
         $(".bg-label", box).textContent = box.dataset.label ?? "";
         $("[name=bgOn]", box).checked = !!b.color;
         if (b.color) $("[name=bgColor]", box).value = b.color;
+        $("[name=textOn]", box).checked = !!b.text;
+        if (b.text) $("[name=textColor]", box).value = b.text;
         $("[name=bgVeil]", box).value = String(b.veil ?? 0);
         $("output", box).textContent = `${b.veil ?? 0}%`;
-        $("[name=anim]", box).value = b.anim ?? "";
-        $("[name=fx]", box).value = b.fx ?? "";
+        $("[name=dark]", box).checked = !!b.dark;
+        $("[name=parallax]", box).checked = !!b.parallax;
+        for (const k of ["font", "size", "pad", "anim", "fx"]) $(`[name=${k}]`, box).value = String(b[k] ?? "");
+        $("[name=preset]", box).append(...(settings.stili ?? []).map((s: Data) => new Option(s.name, s.name)));
         initImg($<HTMLElement>(".img", box), b.image);
     }
     function readBg(box: Element) {
-        const color = $("[name=bgOn]", box).checked ? $("[name=bgColor]", box).value : undefined;
-        const image = getImg($(".img", box));
-        const veil = Number($("[name=bgVeil]", box).value) || undefined;
-        const anim = $("[name=anim]", box).value || undefined;
-        const fx = $("[name=fx]", box).value || undefined;
-        return color || image || anim || fx ? { color, image, veil, anim, fx } : undefined;
+        const v = (k: string) => $(`[name=${k}]`, box).value.trim() || undefined;
+        const on = (k: string) => $(`[name=${k}]`, box).checked || undefined;
+        const b = {
+            color: on("bgOn") && v("bgColor"), image: getImg($(".img", box)),
+            veil: Number(v("bgVeil")) || undefined, dark: on("dark"), parallax: on("parallax"),
+            text: on("textOn") && v("textColor"), font: v("font"), size: v("size") && Number(v("size")),
+            pad: v("pad"), anim: v("anim"), fx: v("fx"),
+        };
+        return Object.values(b).some(Boolean) ? b : undefined;
+    }
+    // eventi del riquadro stile, sia nell'editor evento sia nel dialog delle sezioni
+    function bgInput(t: HTMLInputElement) {
+        const box = t.closest<HTMLElement>(".bg");
+        if (!box) return;
+        if (t.name === "bgVeil") t.previousElementSibling!.textContent = `${t.value}%`;
+        if (t.name === "bgColor") $("[name=bgOn]", box).checked = true;
+        if (t.name === "textColor") $("[name=textOn]", box).checked = true;
+        if (t.name === "preset" && t.value) initBg(box, settings.stili.find((s: Data) => s.name === t.value)?.style);
+    }
+    async function bgClick(b: HTMLElement) {
+        const box = b.closest<HTMLElement>(".bg");
+        if (!box) return false;
+        if ("font" in b.dataset) openFonts($("[name=font]", box));
+        else if ("styleSave" in b.dataset || "styleDel" in b.dataset) {
+            const pick = $("[name=preset]", box).value;
+            const style = readBg(box);
+            const name = "styleSave" in b.dataset ? prompt("Nome dello stile (uno uguale viene sostituito):", pick)?.trim().slice(0, 40) : pick;
+            if (!name || ("styleSave" in b.dataset && !style)) return true;
+            if ("styleDel" in b.dataset && !confirm(`Eliminare lo stile "${name}"?`)) return true;
+            const stili = [...settings.stili.filter((s: Data) => s.name !== name), ...("styleSave" in b.dataset ? [{ name, style }] : [])];
+            // si salvano subito e solo gli stili, senza toccare le altre modifiche in corso
+            const { error } = await actions.saveSettings({ ...settings, stili } as any);
+            if (error) return say(error.message, true), true;
+            settings.stili = stili;
+            const keep = readBg(box);
+            initBg(box, keep);
+            $("[name=preset]", box).value = "styleSave" in b.dataset ? name : "";
+            say("styleSave" in b.dataset ? `Stile "${name}" salvato ✓` : `Stile "${name}" eliminato`);
+        } else return false;
+        return true;
     }
 
     // ── righe ripetibili (date, personaggi, foto della galleria)
@@ -340,7 +378,9 @@ if (form) {
             el.scrollIntoView({ block: "nearest" });
         } else if ("crop" in b.dataset) return openCrop(b.closest<HTMLElement>(".img")!);
         else if ("clear" in b.dataset) setImg(b.closest<HTMLElement>(".img")!);
-        else if (b.dataset.font) return openFonts(b.dataset.font);
+        else if (b.dataset.font) return openFonts($(`[name=${b.dataset.font}]`, form));
+        else if (b.closest(".bg") && "font" in b.dataset) return void bgClick(b);
+        else if (b.closest(".bg") && ("styleSave" in b.dataset || "styleDel" in b.dataset)) return void bgClick(b);
         else if (b.dataset.md) return mdTool(b.dataset.md, b.closest(".md")!);
         else if (row && "rm" in b.dataset) {
             if (row.matches(".tab-ed") && !confirm(`Rimuovere la scheda "${$("[name=tabTitle]", row).value}"?`)) return;
@@ -381,8 +421,7 @@ if (form) {
         if (t.name === "excerpt") countExcerpt();
         if (t.name === "tabBody") renderPreview(t.closest(".md")!);
         if (t.name === "tabTitle" || t.name === "template") markTab(t.closest(".tab-ed")!);
-        if (t.name === "bgVeil") t.previousElementSibling!.textContent = `${t.value}%`;
-        if (t.name === "bgColor") $("[name=bgOn]", t.closest(".bg-row")!).checked = true;
+        bgInput(t);
     });
 
     function countExcerpt() {
@@ -422,19 +461,19 @@ if (form) {
     // ── font: selettore con anteprime (una sola richiesta, caricata alla prima apertura)
     const fontDlg = $<HTMLDialogElement>("#fonts");
     const fontSearch = $("input[type=search]", fontDlg);
-    let fontTarget = "";
+    let fontTarget: HTMLInputElement | undefined;
     const loaded = new Set<string>();
     const loadFont = (href: string) => {
         if (loaded.has(href)) return;
         loaded.add(href);
         document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
     };
-    function openFonts(name: string) {
-        fontTarget = name;
+    function openFonts(input: HTMLInputElement) {
+        fontTarget = input;
         loadFont(fontDlg.dataset.href!);
         const sample = $("[name=title]", form!).value || "Memento Convivium";
         $$<HTMLElement>("[data-pick] span", fontDlg).forEach((s) => (s.textContent = sample));
-        const cur = $(`[name=${name}]`, form!).value;
+        const cur = input.value;
         $$<HTMLElement>("[data-pick]", fontDlg).forEach((b) => b.classList.toggle("on", b.dataset.pick === cur));
         fontSearch.value = "";
         filterFonts();
@@ -449,7 +488,7 @@ if (form) {
     fontDlg.addEventListener("click", (e) => {
         const b = (e.target as Element).closest<HTMLElement>("[data-pick]");
         if (!b) return;
-        const input = $(`[name=${fontTarget}]`, form!);
+        const input = fontTarget!;
         input.value = b.dataset.pick!;
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -753,10 +792,12 @@ if (form) {
             d.ariaHidden = "true";
             if (b.color) d.style.background = b.color;
             if (b.image) d.append(Object.assign(doc.createElement("img"), { src: b.image.src, alt: "", style: imgStyle(b.image) }));
-            if (b.veil) d.append(Object.assign(doc.createElement("span"), { style: `background:rgb(245 242 236 / ${b.veil}%)` }));
+            if (b.veil) d.append(Object.assign(doc.createElement("span"), { style: `background:${veil(b as Bg)}` }));
             el.prepend(d);
         }
-        for (const k of ["anim", "fx"]) b?.[k] ? el.setAttribute(`data-${k}`, b[k]) : el.removeAttribute(`data-${k}`);
+        for (const [k, v] of Object.entries(look(b as Bg))) v === undefined ? el.removeAttribute(k) : el.setAttribute(k, v);
+        const fonts = googleFontsHref(b?.font);
+        if (fonts && !doc.querySelector(`link[href="${CSS.escape(fonts)}"]`)) doc.head.append(Object.assign(doc.createElement("link"), { rel: "stylesheet", href: fonts }));
         if (replay && b?.anim) {
             el.classList.remove("in");
             void el.offsetWidth; // riparte la transizione
@@ -764,15 +805,12 @@ if (form) {
         } else el.classList.add("in");
     }
     sezDlg.addEventListener("click", (e) => {
-        const b = (e.target as Element).closest("button");
+        const b = (e.target as Element).closest<HTMLElement>("button[type=button]");
         if (b && "crop" in b.dataset) openCrop(b.closest<HTMLElement>(".img")!);
         else if (b && "clear" in b.dataset) setImg(b.closest<HTMLElement>(".img")!);
+        else if (b) bgClick(b);
     });
-    sezDlg.addEventListener("input", (e) => {
-        const t = e.target as HTMLInputElement;
-        if (t.name === "bgVeil") t.previousElementSibling!.textContent = `${t.value}%`;
-        if (t.name === "bgColor") $("[name=bgOn]", sezBox).checked = true;
-    });
+    sezDlg.addEventListener("input", (e) => bgInput(e.target as HTMLInputElement));
     sezDlg.onclose = () => {
         if (sezDlg.returnValue !== "ok" || !sezEl) return;
         const v = readBg(sezBox);
@@ -782,6 +820,8 @@ if (form) {
         setDirty(true);
     };
     pageSel.onchange = () => (pageFrame.src = pageSel.value);
+    const phone = $<HTMLInputElement>("#phone");
+    phone.onchange = () => pageFrame.classList.toggle("phone", phone.checked);
     pageFrame.onload = () => {
         const doc = pageFrame.contentDocument;
         if (!doc) return;

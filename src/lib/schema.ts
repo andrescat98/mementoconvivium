@@ -9,14 +9,23 @@ const imgReq = z
   .union([src, z.object({ src, x: z.number().min(0).max(100).optional(), y: z.number().min(0).max(100).optional(), zoom: z.number().min(1).max(3).optional() })])
   .transform((v): Img => (typeof v === "string" ? { src: v } : v));
 const img = imgReq.optional();
-// Stile di una sezione: sfondo (colore, immagine, velo chiaro 0–90 % per la leggibilità),
-// animazione d'entrata e effetto sui titoli. Classi CSS in styles/global.css.
+// Stile di una sezione: sfondo (colore, immagine, velo 0–90 % chiaro o scuro per la leggibilità, parallasse),
+// colore del testo, font e grandezza dei titoli, spaziatura, animazione d'entrata, effetto sui titoli.
+// Attributi in look() (format.ts), CSS in styles/global.css.
 export const ANIMS = ["sali", "dissolvenza", "zoom", "sinistra", "destra"] as const;
 export const FX = ["ombra", "bagliore", "oro", "inciso", "contorno"] as const;
-const bgObj = z.object({
-  color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(),
+export const PADS = ["compatta", "ariosa", "schermo"] as const;
+const hex = z.string().regex(/^#[0-9a-f]{6}$/i);
+export const bgObj = z.object({
+  color: hex.optional(),
   image: img,
   veil: z.number().min(0).max(90).optional(),
+  dark: z.boolean().optional(), // velo scuro invece che chiaro
+  parallax: z.boolean().optional(),
+  text: hex.optional(),
+  font: z.string().regex(/^[\w\s'",-]+$/).optional(), // es. "Rye, cursive"
+  size: z.number().min(0.6).max(1.8).optional(), // scala dei titoli
+  pad: z.enum(PADS).optional(),
   anim: z.enum(ANIMS).optional(),
   fx: z.enum(FX).optional(),
 });
@@ -126,6 +135,8 @@ export const settingsSchema = z.object({
   tagline: opt, // motto nel footer
   // stile delle sezioni del sito, per chiave data-sez (home-hero, prenota…): /admin → Pagine → 🎨
   sezioni: z.record(z.string().regex(/^[a-z-]+$/), bgObj).default({}),
+  stili: z.array(z.object({ name: z.string().trim().min(1).max(40), style: bgObj })).default([]), // stili salvati con nome
+
   ...testi,
 });
 export type Settings = z.infer<typeof settingsSchema>;
@@ -142,6 +153,7 @@ export const DEFAULT_SETTINGS: Settings = {
     { label: "Prenota", href: "/#prenota" },
   ],
   sezioni: {},
+  stili: [],
   tagline: "\"Omnes vulnerant, ultima necat\" — ogni ora ferisce, l'ultima uccide.",
   ...DEFAULT_TESTI,
 };

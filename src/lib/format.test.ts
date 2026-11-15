@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bookCta, bookHref, dateLabel, googleFontsHref, imgStyle, md, slugify, today } from "./format.ts";
+import { bookCta, bookHref, dateLabel, googleFontsHref, imgStyle, look, md, slugify, today, veil } from "./format.ts";
 
 test("dateLabel", () => {
   assert.equal(dateLabel("2026-06-19"), "Ven 19 Giu 2026");
@@ -40,4 +40,14 @@ test("bookCta: niente bottone se chiuso o con sole date passate", () => {
   assert.deepEqual(bookCta({ title: "X", status: "aperto", dates: [{ dateISO: futura }] }, s)?.cls, "btn-primary");
   assert.equal(bookCta({ title: "X", status: "lista-attesa" }, s)?.label, "Lista d'attesa");
   assert.ok(today() < futura);
+});
+
+test("look e veil", () => {
+  assert.deepEqual(look(undefined), { "data-anim": undefined, "data-fx": undefined, "data-pad": undefined, "data-font": undefined, "data-size": undefined, "data-parallax": undefined, style: undefined });
+  const l = look({ anim: "sali", font: "Rye, cursive", size: 1.2, text: "#ffffff", parallax: true });
+  assert.equal(l["data-anim"], "sali");
+  assert.equal(l["data-font"], "");
+  assert.equal(l["data-parallax"], undefined); // parallasse solo con immagine
+  assert.match(l.style!, /--cream:#ffffff;.*--sez-font:Rye, cursive;--sez-zoom:1.2$/);
+  assert.equal(veil({ veil: 40, dark: true }), "rgb(20 17 14 / 40%)");
 });

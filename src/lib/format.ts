@@ -1,3 +1,5 @@
+import type { Bg } from "./schema";
+
 const fmt = new Intl.DateTimeFormat("it-IT", {
   weekday: "short",
   day: "numeric",
@@ -68,8 +70,24 @@ export function imgStyle(i?: Img, defY = 50) {
   return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%` + (z > 1 ? `;transform:scale(${z})` : "");
 }
 
-/** Attributi di animazione d'entrata ed effetto titoli di una sezione (CSS in global.css). */
-export const look = (b?: { anim?: string; fx?: string }) => ({ "data-anim": b?.anim, "data-fx": b?.fx });
+/** Colore del velo sull'immagine di sfondo (chiaro o scuro). */
+export const veil = (b: Bg) => (b.dark ? `rgb(20 17 14 / ${b.veil}%)` : `rgb(245 242 236 / ${b.veil}%)`);
+
+/** Attributi dello stile di una sezione (schema.ts bgObj, CSS in global.css). Usata anche dall'admin per l'anteprima dal vivo. */
+export function look(b?: Bg) {
+  const t = b?.text;
+  const vars = [
+    t && `--cream:${t};--white:${t};--gold:${t};--gold-light:${t};--cream-dim:color-mix(in srgb,${t} 75%,transparent)`,
+    b?.font && `--sez-font:${b.font}`,
+    b?.size && `--sez-zoom:${b.size}`,
+  ].filter(Boolean);
+  const flag = (v?: unknown) => (v ? "" : undefined);
+  return {
+    "data-anim": b?.anim, "data-fx": b?.fx, "data-pad": b?.pad,
+    "data-font": flag(b?.font), "data-size": flag(b?.size), "data-parallax": flag(b?.parallax && b.image),
+    style: vars.join(";") || undefined,
+  };
+}
 
 /** Foglio Google Fonts con i font del sito (Layout e anteprima admin). */
 export const SITE_FONTS_HREF =

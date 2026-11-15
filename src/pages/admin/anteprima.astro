@@ -34,7 +34,7 @@ const cards = [
     <meta charset="UTF-8" />
     <meta name="robots" content="noindex, nofollow" />
     <link rel="stylesheet" href={SITE_FONTS_HREF} />
-    {evento && googleFontsHref(evento.data.titleFont) && <link rel="stylesheet" href={googleFontsHref(evento.data.titleFont)} />}
+    {evento && googleFontsHref(evento.data.titleFont, evento.data.heroStyle?.font) && <link rel="stylesheet" href={googleFontsHref(evento.data.titleFont, evento.data.heroStyle?.font)} />}
 </head>
 <body>
     <main>

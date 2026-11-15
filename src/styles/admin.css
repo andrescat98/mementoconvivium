@@ -163,6 +163,8 @@ fieldset > button { justify-self: start; }
 .bg-row input[type="color"] { width: 3rem; height: 2rem; padding: 0.1rem; }
 .bg-row .veil { flex: 1; min-width: 12rem; }
 .bg-row .veil input { padding: 0; }
+.bg-font { display: flex; gap: 0.35rem; align-items: end; }
+.page-frame.phone { display: block; width: 390px; margin-inline: auto; }
 
 /* ── dialog (inquadratura, font) */
 .dlg { overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 1.25rem; width: min(56rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); background: var(--card); color: var(--ink); }

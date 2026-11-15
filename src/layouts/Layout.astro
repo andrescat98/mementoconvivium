@@ -1,7 +1,8 @@
 ---
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import { SITE_FONTS_HREF } from "../lib/format";
+import { getSettings } from "../lib/db";
+import { googleFontsHref, SITE_FONTS_HREF } from "../lib/format";
 import "../styles/global.css";
 
 interface Props {
@@ -19,6 +20,8 @@ const {
     image,
 } = Astro.props;
 
+// font scelti nello stile delle sezioni del sito
+const sezFonts = googleFontsHref(...Object.values((await getSettings()).sezioni).map((b) => b.font));
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(image ?? "/og-image.jpg", Astro.site);
 ---
@@ -42,6 +45,7 @@ const ogImage = new URL(image ?? "/og-image.jpg", Astro.site);
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="stylesheet" href={SITE_FONTS_HREF} />
         {fontHref && <link rel="stylesheet" href={fontHref} />}
+        {sezFonts && <link rel="stylesheet" href={sezFonts} />}
 
         <!-- Open Graph (anteprima link su WhatsApp, Facebook, ecc.) -->
         <meta property="og:type" content="website" />
