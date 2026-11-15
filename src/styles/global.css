@@ -476,6 +476,95 @@ a {
     }
 }
 
+/* ─── STILE DELLE SEZIONI (schema.ts: sfondo, data-anim, data-fx) ─── */
+[data-sez] {
+    position: relative;
+}
+
+.sfondo,
+.sfondo img,
+.sfondo span {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.sfondo {
+    overflow: hidden;
+    z-index: 0;
+}
+
+.sfondo img {
+    object-fit: cover;
+}
+
+/* contenuto sopra lo sfondo; vignette e particelle (aria-hidden) restano dietro. :where = vince il CSS della sezione */
+:where(.sfondo ~ :not([aria-hidden])) {
+    position: relative;
+    z-index: 1;
+}
+
+/* Entrata: il contenuto (non lo sfondo) appare quando la sezione entra nello schermo, vedi Layout */
+.js [data-anim] > :not(.sfondo, [aria-hidden]) {
+    transition:
+        opacity 0.9s var(--ease-out),
+        transform 0.9s var(--ease-out);
+}
+.js [data-anim]:not(.in) > :not(.sfondo, [aria-hidden]) {
+    opacity: 0;
+}
+.js [data-anim="sali"]:not(.in) > :not(.sfondo, [aria-hidden]) {
+    transform: translateY(48px);
+}
+.js [data-anim="zoom"]:not(.in) > :not(.sfondo, [aria-hidden]) {
+    transform: scale(0.92);
+}
+.js [data-anim="sinistra"]:not(.in) > :not(.sfondo, [aria-hidden]) {
+    transform: translateX(-64px);
+}
+.js [data-anim="destra"]:not(.in) > :not(.sfondo, [aria-hidden]) {
+    transform: translateX(64px);
+}
+[data-anim] {
+    overflow-x: clip; /* niente barra orizzontale durante sinistra/destra */
+}
+@media (prefers-reduced-motion: reduce) {
+    .js [data-anim] > * {
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+
+/* Effetti sui titoli */
+[data-fx] :is(h1, h2, h3, h4) {
+    transition: text-shadow 0.3s;
+}
+[data-fx="ombra"] :is(h1, h2, h3, h4) {
+    text-shadow: 0 4px 12px rgb(0 0 0 / 0.35);
+}
+[data-fx="bagliore"] :is(h1, h2, h3, h4) {
+    text-shadow:
+        0 0 10px rgb(255 214 120 / 0.9),
+        0 0 30px rgb(255 190 80 / 0.55);
+}
+[data-fx="oro"] :is(h1, h2, h3, h4) {
+    background: linear-gradient(180deg, #f3dc8a 0%, #c9a24a 45%, #8a6418 70%, #d9b65c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+[data-fx="inciso"] :is(h1, h2, h3, h4) {
+    text-shadow:
+        0 1px 0 rgb(255 255 255 / 0.9),
+        0 -1px 0 rgb(0 0 0 / 0.4);
+}
+[data-fx="contorno"] :is(h1, h2, h3, h4) {
+    -webkit-text-stroke: 1px currentColor;
+    color: transparent;
+}
+
 /* Testi modificabili da /admin → Pagine: gli a capo del testo restano a capo */
 [data-k] {
     white-space: pre-line;

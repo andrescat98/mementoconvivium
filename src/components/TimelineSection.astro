@@ -1,7 +1,9 @@
 ---
 import { getSettings } from "../lib/db";
 import type { Evento } from "../lib/schema";
+import { look } from "../lib/format";
 import Particles from "./Particles.astro";
+import Sfondo from "./Sfondo.astro";
 import TimelineCard from "./TimelineCard.astro";
 
 interface Props {
@@ -19,7 +21,8 @@ const sorted = events
 const zeroInsertAfter = sorted.filter((e) => (e.data.historicalYear ?? 0) < 0).length;
 ---
 
-<section class="section timeline-section" id="timeline">
+<section class="section timeline-section" id="timeline" data-sez="timeline" {...look(s.sezioni.timeline)}>
+    <Sfondo bg={s.sezioni.timeline} />
     <Particles />
     <div class="container">
         <div class="section-header">

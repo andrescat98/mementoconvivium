@@ -9,10 +9,18 @@ const imgReq = z
   .union([src, z.object({ src, x: z.number().min(0).max(100).optional(), y: z.number().min(0).max(100).optional(), zoom: z.number().min(1).max(3).optional() })])
   .transform((v): Img => (typeof v === "string" ? { src: v } : v));
 const img = imgReq.optional();
-// Sfondo: colore, immagine e velo chiaro (0–90 %) per tenere leggibile il testo
-const bg = z
-  .object({ color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), image: img, veil: z.number().min(0).max(90).optional() })
-  .optional();
+// Stile di una sezione: sfondo (colore, immagine, velo chiaro 0–90 % per la leggibilità),
+// animazione d'entrata e effetto sui titoli. Classi CSS in styles/global.css.
+export const ANIMS = ["sali", "dissolvenza", "zoom", "sinistra", "destra"] as const;
+export const FX = ["ombra", "bagliore", "oro", "inciso", "contorno"] as const;
+const bgObj = z.object({
+  color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(),
+  image: img,
+  veil: z.number().min(0).max(90).optional(),
+  anim: z.enum(ANIMS).optional(),
+  fx: z.enum(FX).optional(),
+});
+const bg = bgObj.optional();
 
 // "bozza": invisibile al pubblico, visibile in anteprima ai moderatori
 export const STATUS = ["aperto", "lista-attesa", "coming-soon", "chiuso", "bozza"] as const;
@@ -51,7 +59,8 @@ export const eventoSchema = z.object({
   price: opt,
   includes: z.array(z.string().trim().min(1)).optional(),
   cover: img, // copertina: sfondo dell'intestazione e anteprima sui social
-  background: bg, // sfondo predefinito delle schede
+  background: bg, // stile predefinito delle schede (ogni scheda può sovrascriverne i campi)
+  heroStyle: bg, // stile dell'intestazione
   tabs: z.array(tab).default([]),
   titleFont: opt, // font-family del titolo e dei titoli delle schede, es. "Rye, cursive"
   characterFont: opt, // font-family del nome nel ritratto fullscreen
@@ -115,6 +124,8 @@ export const settingsSchema = z.object({
   heroUrl: url,
   nav: z.array(z.object({ label: z.string().trim().min(1), href: z.string().trim().min(1) })).default([]),
   tagline: opt, // motto nel footer
+  // stile delle sezioni del sito, per chiave data-sez (home-hero, prenota…): /admin → Pagine → 🎨
+  sezioni: z.record(z.string().regex(/^[a-z-]+$/), bgObj).default({}),
   ...testi,
 });
 export type Settings = z.infer<typeof settingsSchema>;
@@ -130,6 +141,7 @@ export const DEFAULT_SETTINGS: Settings = {
     { label: "Lista eventi", href: "/lista-eventi" },
     { label: "Prenota", href: "/#prenota" },
   ],
+  sezioni: {},
   tagline: "\"Omnes vulnerant, ultima necat\" — ogni ora ferisce, l'ultima uccide.",
   ...DEFAULT_TESTI,
 };

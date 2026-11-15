@@ -5,7 +5,8 @@ import "../styles/timeline.css";
 import Prenota from "../components/Prenota.astro";
 import TimelineSection from "../components/TimelineSection.astro";
 import { getEvents, getSettings } from "../lib/db";
-import { dateLabel, nextDate } from "../lib/format";
+import Sfondo from "../components/Sfondo.astro";
+import { dateLabel, look, nextDate } from "../lib/format";
 
 const [eventi, s] = await Promise.all([getEvents(), getSettings()]);
 
@@ -29,7 +30,8 @@ const steps = [
 
 <Layout title="Memento Convivium" description="Cene con Delitto a Tema Storico">
     <!-- HERO -->
-    <section class="hero">
+    <section class="hero" data-sez="home-hero" {...look(s.sezioni["home-hero"])}>
+        <Sfondo bg={s.sezioni["home-hero"]} />
         <div class="hero-vignette" aria-hidden="true"></div>
         <div class="hero-content">
             <div class="hero-logo animate" style="--d:0.2s">
@@ -199,7 +201,8 @@ const steps = [
     </style>
 
     <!-- COME FUNZIONA -->
-    <section class="section come-funziona" id="come-funziona">
+    <section class="section come-funziona" id="come-funziona" data-sez="come-funziona" {...look(s.sezioni["come-funziona"])}>
+        <Sfondo bg={s.sezioni["come-funziona"]} />
         <div class="container">
             <div class="section-header">
                 <h2 data-k="stepsTitle">{s.stepsTitle}</h2>

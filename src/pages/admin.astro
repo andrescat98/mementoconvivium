@@ -4,7 +4,7 @@ import { isAdmin } from "../lib/auth";
 import { getDeleted, getEvents, getSettings } from "../lib/db";
 import { FONT_GROUPS } from "../lib/fonts";
 import { STATUS_TEXT } from "../lib/format";
-import { HERO_ACTIONS, STATUS, TEMPLATES } from "../lib/schema";
+import { ANIMS, FX, HERO_ACTIONS, STATUS, TEMPLATES } from "../lib/schema";
 import "../styles/admin.css";
 
 const login = Astro.getActionResult(actions.login);
@@ -21,6 +21,8 @@ const STATUS_HINT: Record<string, string> = {
     "coming-soon": "senza pagina",
     bozza: "nascosto",
 };
+const ANIM_TEXT: Record<string, string> = { sali: "Sale dal basso", dissolvenza: "Dissolvenza", zoom: "Zoom", sinistra: "Da sinistra", destra: "Da destra" };
+const FX_TEXT: Record<string, string> = { ombra: "Ombra", bagliore: "Bagliore dorato", oro: "Oro", inciso: "Inciso", contorno: "Solo contorno" };
 const TEMPLATE_TEXT: Record<string, string> = { testo: "Testo + immagine", galleria: "Galleria di foto", personaggi: "Personaggi" };
 // pagine con testi modificabili (attributo data-k): la pagina evento solo se ce n'è una pubblica
 const evPage = eventi.find((e) => e.data.status !== "bozza" && e.data.status !== "coming-soon");
@@ -129,12 +131,19 @@ const fontsHref =
         <!-- ── Testi delle pagine: la pagina vera in un iframe, testi data-k modificabili al clic -->
         <section id="pages" hidden>
             <div class="bar">
-                <div class="bar-title"><h2>Testi delle pagine</h2><small>Clicca su un testo tratteggiato e scrivi. Invio = a capo; testo vuoto = torna all'originale.</small></div>
+                <div class="bar-title"><h2>Testi delle pagine</h2><small>Clicca su un testo tratteggiato e scrivi (Invio = a capo; vuoto = testo originale). 🎨 in alto a destra di ogni sezione: sfondo, animazione, effetto titoli.</small></div>
                 <select name="page" aria-label="Pagina">{PAGES.map(([href, label]) => <option value={href}>{label}</option>)}</select>
-                <button type="button" class="primary" id="pages-save">Salva testi</button>
+                <button type="button" class="primary" id="pages-save">Salva</button>
             </div>
             <p class="msg" role="status"></p>
             <iframe class="page-frame" title="Pagina da modificare"></iframe>
+            <dialog id="sez-dlg" class="dlg">
+                <form method="dialog">
+                    <h3>Stile della sezione</h3>
+                    <div class="bg"></div>
+                    <p class="row-btns"><button value="ok" class="primary">Applica</button><button value="">Annulla</button></p>
+                </form>
+            </dialog>
         </section>
 
         <!-- ── Editor evento -->
@@ -183,7 +192,8 @@ const fontsHref =
                         <button type="button" data-font="characterFont">Scegli…</button>
                         <p class="font-sample" data-sample="characterFont"></p>
                     </div>
-                    <div class="bg wide" data-label="Sfondo predefinito delle schede"></div>
+                    <div class="bg wide" data-name="heroStyle" data-label="Stile dell'intestazione (lo sfondo sta sotto la copertina)"></div>
+                    <div class="bg wide" data-name="background" data-label="Stile predefinito delle schede"></div>
                 </fieldset>
             </details>
 
@@ -347,7 +357,7 @@ const fontsHref =
                     <div class="rows chars"></div>
                     <button type="button" data-add="char">+ Aggiungi personaggio</button>
                 </div>
-                <div class="bg wide" data-label="Sfondo di questa scheda (vuoto = sfondo predefinito)"></div>
+                <div class="bg wide" data-label="Stile di questa scheda (quello che lasci vuoto viene dallo stile predefinito)"></div>
             </div>
         </details>
     </template>
@@ -369,6 +379,10 @@ const fontsHref =
             <label class="veil">Velo chiaro sull'immagine <output></output><input type="range" name="bgVeil" min="0" max="90" step="5" value="0" /></label>
         </div>
         <div class="img" data-name="bgImage" data-shape="wide" data-label="Immagine di sfondo"></div>
+        <div class="bg-row">
+            <label>Animazione d'entrata<select name="anim"><option value="">Nessuna</option>{ANIMS.map((a) => <option value={a}>{ANIM_TEXT[a]}</option>)}</select></label>
+            <label>Effetto sui titoli<select name="fx"><option value="">Nessuno</option>{FX.map((f) => <option value={f}>{FX_TEXT[f]}</option>)}</select></label>
+        </div>
     </template>
     <script type="application/json" id="admin-data" set:html={json} />
     </>

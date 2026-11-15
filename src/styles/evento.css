@@ -44,25 +44,6 @@
         cursor: zoom-in;
     }
 
-    /* ── Sfondi (componente Sfondo) ── */
-    .sfondo,
-    .sfondo img,
-    .sfondo span {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-    }
-
-    .sfondo {
-        overflow: hidden;
-        z-index: 0;
-    }
-
-    .sfondo img {
-        object-fit: cover;
-    }
-
     /* ── Schede ── */
     .ev-tabbar {
         position: sticky;

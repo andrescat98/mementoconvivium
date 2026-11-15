@@ -68,6 +68,9 @@ export function imgStyle(i?: Img, defY = 50) {
   return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%` + (z > 1 ? `;transform:scale(${z})` : "");
 }
 
+/** Attributi di animazione d'entrata ed effetto titoli di una sezione (CSS in global.css). */
+export const look = (b?: { anim?: string; fx?: string }) => ({ "data-anim": b?.anim, "data-fx": b?.fx });
+
 /** Foglio Google Fonts con i font del sito (Layout e anteprima admin). */
 export const SITE_FONTS_HREF =
   "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400&display=swap";

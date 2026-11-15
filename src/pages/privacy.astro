@@ -1,6 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Sfondo from "../components/Sfondo.astro";
 import { getSettings } from "../lib/db";
+import { look } from "../lib/format";
 
 const s = await getSettings();
 import "../styles/index.css";
@@ -10,7 +12,8 @@ import "../styles/index.css";
     title="Privacy — Memento Convivium"
     description="Come Memento Convivium tratta i dati personali di chi partecipa alle cene con delitto."
 >
-    <section class="section privacy-page">
+    <section class="section privacy-page" data-sez="privacy" {...look(s.sezioni["privacy"])}>
+        <Sfondo bg={s.sezioni["privacy"]} />
         <div class="container">
             <div class="section-header">
                 <span class="section-label">Informativa</span>

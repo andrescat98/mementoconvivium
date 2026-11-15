@@ -4,7 +4,8 @@ import EventCard from "../components/EventCard.astro";
 import Particles from "../components/Particles.astro";
 import Prenota from "../components/Prenota.astro";
 import { getEvents, getSettings } from "../lib/db";
-import { nextDate } from "../lib/format";
+import Sfondo from "../components/Sfondo.astro";
+import { look, nextDate } from "../lib/format";
 import "../styles/index.css";
 
 const [eventi, s] = await Promise.all([getEvents(), getSettings()]);
@@ -16,7 +17,8 @@ eventi.sort((a, b) => (nextDate(a.data) ?? "9").localeCompare(nextDate(b.data) ?
     description="Tutti gli spettacoli di Memento Convivium: cene con delitto a tema storico dall'antico Egitto al proibizionismo."
 >
     <!-- PAGE HERO -->
-    <section class="page-hero">
+    <section class="page-hero" data-sez="lista-hero" {...look(s.sezioni["lista-hero"])}>
+        <Sfondo bg={s.sezioni["lista-hero"]} />
         <div class="page-hero-vignette" aria-hidden="true"></div>
         <div class="page-hero-content">
             <a href="/" class="page-hero-back">← Torna alla home</a>
@@ -28,7 +30,8 @@ eventi.sort((a, b) => (nextDate(a.data) ?? "9").localeCompare(nextDate(b.data) ?
     </section>
 
     <!-- GRIGLIA EVENTI -->
-    <section class="section eventi" id="eventi">
+    <section class="section eventi" id="eventi" data-sez="lista-eventi" {...look(s.sezioni["lista-eventi"])}>
+        <Sfondo bg={s.sezioni["lista-eventi"]} />
         <Particles />
         <div class="container">
             <div class="events-grid">

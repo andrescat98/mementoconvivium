@@ -5,7 +5,7 @@ import Prenota from "../../components/Prenota.astro";
 import Sfondo from "../../components/Sfondo.astro";
 import { isAdmin } from "../../lib/auth";
 import { getEvent, getSettings } from "../../lib/db";
-import { bookCta, googleFontsHref, imgStyle, md, slugify } from "../../lib/format";
+import { bookCta, googleFontsHref, imgStyle, look, md, slugify } from "../../lib/format";
 import "../../styles/evento.css";
 
 const evento = await getEvent(Astro.params.slug!);
@@ -22,6 +22,9 @@ if (hidden && !preview) return new Response(null, { status: 404 });
 const s = await getSettings();
 const { title, excerpt, status, cover, background, tabs, titleFont, characterFont } = evento.data;
 const cta = bookCta(evento.data, s);
+
+// stile della scheda: campo per campo sopra quello predefinito
+const looks = tabs.map((t) => (background || t.background ? { ...background, ...t.background } : undefined));
 
 // ancore uniche per scheda (#la-storia, #personaggi…)
 const seen = new Set<string>();
@@ -57,8 +60,8 @@ const ids = tabs.map((t, i) => {
                     </nav>
                 )}
                 {tabs.map((t, i) => (
-                    <section id={ids[i]} class={`ev-panel section${i === 0 ? " on" : ""}`} role="tabpanel">
-                        <Sfondo bg={t.background ?? background} />
+                    <section id={ids[i]} class={`ev-panel section${i === 0 ? " on" : ""}`} role="tabpanel" {...look(looks[i])}>
+                        <Sfondo bg={looks[i]} />
                         <div class="container ev-panel-inner">
                             <h2 class="ev-panel-title">{t.title}</h2>
                             <div class="divider"><span>⬥</span></div>

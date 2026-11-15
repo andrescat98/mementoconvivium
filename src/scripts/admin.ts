@@ -261,13 +261,17 @@ if (form) {
         if (b.color) $("[name=bgColor]", box).value = b.color;
         $("[name=bgVeil]", box).value = String(b.veil ?? 0);
         $("output", box).textContent = `${b.veil ?? 0}%`;
+        $("[name=anim]", box).value = b.anim ?? "";
+        $("[name=fx]", box).value = b.fx ?? "";
         initImg($<HTMLElement>(".img", box), b.image);
     }
     function readBg(box: Element) {
         const color = $("[name=bgOn]", box).checked ? $("[name=bgColor]", box).value : undefined;
         const image = getImg($(".img", box));
         const veil = Number($("[name=bgVeil]", box).value) || undefined;
-        return color || image ? { color, image, veil } : undefined;
+        const anim = $("[name=anim]", box).value || undefined;
+        const fx = $("[name=fx]", box).value || undefined;
+        return color || image || anim || fx ? { color, image, veil, anim, fx } : undefined;
     }
 
     // ── righe ripetibili (date, personaggi, foto della galleria)
@@ -483,7 +487,7 @@ if (form) {
         d.dates?.forEach((x: Data) => addRow("date", $("#dates", form!), x));
         (d.tabs as Data[] | undefined)?.forEach((t) => addTab(t));
         for (const box of $$<HTMLElement>("fieldset > .img", form!)) initImg(box, d[box.dataset.name!]);
-        initBg($<HTMLElement>("fieldset > .bg", form!), d.background);
+        for (const box of $$<HTMLElement>("fieldset > .bg", form!)) initBg(box, d[box.dataset.name!]);
         $("#ed-title").textContent = d.title || "Nuovo evento";
         countExcerpt();
         fontSample("titleFont");
@@ -516,7 +520,8 @@ if (form) {
                 location: val("location"), price: val("price"),
                 includes: list($<HTMLTextAreaElement>("[name=includes]", form!).value.split("\n").map((s) => s.trim()).filter(Boolean)),
                 cover: img("cover"),
-                background: readBg($("fieldset > .bg", form!)),
+                background: readBg($("fieldset > .bg[data-name=background]", form!)),
+                heroStyle: readBg($("fieldset > .bg[data-name=heroStyle]", form!)),
                 titleFont: val("titleFont"), characterFont: val("characterFont"),
                 // i contenuti degli altri modelli non vengono salvati: la scheda tiene solo quelli del suo modello
                 tabs: $$("#tabs > .tab-ed", form!).map((t) => {
@@ -729,7 +734,53 @@ if (form) {
     const pageFrame = $<HTMLIFrameElement>(".page-frame", pagesView);
     const pageSel = $<HTMLSelectElement>("[name=page]", pagesView);
     const EDIT_CSS = `[data-k]{outline:1px dashed rgb(0 0 0/.45);outline-offset:4px;cursor:text}
-        [data-k]:hover{outline-color:#000}[data-k]:focus{outline:2px solid #1f5fa8;background:rgb(255 255 255/.7)}`;
+        [data-k]:hover{outline-color:#000}[data-k]:focus{outline:2px solid #1f5fa8;background:rgb(255 255 255/.7)}
+        .sez-btn{position:absolute!important;top:5.5rem;right:1rem;z-index:20!important;font:600 14px system-ui;padding:.45rem .8rem;
+        border:1px solid #000;border-radius:999px;background:#fff;color:#000;cursor:pointer;box-shadow:0 2px 8px rgb(0 0 0/.25)}
+        .sez-btn:hover{background:#000;color:#fff}`;
+    const sezDlg = $<HTMLDialogElement>("#sez-dlg");
+    const sezBox = $<HTMLElement>(".bg", sezDlg);
+    let sezEl: HTMLElement | undefined;
+    const sezioni = (): Data => ({ ...settings.sezioni, ...edits.sezioni });
+    // Stile di una sezione nella pagina dell'iframe, senza ricaricarla.
+    // ponytail: rifà a mano il markup di components/Sfondo.astro; se cambia lì, va cambiato qui
+    function paintSez(el: HTMLElement, b?: Data, replay = false) {
+        const doc = el.ownerDocument;
+        el.querySelector(":scope > .sfondo")?.remove();
+        if (b?.color || b?.image) {
+            const d = doc.createElement("div");
+            d.className = "sfondo";
+            d.ariaHidden = "true";
+            if (b.color) d.style.background = b.color;
+            if (b.image) d.append(Object.assign(doc.createElement("img"), { src: b.image.src, alt: "", style: imgStyle(b.image) }));
+            if (b.veil) d.append(Object.assign(doc.createElement("span"), { style: `background:rgb(245 242 236 / ${b.veil}%)` }));
+            el.prepend(d);
+        }
+        for (const k of ["anim", "fx"]) b?.[k] ? el.setAttribute(`data-${k}`, b[k]) : el.removeAttribute(`data-${k}`);
+        if (replay && b?.anim) {
+            el.classList.remove("in");
+            void el.offsetWidth; // riparte la transizione
+            requestAnimationFrame(() => el.classList.add("in"));
+        } else el.classList.add("in");
+    }
+    sezDlg.addEventListener("click", (e) => {
+        const b = (e.target as Element).closest("button");
+        if (b && "crop" in b.dataset) openCrop(b.closest<HTMLElement>(".img")!);
+        else if (b && "clear" in b.dataset) setImg(b.closest<HTMLElement>(".img")!);
+    });
+    sezDlg.addEventListener("input", (e) => {
+        const t = e.target as HTMLInputElement;
+        if (t.name === "bgVeil") t.previousElementSibling!.textContent = `${t.value}%`;
+        if (t.name === "bgColor") $("[name=bgOn]", sezBox).checked = true;
+    });
+    sezDlg.onclose = () => {
+        if (sezDlg.returnValue !== "ok" || !sezEl) return;
+        const v = readBg(sezBox);
+        edits.sezioni = { ...sezioni(), [sezEl.dataset.sez!]: v };
+        // stessa chiave in più pagine (es. prenota): si aggiorna tutto quello che si vede
+        for (const el of sezEl.ownerDocument.querySelectorAll<HTMLElement>(`[data-sez="${sezEl.dataset.sez}"]`)) paintSez(el, v, true);
+        setDirty(true);
+    };
     pageSel.onchange = () => (pageFrame.src = pageSel.value);
     pageFrame.onload = () => {
         const doc = pageFrame.contentDocument;
@@ -741,8 +792,20 @@ if (form) {
             if (cur[el.dataset.k!] !== undefined) el.textContent = cur[el.dataset.k!];
             el.contentEditable = "plaintext-only";
         }
+        for (const el of doc.querySelectorAll<HTMLElement>("[data-sez]")) {
+            paintSez(el, sezioni()[el.dataset.sez!]);
+            const b = Object.assign(doc.createElement("button"), { type: "button", className: "sez-btn", textContent: "🎨 Stile" });
+            b.onclick = () => {
+                sezEl = el;
+                initBg(sezBox, sezioni()[el.dataset.sez!]);
+                sezDlg.returnValue = "";
+                sezDlg.showModal();
+            };
+            el.append(b);
+        }
         // niente link, menu o dialog della pagina mentre si modifica
         doc.addEventListener("click", (e) => {
+            if ((e.target as Element).closest(".sez-btn")) return;
             e.stopPropagation();
             if (!(e.target as Element).closest("[data-k]") || (e.target as Element).closest("a")) e.preventDefault();
         }, true);

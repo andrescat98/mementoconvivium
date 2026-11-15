@@ -28,6 +28,8 @@ const ogImage = new URL(image ?? "/og-image.jpg", Astro.site);
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!-- prima del CSS: senza JS le sezioni con animazione d'entrata restano visibili -->
+        <script is:inline>document.documentElement.classList.add("js")</script>
         <title>{title}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={canonical} />
@@ -66,3 +68,13 @@ const ogImage = new URL(image ?? "/og-image.jpg", Astro.site);
         <Footer />
     </body>
 </html>
+
+<script>
+    // Animazione d'entrata (data-anim, vedi global.css): .in quando la sezione entra nello schermo.
+    // Le schede evento nascoste partono quando vengono mostrate.
+    const io = new IntersectionObserver(
+        (es) => es.forEach((e) => e.isIntersecting && (e.target.classList.add("in"), io.unobserve(e.target))),
+        { rootMargin: "0px 0px -10% 0px" },
+    );
+    document.querySelectorAll("[data-anim]").forEach((el) => io.observe(el));
+</script>

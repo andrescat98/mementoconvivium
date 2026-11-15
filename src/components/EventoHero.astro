@@ -1,6 +1,7 @@
 ---
 // Intestazione della pagina evento: copertina, date, bottone. Usata anche dall'anteprima in /admin.
-import { dateLabel, imgStyle, today, type bookCta } from "../lib/format";
+import Sfondo from "./Sfondo.astro";
+import { dateLabel, imgStyle, look, today, type bookCta } from "../lib/format";
 import type { EventoData } from "../lib/schema";
 
 interface Props {
@@ -11,7 +12,8 @@ const { d, cta } = Astro.props;
 const oggi = today();
 ---
 
-<section class="ev-hero">
+<section class="ev-hero" {...look(d.heroStyle)}>
+    <Sfondo bg={d.heroStyle} />
     {d.cover && <img class="ev-hero-cover" src={d.cover.src} alt="" style={imgStyle(d.cover)} />}
     <div class="container ev-hero-inner">
         <a href="/lista-eventi" class="ev-back"><span>←</span> Tutti gli eventi</a>

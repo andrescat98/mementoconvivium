@@ -1,6 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Sfondo from "../components/Sfondo.astro";
 import { getSettings } from "../lib/db";
+import { look } from "../lib/format";
 
 const s = await getSettings();
 const handle = s.instagram?.replace(/\/+$/, "").split("/").pop();
@@ -11,7 +13,8 @@ import "../styles/index.css";
     title="Contatti — Memento Convivium"
     description="Scrivici o chiamaci per prenotare il tuo posto al banchetto: email, telefono e WhatsApp di Memento Convivium."
 >
-    <section class="section contatti">
+    <section class="section contatti" data-sez="contatti" {...look(s.sezioni["contatti"])}>
+        <Sfondo bg={s.sezioni["contatti"]} />
         <div class="container">
             <div class="section-header">
                 <span class="section-label">Parla con noi</span>
