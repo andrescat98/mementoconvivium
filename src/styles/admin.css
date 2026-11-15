@@ -205,6 +205,8 @@ fieldset > button { justify-self: start; }
 /* intestazione evento: la copertina è l'immagine e il font sta in "Font dei titoli" (niente doppioni) */
 .bg[data-name="heroStyle"] :is(.img, .bg-fx, .bg-font, .veil:has([name=bgVeil]), .check:has([name=dark]), .check:has([name=parallax])) { display: none; }
 #save-top { background: #f4f0e8; color: #1a1a1a; border-color: #f4f0e8; font-weight: 600; }
+#undo, #redo { background: #f4f0e8; color: #1a1a1a; border-color: #f4f0e8; padding-inline: 0.6rem; }
+#undo:disabled, #redo:disabled { opacity: 0.4; }
 #save-top.dirty { background: #c62828; border-color: #c62828; color: #fff; box-shadow: 0 0 0 3px rgb(198 40 40 / 0.35); }
 .cards-btn { padding: 0.7rem 1rem; border: 2px solid #1f5fa8; background: #e8f0fb; color: #1f5fa8; font-weight: 600; text-align: left; }
 .cards-btn:hover { background: #1f5fa8; color: #fff; }
@@ -331,8 +333,11 @@ form:not(:has(.sel)) :is(.tab-ed, .block-ed)[open] > summary { border-bottom: 0;
 .live-bar .check { display: flex; align-items: center; gap: 0.35rem; }
 .live-bar .check input { width: auto; }
 .live { height: 80dvh; }
-.live.phone { background: #ddd8cf; }
-.live.phone iframe { margin-inline: auto; }
+.live-opts { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.live-opts button, .live-opts select { width: auto; height: 28px; padding: 0 0.5rem; font-size: 0.85rem; }
+.live-opts button.on { border-color: #1f5fa8; background: #e6effa; }
+.live.phone, .live.tablet { background: #ddd8cf; }
+.live.phone iframe, .live.tablet iframe { margin-inline: auto; }
 @media (min-width: 900px) {
     body:has(.split) { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
     .admin.split {

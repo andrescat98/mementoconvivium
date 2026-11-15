@@ -42,7 +42,7 @@ if (form) {
         top.classList.toggle("dirty", v);
         top.textContent = v ? "● Salva le modifiche" : "💾 Salva";
         document.title = (v ? "● " : "") + "Moderatori · Memento Convivium";
-        if (v) queueLive(), keepDraft();
+        if (v) queueLive(), keepDraft(), histSoon();
     }
 
     // ── bozze locali: ogni vista tiene nel browser le modifiche non salvate (evento, pagina, impostazioni, testi).
@@ -307,7 +307,7 @@ if (form) {
     function fitPrev(wrap: HTMLElement) {
         const frame = $<HTMLIFrameElement>("iframe", wrap);
         if (wrap.classList.contains("live")) {
-            const w = wrap.classList.contains("phone") ? 390 : Math.max(PREV_W, wrap.clientWidth);
+            const w = wrap.classList.contains("phone") ? 390 : wrap.classList.contains("tablet") ? 820 : Math.max(PREV_W, wrap.clientWidth);
             const k = Math.min(1, wrap.clientWidth / w);
             frame.style.cssText = `width:${w}px;height:${wrap.clientHeight / k}px;transform:scale(${k})`;
             return;
@@ -337,9 +337,24 @@ if (form) {
         if (view === "editor" || view === "page")
             liveTimer = window.setTimeout(() => typing() ? queueLive(800) : renderPrev(liveWrap, view === "editor" ? collect() : { blocks: readBlocks($(".blocks-wrap", pageForm)), sfondo: readBg($(".bg[data-name=sfondo]", pageForm)), fissa: isFissa() ? pageKey : undefined }).then(markSel), ms);
     }
-    $("#live-phone").onchange = (e) => {
-        liveWrap.classList.toggle("phone", (e.target as HTMLInputElement).checked);
+    $("#live-size").onchange = (e) => {
+        const v = (e.target as HTMLSelectElement).value;
+        liveWrap.classList.toggle("phone", v === "phone");
+        liveWrap.classList.toggle("tablet", v === "tablet");
         fitPrev(liveWrap);
+    };
+    // anteprima pulita: come il sito, senza strumenti né testi scrivibili (al ritorno si ridisegna da capo)
+    let clean = false;
+    function paintClean() {
+        const body = liveDoc()?.body;
+        if (!body) return;
+        body.classList.toggle("clean", clean);
+        if (clean) for (const el of body.querySelectorAll<HTMLElement>("[contenteditable]")) el.removeAttribute("contenteditable");
+    }
+    $("#live-clean").onchange = (e) => {
+        clean = (e.target as HTMLInputElement).checked;
+        if (clean) paintClean();
+        else queueLive(0);
     };
     // porta un elemento dell'anteprima in vista (solo se è fuori dallo schermo)
     function scrollLive(el: Element | null | undefined, force = false) {
@@ -356,6 +371,7 @@ if (form) {
         const doc = liveDoc();
         if (!doc) return;
         decorate(doc);
+        paintClean();
         placeTools(doc);
         // dopo un nuovo render la barra in alto resta sullo stesso testo
         if (textEd && !textEd.isConnected)
@@ -666,6 +682,14 @@ if (form) {
         doc.addEventListener("click", (e) => {
             const t = e.target as Element;
             if (!t.closest("summary")) e.preventDefault(); // niente link; le FAQ si aprono
+            if (clean) return; // anteprima pulita: solo da guardare
+            if (brushOn) {
+                const target = t.closest<HTMLElement>("[data-sez]") ?? t.closest<HTMLElement>("[data-ed]");
+                if (target) {
+                    e.stopPropagation();
+                    return pasteStyle(target);
+                }
+            }
             const sez = t.closest<HTMLElement>("[data-sezstyle]");
             if (sez) return openSez(sez.closest<HTMLElement>("[data-sez]")!);
             if (t.closest("[data-noprenota]")) {
@@ -726,6 +750,8 @@ if (form) {
                 e.preventDefault();
                 dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));
             }
+            histKey(e);
+            if (e.key === "Escape") brushOff();
             const el = (e.target as Element).closest?.<HTMLElement>("[data-field], [data-nav]");
             if (e.key === "Enter" && el && el.dataset.field !== "bBody") {
                 e.preventDefault();
@@ -878,6 +904,50 @@ if (form) {
             sync(textEd!);
         } else textStyle(t.name, v);
     });
+
+    // ── pennello (come in Word): copia lo stile del blocco scelto e lo incolla in un altro blocco o sezione fissa
+    let styleClip: Data | undefined;
+    let brushOn = false;
+    const brushBtn = $<HTMLButtonElement>("#brush");
+    const pasteBtn = $<HTMLButtonElement>("#brush-paste");
+    function brushOff() {
+        brushOn = false;
+        brushBtn.classList.remove("on");
+        brushBtn.textContent = "🖌 Copia stile";
+        liveDoc()?.body?.style.removeProperty("cursor");
+    }
+    brushBtn.onclick = () => {
+        if (brushOn) return brushOff();
+        const box = selKey ? bgOf(selKey) : undefined;
+        if (!box) return say("Scegli prima un blocco nell'anteprima: ne copio lo stile.", true);
+        styleClip = structuredClone(readBg(box) ?? {});
+        pasteBtn.disabled = false;
+        brushOn = true;
+        brushBtn.classList.add("on");
+        brushBtn.textContent = "🖌 Clicca un blocco… (Esc)";
+        liveDoc()?.body?.style.setProperty("cursor", "copy");
+    };
+    function pasteStyle(target: HTMLElement) {
+        if (!styleClip) return;
+        const sez = target.dataset.sez;
+        if (sez) {
+            edits.sezioni = { ...sezioni(), [sez]: styleClip };
+            for (const el of target.ownerDocument.querySelectorAll<HTMLElement>(`[data-sez="${sez}"]`)) paintSez(el, styleClip, true);
+        } else {
+            const box = bgOf(target.dataset.ed!);
+            if (!box) return say("Questa parte non ha uno stile.", true);
+            initBg(box, styleClip);
+            const blk = box.closest<HTMLElement>(".block-ed");
+            if (blk) livePaint(blk);
+        }
+        setDirty(true);
+        brushOff();
+    }
+    pasteBtn.onclick = () => {
+        const el = selKey && liveDoc()?.querySelector<HTMLElement>(`div[data-ed="${selKey}"], a[data-ed="${selKey}"]`);
+        if (el) pasteStyle(el);
+        else say("Scegli prima il blocco in cui incollare lo stile.", true);
+    };
 
     liveFrame.addEventListener("load", () => {
         const doc = liveDoc();
@@ -1559,6 +1629,8 @@ if (form) {
         live.hidden = !split;
         unfocus();
         selKey = "";
+        histReset();
+        undoBtn.hidden = redoBtn.hidden = !split;
         msg = $<HTMLElement>(".msg", { editor: form!, settings: settingsForm, page: pageForm, empty: form! }[v]);
         renderPages();
         renderHist();
@@ -1669,6 +1741,61 @@ if (form) {
     });
 
     $<HTMLButtonElement>("#save-top").onclick = () => dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true }));
+
+    // ── annulla/ripeti: pila di istantanee del form (con testi e stili cambiati nell'anteprima), 50 passi.
+    // Dentro un campo di testo resta l'annulla nativo del browser; le sue modifiche contano comunque come istantanea.
+    let hist: string[] = [];
+    let hi = 0;
+    let histTimer = 0;
+    const undoBtn = $<HTMLButtonElement>("#undo");
+    const redoBtn = $<HTMLButtonElement>("#redo");
+    const histNow = () => JSON.stringify({ d: snapshot(), e: edits });
+    function histBtns() {
+        undoBtn.disabled = hi < 1;
+        redoBtn.disabled = hi >= hist.length - 1;
+    }
+    // vista aperta: la pila riparte da lì
+    function histReset() {
+        clearTimeout(histTimer);
+        hist = view === "editor" || view === "page" ? [histNow()] : [];
+        hi = 0;
+        histBtns();
+    }
+    const histSoon = () => (clearTimeout(histTimer), (histTimer = window.setTimeout(histPush, 400)));
+    function histPush() {
+        clearTimeout(histTimer);
+        if (!hist.length) return;
+        const s = histNow();
+        if (s === hist[hi]) return;
+        hist = [...hist.slice(0, hi + 1), s].slice(-50);
+        hi = hist.length - 1;
+        histBtns();
+    }
+    function histGo(n: number) {
+        histPush(); // prima si fissa quel che è in sospeso
+        const s = hist[hi + n];
+        if (!s) return;
+        hi += n;
+        const { d, e } = JSON.parse(s);
+        edits = e;
+        if (view === "editor") fill(d.data, d.slug);
+        else fillPage(d);
+        const k = selKey;
+        if (k && edEl(k)) pick(k);
+        setDirty(true);
+        clearTimeout(histTimer); // il ripristino non è una modifica nuova
+        histBtns();
+    }
+    function histKey(e: KeyboardEvent) {
+        const k = e.key.toLowerCase();
+        if (!(e.ctrlKey || e.metaKey) || (k !== "z" && k !== "y") || (view !== "editor" && view !== "page")) return;
+        if ((e.target as Element).closest?.("textarea, select, input:not([type=checkbox], [type=range], [type=color]), [contenteditable]:not([contenteditable=false]), dialog")) return;
+        e.preventDefault();
+        histGo(k === "y" || e.shiftKey ? 1 : -1);
+    }
+    undoBtn.onclick = () => histGo(-1);
+    redoBtn.onclick = () => histGo(1);
+    addEventListener("keydown", histKey);
 
     $<HTMLButtonElement>("#del").onclick = async () => {
         const ev = current;
