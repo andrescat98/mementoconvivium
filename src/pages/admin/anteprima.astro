@@ -162,6 +162,11 @@ const cards = [
     [contenteditable]:not([contenteditable="false"]):focus { outline: 2px solid #1f5fa8; background: rgb(255 255 255 / 0.35); }
     [data-ph]:empty::before { content: attr(data-ph); opacity: 0.45; font-style: italic; }
     div[data-ed]:not(.sel) .ed-ph { display: none; }
+    /* anteprima pulita: la pagina com'è sul sito, senza strumenti di modifica (admin.ts toglie anche contentEditable) */
+    body.clean :is(.ed-ins, .ed-tools, .ed-grip, .ed-ph) { display: none !important; }
+    body.clean :is([data-ed], [data-ed] > *, [contenteditable]):is(:hover, :focus, .sel) { outline: none !important; }
+    body.clean [data-ph]:empty::before { content: none; }
+    body.clean [data-ed] > *, body.clean a[data-ed] { cursor: auto; }
     img.ed-up { opacity: 0.4; }
     /* strumenti nell'angolo in alto a destra di blocchi e sezioni */
     .ed-tools {

@@ -71,6 +71,8 @@ const fontsHref =
     <header class="top">
         <button type="button" id="menu" hidden aria-controls="side">☰ Eventi e pagine</button>
         <strong class="brand">Memento Convivium · Moderatori</strong>
+        <button type="button" id="undo" disabled title="Annulla (Ctrl+Z)">↶</button>
+        <button type="button" id="redo" disabled title="Ripeti (Ctrl+Y)">↷</button>
         <button type="button" id="save-top" hidden title="Salva (Ctrl+S)">💾 Salva</button>
         <label class="who">Il tuo nome<input id="who" maxlength="40" placeholder="per la cronologia" autocomplete="nickname" /></label>
         <button type="button" id="media-open" title="Tutte le foto caricate">📁 Libreria foto</button>
@@ -374,7 +376,12 @@ const fontsHref =
                     <button type="button" data-cmd="insertHorizontalRule" title="Linea di separazione">―</button>
                     <button type="button" data-cmd="clean" title="Togli la formattazione dal testo selezionato">⌫ Pulisci</button>
                 </div>
-                <label class="check"><input type="checkbox" id="live-phone" /> 📱 Telefono</label>
+                <div class="live-opts">
+                    <button type="button" id="brush" title="Copia lo stile del blocco scelto, poi clicca un altro blocco nell'anteprima per incollarlo">🖌 Copia stile</button>
+                    <button type="button" id="brush-paste" disabled title="Incolla lo stile copiato nel blocco scelto">Incolla stile</button>
+                    <select id="live-size" aria-label="Dimensione dell'anteprima"><option value="">🖥 Computer</option><option value="tablet">Tablet</option><option value="phone">📱 Telefono</option></select>
+                    <label class="check" title="Nasconde gli strumenti di modifica: la pagina come sul sito"><input type="checkbox" id="live-clean" /> 👁 Anteprima pulita</label>
+                </div>
             </div>
             <div class="prev live"><iframe title="Anteprima dal vivo"></iframe></div>
         </section>
